@@ -11,7 +11,7 @@ This page covers the day-to-day commands for hacking on Wiki Agent itself, not o
 
 ## Prerequisites
 
-- Node.js 22+ (declared in `package.json` `engines.node`). Node runs the compiled CLI.
+- Node.js 25+ (declared in `package.json` `engines.node`). Node runs the compiled CLI.
 - Bun — used as the package manager and packer. The `prebuild` script uses `bun run clean` and `bun pm pack` produces the tarball. If you do not have bun, run `tsc` directly and use `npm pack`.
 
 ## Install

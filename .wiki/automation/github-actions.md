@@ -13,9 +13,9 @@ Running `wiki --init` writes `.github/workflows/update-wiki.yml` (via `src/agent
 
 The workflow:
 
-1. Optionally generates a GitHub App token with `actions/create-github-app-token@v2` if `APP_ID` and `APP_PRIVATE_KEY` secrets are present; otherwise it falls back to `secrets.GITHUB_TOKEN`.
+1. Optionally generates a GitHub App token with `actions/create-github-app-token@v3` if `APP_ID` and `APP_PRIVATE_KEY` secrets are present; otherwise it falls back to `secrets.GITHUB_TOKEN`.
 2. Checks out the repository with `actions/checkout@v7`.
-3. Sets up Node.js 22 with `actions/setup-node@v7`.
+3. Sets up Node.js 25 with `actions/setup-node@v7`.
 4. Clones `https://github.com/nx-solutions-ug/wiki-agent.git` to `/tmp/wiki-agent`, installs dependencies, and compiles with `npx tsc -p tsconfig.json`.
 5. Runs `node /tmp/wiki-agent/dist/cli.js --update --print` in headless mode with `WIKI_OLLAMA_MODE=cloud`.
    After the run the agent also updates `.wiki/.last-updated.json` and writes `.wiki/.last-update-report.md` (when there are changes).
@@ -45,7 +45,7 @@ Adjust the cron expression to taste; remember that GitHub Actions cron is UTC.
 | `APP_PRIVATE_KEY` | Secret (optional) | GitHub App private key for token generation. |
 | `WIKI_MODEL` | Variable (optional) | Model ID override. Defaults to `kimi-k2.7-code` if unset. |
 
-The `WIKI_OLLAMA_BASE_URL` environment variable is not set; the agent uses the cloud default `https://ollama.com`. Override it by adding a step that exports the variable if you need a self-hosted endpoint.
+The workflow passes `client-id: ${{ secrets.APP_ID }}` to the token action. The value is the same GitHub App numeric ID that was previously supplied as `app-id`; only the input name changed.
 
 ## Output
 
