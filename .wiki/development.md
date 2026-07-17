@@ -49,14 +49,14 @@ The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.H
 bun pm pack
 ```
 
-Produces `wiki-agent-0.1.0.tgz`. The tarball includes `dist/`, `README.md`, and a workflow entry per the `files` field. Note that `package.json` currently lists `.github/workflows/wiki-update.yml`, while `src/agent.ts:createWorkflowFile` writes `.github/workflows/update-wiki.yml`; these names are not yet reconciled.
+Produces `wiki-agent-0.1.0.tgz`. The tarball includes `dist/`, `README.md`, and a workflow entry per the `files` field. Note that `package.json` `files` lists `.github/workflows/wiki-update.yml`, while `src/agent.ts:createWorkflowFile` writes `.github/workflows/update-wiki.yml`; these names are still not reconciled.
 
 ## Project layout
 
 ```
 src/
   cli.tsx              CLI entrypoint, arg parsing, TUI vs. headless
-  agent.ts             Ollama tool-calling loop
+  agent.ts             Ollama tool-calling loop, workflow/report generation
   config.ts            Global/project config, Ollama client factory
   prompt.ts            System prompt, user message, help text
   tools.ts             read_file, write_file, edit_file, ls, grep, glob, execute
