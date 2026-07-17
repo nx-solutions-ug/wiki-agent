@@ -16,7 +16,7 @@ export function CredentialsSetup({
   const [step, setStep] = useState<SetupStep>("mode-select");
   const [mode, setMode] = useState<"local" | "cloud">("local");
   const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState("qwen3-coder");
+  const [model, setModel] = useState("kimi-k2.7-code");
   const [error, setError] = useState<string | null>(null);
 
   async function handleSave(): Promise<void> {

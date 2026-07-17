@@ -274,7 +274,7 @@ async function createWorkflowFile(projectRoot: string): Promise<void> {
     "        env:",
     "          WIKI_OLLAMA_MODE: cloud",
     '          WIKI_OLLAMA_API_KEY: ${{ secrets.WIKI_OLLAMA_API_KEY }}',
-    "          WIKI_MODEL: ${{ vars.WIKI_MODEL || 'minimax-m3' }}",
+    "          WIKI_MODEL: ${{ vars.WIKI_MODEL || 'kimi-k2.7-code' }}",
     "",
     "      - name: Create Wiki update pull request",
     "        uses: peter-evans/create-pull-request@v8",

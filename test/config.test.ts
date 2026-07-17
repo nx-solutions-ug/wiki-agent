@@ -36,7 +36,7 @@ describe("config", () => {
     test("returns default config when file does not exist", async () => {
       const config = await loadGlobalConfig();
       expect(config.mode).toBe("local");
-      expect(config.defaultModel).toBe("qwen3-coder");
+      expect(config.defaultModel).toBe("kimi-k2.7-code");
     });
 
     test("reads existing config file", async () => {
@@ -56,7 +56,7 @@ describe("config", () => {
 
   describe("saveGlobalConfig", () => {
     test("creates directory and writes config with 0o600 permissions", async () => {
-      await saveGlobalConfig({ mode: "local", defaultModel: "qwen3-coder" });
+      await saveGlobalConfig({ mode: "local", defaultModel: "kimi-k2.7-code" });
       const configPath = path.join(tempHome, ".wiki", "config.json");
       const content = await readFile(configPath, "utf8");
       expect(JSON.parse(content).mode).toBe("local");
@@ -119,7 +119,7 @@ describe("config", () => {
       const projectRoot = await tempDir();
       const config = await resolveConfig(projectRoot);
 
-      expect(config.model).toBe("qwen3-coder");
+      expect(config.model).toBe("kimi-k2.7-code");
       await rm(projectRoot, { recursive: true, force: true });
     });
   });
