@@ -11,20 +11,19 @@ This page covers the day-to-day commands for hacking on Wiki Agent itself, not o
 
 ## Prerequisites
 
-- Node.js 22+ (declared in `package.json` `engines.node`).
-- pnpm (the lockfile is `pnpm-lock.yaml`).
-- bun — only required if you want to use `bun pm pack` and `bun run clean`. The `prebuild` script uses bun; if you do not have bun, run `tsc` directly.
+- Node.js 22+ (declared in `package.json` `engines.node`). Node runs the compiled CLI.
+- Bun — used as the package manager and packer. The `prebuild` script uses `bun run clean` and `bun pm pack` produces the tarball. If you do not have bun, run `tsc` directly and use `npm pack`.
 
 ## Install
 
 ```bash
-pnpm install
+bun install
 ```
 
 ## Build
 
 ```bash
-pnpm run build
+bun run build
 ```
 
 This runs the `prebuild` cleanup (`rm -rf dist`) and then `tsc -p tsconfig.json`. The compiler emits `*.js` and `*.d.ts` files into `dist/` from `src/**/*.ts(x)`. The TS config uses `module: nodenext`, `moduleResolution: nodenext`, `target: ES2022`, and `jsx: react-jsx`.
@@ -32,7 +31,7 @@ This runs the `prebuild` cleanup (`rm -rf dist`) and then `tsc -p tsconfig.json`
 ## Test
 
 ```bash
-pnpm test
+bun run test
 ```
 
 Runs `vitest run` against the test files in `test/`. There are four suites:
@@ -47,10 +46,10 @@ The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.H
 ## Pack
 
 ```bash
-pnpm pack
+bun pm pack
 ```
 
-Produces `wiki-agent-0.1.0.tgz` (the file at the repo root is from a previous pack). The tarball includes `dist/`, `README.md`, and `.github/workflows/wiki-update.yml` per the `files` field.
+Produces `wiki-agent-0.1.0.tgz`. The tarball includes `dist/`, `README.md`, and a workflow entry per the `files` field. Note that `package.json` currently lists `.github/workflows/wiki-update.yml`, while `src/agent.ts:createWorkflowFile` writes `.github/workflows/update-wiki.yml`; these names are not yet reconciled.
 
 ## Project layout
 
@@ -67,7 +66,7 @@ src/
     CredentialsSetup.tsx
     RunView.tsx
 test/                  Vitest suites
-.github/workflows/wiki-update.yml
+.github/workflows/update-wiki.yml
 ```
 
 See [Architecture](./architecture/overview.md) for how these pieces fit together at runtime.
@@ -75,7 +74,7 @@ See [Architecture](./architecture/overview.md) for how these pieces fit together
 ## Release checklist
 
 1. Bump `version` in `package.json`.
-2. `pnpm run build && pnpm test`.
-3. `pnpm pack` and inspect the tarball.
+2. `bun run build && bun run test`.
+3. `bun pm pack` and inspect the tarball.
 4. `npm publish` (or your registry of choice).
 5. Tag the release in git so consumers can pin a version.

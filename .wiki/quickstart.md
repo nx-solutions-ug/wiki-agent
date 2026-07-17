@@ -59,7 +59,7 @@ The first run will create `.wiki/quickstart.md` plus a small set of section page
 
 ## 4. Update from CI
 
-Drop the bundled workflow at `.github/workflows/wiki-update.yml` into your repo and set `WIKI_OLLAMA_API_KEY` as a secret. The workflow runs `wiki --update --print` on a cron schedule and opens a PR with the changes. See [GitHub Actions](./automation/github-actions.md).
+Running `wiki --init` writes `.github/workflows/update-wiki.yml` into your repo. Set `WIKI_OLLAMA_API_KEY` as a secret to enable the scheduled job, which runs `wiki --update --print` and opens a PR with the `.wiki/` changes. See [GitHub Actions](./automation/github-actions.md).
 
 ## What gets generated
 
