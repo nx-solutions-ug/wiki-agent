@@ -13,7 +13,7 @@ Running `wiki --init` writes `.github/workflows/update-wiki.yml` (via `src/agent
 
 The workflow:
 
-1. Optionally generates a GitHub App token with `actions/create-github-app-token@v2` if `APP_ID` and `APP_PRIVATE_KEY` secrets are present; otherwise it falls back to `secrets.GITHUB_TOKEN`.
+1. Optionally generates a GitHub App token with `actions/create-github-app-token@v3` if `APP_ID` and `APP_PRIVATE_KEY` secrets are present; otherwise it falls back to `secrets.GITHUB_TOKEN`.
 2. Checks out the repository with `actions/checkout@v7`.
 3. Sets up Node.js 22 with `actions/setup-node@v7`.
 4. Clones `https://github.com/nx-solutions-ug/wiki-agent.git` to `/tmp/wiki-agent`, installs dependencies, and compiles with `npx tsc -p tsconfig.json`.
