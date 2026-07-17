@@ -282,7 +282,7 @@ async function createWorkflowFile(projectRoot: string): Promise<void> {
     "        id: token",
     "        uses: actions/create-github-app-token@v3",
     "        with:",
-    "          client-id: ${{ secrets.APP_ID }}",
+    "          client-id: ${{ secrets.CLIENT_ID }}",
     "          private-key: ${{ secrets.APP_PRIVATE_KEY }}",
     "        continue-on-error: true",
     "",
