@@ -41,7 +41,7 @@ Environment variables are merged with config files by `resolveConfig` in `config
 | `WIKI_MODEL` | Override model ID | from `~/.wiki/config.json` |
 | `WIKI_RECURSION_LIMIT` | Max agent iterations | `200` |
 
-In headless mode, the model ID is selected as: `--model` flag → `WIKI_MODEL` → `projectConfig.modelOverride` → `globalConfig.defaultModel` → `kimi-k2.7-code`.
+In headless mode, the model ID is selected as: `--model` flag → `projectConfig.modelOverride` → `WIKI_MODEL` → `globalConfig.defaultModel` → `kimi-k2.7-code`.
 
 ## Headless event format
 
