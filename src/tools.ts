@@ -370,6 +370,12 @@ export function createTools(projectRoot: string): Tool[] {
     handler: async (args) => {
       const command = args.command as string;
 
+      // Prevent the agent from recursively invoking itself
+      const blocked = /\b(wiki\b|wiki-agent|dist\/cli\.js)/i.test(command);
+      if (blocked) {
+        return "Error: This command is blocked. The wiki agent cannot invoke itself or the wiki CLI.";
+      }
+
       try {
         const { stdout, stderr } = await execAsync(command, {
           cwd: projectRoot,

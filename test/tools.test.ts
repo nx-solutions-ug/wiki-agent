@@ -155,6 +155,44 @@ describe("tools", () => {
     });
   });
 
+  describe("execute self-invocation guard", () => {
+    test("blocks wiki command", async () => {
+      const result = await executeTool(
+        "execute",
+        { command: "wiki --update --print" },
+        projectRoot,
+      );
+      expect(result).toContain("blocked");
+    });
+
+    test("blocks wiki-agent path", async () => {
+      const result = await executeTool(
+        "execute",
+        { command: "node /tmp/wiki-agent/dist/cli.js --init" },
+        projectRoot,
+      );
+      expect(result).toContain("blocked");
+    });
+
+    test("blocks dist/cli.js invocation", async () => {
+      const result = await executeTool(
+        "execute",
+        { command: "node dist/cli.js --update" },
+        projectRoot,
+      );
+      expect(result).toContain("blocked");
+    });
+
+    test("allows non-wiki commands", async () => {
+      const result = await executeTool(
+        "execute",
+        { command: "echo hello" },
+        projectRoot,
+      );
+      expect(result).toContain("hello");
+    });
+  });
+
   describe("tool definitions", () => {
     test("all tools have valid definitions", () => {
       const tools = createTools(projectRoot);
