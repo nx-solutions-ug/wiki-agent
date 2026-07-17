@@ -75,4 +75,4 @@ This step is invoked once at the end of `runAgent` — it does not run on every 
 
 ## Build and test
 
-`tsconfig.json` targets `ES2022` with `nodenext` modules and `react-jsx`. `pnpm run build` cleans `dist/` and runs `tsc`; `pnpm test` runs `vitest` over the test suite in `test/`. `pnpm pack` produces the npm tarball. See [Development](../development.md).
+`tsconfig.json` targets `ES2022` with `nodenext` modules and `react-jsx`. `bun run build` cleans `dist/` and runs `tsc`; `bun run test` runs `vitest` over the test suite in `test/`. `bun pm pack` produces the npm tarball. See [Development](../development.md).

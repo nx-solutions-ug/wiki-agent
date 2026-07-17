@@ -24,7 +24,7 @@ A four-step state machine:
 
 1. `mode-select` — the user picks `1` for Ollama Local or `2` for Ollama Cloud. The TUI does not accept Enter here; key presses drive transitions.
 2. `api-key` — only reached from cloud mode. Uses `ink-text-input` to read the key, validates that it is non-empty on submit.
-3. `model` — defaults to `qwen3-coder` and uses the same text input.
+3. `model` — defaults to `kimi-k2.7-code` and uses the same text input. The on-screen hint still mentions `qwen3-coder`, which is stale.
 4. `saving` — calls `saveGlobalConfig` with the assembled `GlobalConfig`, then calls the parent `onConfigSaved` callback with a synthesized `ResolvedConfig` so the run view can start without re-reading the disk.
 
 Errors from `saveGlobalConfig` are caught and rendered in red; the wizard drops back to `mode-select` on failure.
