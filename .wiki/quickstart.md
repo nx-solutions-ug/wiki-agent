@@ -30,6 +30,8 @@ Verify the install:
 wiki --help
 ```
 
+This prints the `WIKI AGENT` banner, usage summary, environment variables, and configuration paths.
+
 ## 2. Choose an Ollama mode
 
 Wiki Agent speaks to Ollama in one of two modes:

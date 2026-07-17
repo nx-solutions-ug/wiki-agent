@@ -25,7 +25,7 @@ Exactly one of `--init` or `--update` is required. If neither is present, the he
 |------|--------|
 | `--print` | Run headless: write events to stdout/stderr instead of launching the TUI. Required for CI. |
 | `--model <id>` | Override the model for this run. Higher priority than env vars and config files. |
-| `--help`, `-h` | Show help. |
+| `--help`, `-h` | Show help. The output includes an ASCII `WIKI AGENT` banner, plus usage, options, environment variables, and configuration paths. |
 
 Argument parsing is permissive: unknown flags are ignored. Combine freely, e.g. `wiki --update --print --model llama3.2`.
 
