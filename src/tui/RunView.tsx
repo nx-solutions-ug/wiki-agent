@@ -15,6 +15,7 @@ interface DisplayEvent {
   type: "assistant" | "tool" | "error" | "done";
   text: string;
   toolName?: string;
+  toolIndex?: number;
 }
 
 export function RunView({
@@ -31,6 +32,7 @@ export function RunView({
 
   useEffect(() => {
     const client = createOllamaClient(config);
+    let toolCount = 0;
 
     runAgent(client, {
       command,
@@ -56,15 +58,19 @@ export function RunView({
           }
           return;
         }
-
         let display: DisplayEvent | null = null;
         switch (event.type) {
           case "tool":
+            // Don't stream tool results into the TUI — just record that
+            // a tool was called. A running count gives the user a sense of
+            // progress without flooding the window with tool output.
             if (event.result) {
+              toolCount += 1;
               display = {
                 type: "tool",
-                text: event.result.slice(0, 500),
+                text: "",
                 toolName: event.name,
+                toolIndex: toolCount,
               };
             }
             break;
@@ -120,12 +126,11 @@ function EventLine({
     case "tool":
       return React.createElement(
         Box,
-        { flexDirection: "column", marginTop: 1 },
-        React.createElement(Text, { color: "gray", dimColor: true },
-          `[tool: ${event.toolName}]`,
-        ),
-        React.createElement(Text, { color: "gray", dimColor: true },
-          event.text,
+        { marginTop: 1 },
+        React.createElement(
+          Text,
+          { color: "gray", dimColor: true },
+          `#${event.toolIndex ?? ""} → ${event.toolName}`,
         ),
       );
     case "error":
