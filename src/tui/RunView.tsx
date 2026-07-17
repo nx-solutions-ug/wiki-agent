@@ -38,14 +38,27 @@ export function RunView({
       model: config.model,
       stream: true,
       onEvent: (event: AgentEvent) => {
-        let display: DisplayEvent | null = null;
-
-        switch (event.type) {
-          case "assistant":
-            if (event.content) {
-              display = { type: "assistant", text: event.content };
+        // Merge consecutive assistant chunks into one line so streaming
+        // does not fragment prose into separate display rows.
+        if (event.type === "assistant") {
+          if (event.content) {
+            const last = eventsRef.current[eventsRef.current.length - 1];
+            if (last && last.type === "assistant") {
+              last.text += event.content;
+              setEvents([...eventsRef.current]);
+              return;
             }
-            break;
+            eventsRef.current = [
+              ...eventsRef.current,
+              { type: "assistant" as const, text: event.content },
+            ];
+            setEvents([...eventsRef.current]);
+          }
+          return;
+        }
+
+        let display: DisplayEvent | null = null;
+        switch (event.type) {
           case "tool":
             if (event.result) {
               display = {
@@ -96,11 +109,18 @@ function EventLine({
 }): React.ReactElement {
   switch (event.type) {
     case "assistant":
-      return React.createElement(Text, null, event.text);
+      // Indent assistant prose with a cyan bullet so it reads as a
+      // distinct paragraph, not a continuation of tool output above.
+      return React.createElement(
+        Box,
+        { marginTop: 1 },
+        React.createElement(Text, { color: "cyan" }, "» "),
+        React.createElement(Text, { color: "cyan" }, event.text),
+      );
     case "tool":
       return React.createElement(
         Box,
-        { flexDirection: "column" },
+        { flexDirection: "column", marginTop: 1 },
         React.createElement(Text, { color: "gray", dimColor: true },
           `[tool: ${event.toolName}]`,
         ),

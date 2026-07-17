@@ -80,7 +80,10 @@ async function runHeadless(
       switch (event.type) {
         case "assistant":
           if (event.content) {
-            process.stdout.write(event.content);
+            // Non-streaming: whole content arrives as one event. Separate
+            // it from preceding tool output and the next tool marker so
+            // assistant prose does not blend with tool results.
+            process.stdout.write(`\n${event.content}\n`);
           }
           break;
         case "tool":
