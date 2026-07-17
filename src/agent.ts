@@ -330,6 +330,7 @@ async function createWorkflowFile(projectRoot: string): Promise<void> {
     "        uses: peter-evans/create-pull-request@v8",
     "        if: steps.report.outputs.has_changes == 'true'",
     "        with:",
+    "          token: ${{ steps.token.outputs.token || secrets.GITHUB_TOKEN }}",
     "          branch: wiki/update-${{ steps.timestamp.outputs.timestamp }}",
     "          add-paths: .wiki",
     '          title: "docs: update wiki"',
