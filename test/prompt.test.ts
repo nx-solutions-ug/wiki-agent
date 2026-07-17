@@ -45,6 +45,42 @@ describe("prompt", () => {
     });
   });
 
+  describe("createSystemPrompt with AGENTS.md", () => {
+    test("injects AGENTS.md content into the prompt", async () => {
+      const { mkdtemp, writeFile, rm } = await import("node:fs/promises");
+      const os = await import("node:os");
+      const path = await import("node:path");
+
+      const tmpDir = await mkdtemp(path.join(os.tmpdir(), "wiki-prompt-test-"));
+      await writeFile(path.join(tmpDir, "AGENTS.md"), "# My Rules\n\nAlways use trailing commas.", "utf8");
+
+      const prompt = await createSystemPrompt(tmpDir);
+
+      expect(prompt).toContain("Repository instructions");
+      expect(prompt).toContain("My Rules");
+      expect(prompt).toContain("Always use trailing commas");
+      expect(prompt).toContain("You MUST follow these rules");
+
+      await rm(tmpDir, { recursive: true, force: true });
+    });
+
+    test("injects CLAUDE.md as fallback when AGENTS.md is absent", async () => {
+      const { mkdtemp, writeFile, rm } = await import("node:fs/promises");
+      const os = await import("node:os");
+      const path = await import("node:path");
+
+      const tmpDir = await mkdtemp(path.join(os.tmpdir(), "wiki-prompt-test-"));
+      await writeFile(path.join(tmpDir, "CLAUDE.md"), "# Claude Rules\n\nNo emojis.", "utf8");
+
+      const prompt = await createSystemPrompt(tmpDir);
+
+      expect(prompt).toContain("Claude Rules");
+      expect(prompt).toContain("No emojis");
+
+      await rm(tmpDir, { recursive: true, force: true });
+    });
+  });
+
   describe("createUserMessage", () => {
     test("init message contains initialization instructions", () => {
       const message = createUserMessage("init", "/test/project");

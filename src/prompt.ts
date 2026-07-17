@@ -52,6 +52,7 @@ Run discipline:
 - Prefer grep/glob and short targeted reads over full-file reads when files are large.
 - Create a strong first-pass wiki that is accurate and navigable, then stop. The wiki can be refined in later update runs.
 - Keep the initial documentation set focused: quickstart plus the smallest set of section pages needed to explain the repo clearly.
+- Before writing documentation, read AGENTS.md or CLAUDE.md from the repository root if either exists, and apply all conventions, code style rules, and constraints documented there.
 
 Loop prevention:
 - Work in phases: discover → plan → write → verify. Do not restart discovery once you have moved to planning or writing.
