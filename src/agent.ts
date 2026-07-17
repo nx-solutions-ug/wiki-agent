@@ -217,6 +217,12 @@ export async function runAgent(
 
   await synchronizeWikiIndexes(path.join(projectRoot, ".wiki"));
 
+  await writeFile(
+    path.join(projectRoot, ".wiki", ".last-updated.json"),
+    JSON.stringify({ lastUpdated: new Date().toISOString() }, null, 2) + "\n",
+    "utf8",
+  );
+
   if (command === "init") {
     await createWorkflowFile(projectRoot);
     onEvent({ type: "tool", name: "create_workflow", result: "Created .github/workflows/update-wiki.yml" });
