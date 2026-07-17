@@ -223,6 +223,11 @@ export async function runAgent(
     }
   }
 
+  if (changedFiles.length === 0) {
+    onEvent({ type: "done", summary: "Wiki is already current. No files changed." });
+    return;
+  }
+
   await synchronizeWikiIndexes(path.join(projectRoot, ".wiki"));
 
   await writeFile(
@@ -310,19 +315,21 @@ async function createWorkflowFile(projectRoot: string): Promise<void> {
     "        id: timestamp",
     "        run: echo \"timestamp=$(date +%s)\" >> $GITHUB_OUTPUT",
     "",
-    "      - name: Read update report",
+    "      - name: Check for changes",
     "        id: report",
     "        run: |",
     "          if [ -f .wiki/.last-update-report.md ]; then",
+    "            echo \"has_changes=true\" >> $GITHUB_OUTPUT",
     "            echo \"body<<EOF\" >> $GITHUB_OUTPUT",
     "            cat .wiki/.last-update-report.md >> $GITHUB_OUTPUT",
     "            echo \"EOF\" >> $GITHUB_OUTPUT",
     "          else",
-    "            echo \"body=Automated wiki documentation update.\" >> $GITHUB_OUTPUT",
+    "            echo \"has_changes=false\" >> $GITHUB_OUTPUT",
     "          fi",
     "",
     "      - name: Create Wiki update pull request",
     "        uses: peter-evans/create-pull-request@v8",
+    "        if: steps.report.outputs.has_changes == 'true'",
     "        with:",
     "          branch: wiki/update-${{ steps.timestamp.outputs.timestamp }}",
     "          add-paths: .wiki",
