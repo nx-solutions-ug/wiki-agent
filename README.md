@@ -164,6 +164,10 @@ jobs:
           WIKI_OLLAMA_API_KEY: ${{ secrets.WIKI_OLLAMA_API_KEY }}
           WIKI_MODEL: ${{ vars.WIKI_MODEL || 'kimi-k2.7-code' }}
 
+      - name: Generate timestamp
+        id: timestamp
+        run: echo "timestamp=$(date +%s)" >> $GITHUB_OUTPUT
+
       - name: Read update report
         id: report
         run: |
@@ -179,7 +183,7 @@ jobs:
         with:
           token: ${{ steps.token.outputs.token || secrets.GITHUB_TOKEN }}
           add-paths: .wiki
-          branch: wiki/update
+          branch: wiki/update-${{ steps.timestamp.outputs.timestamp }}
           commit-message: "docs: update wiki"
           title: "docs: update wiki"
           body: ${{ steps.report.outputs.body }}
