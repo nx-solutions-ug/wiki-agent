@@ -24,6 +24,7 @@ Exactly one of `--init` or `--update` is required. If neither is present, the he
 | Flag | Effect |
 |------|--------|
 | `--print` | Run headless: write events to stdout/stderr instead of launching the TUI. Required for CI. |
+| `--verbose`, `-v` | Show full tool-call results in addition to assistant prose. Default is assistant prose only. |
 | `--model <id>` | Override the model for this run. Higher priority than env vars and config files. |
 | `--help`, `-h` | Show help. |
 
@@ -48,11 +49,11 @@ In headless mode, the model ID is selected as: `--model` flag → `projectConfig
 When `--print` is set, `cli.tsx` invokes `runAgent` with a synchronous event sink:
 
 - `assistant` events are concatenated to stdout as they arrive.
-- `tool` events write `\n[tool: <name>]\n<result>\n` to stdout.
+- `tool` events are suppressed by default. With `--verbose`/`--print --verbose`, each tool call writes `\n[tool: <name>]\n<result>\n` to stdout.
 - `error` events write `\nError: <message>\n` to stderr.
 - The final `done` event writes its summary followed by a newline.
 
-This is the format the GitHub Actions workflow relies on.
+This is the format the GitHub Actions workflow relies on (the bundled workflow passes `--verbose` to keep full CI logs).
 
 ## TUI
 

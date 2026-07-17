@@ -51,6 +51,9 @@ wiki --update
 # Headless / CI mode (prints events to stdout)
 wiki --update --print
 
+# Headless with full tool-call logs (useful for debugging or CI)
+wiki --update --print --verbose
+
 # Override the model for a single run
 wiki --init --print --model llama3.2
 ```
@@ -59,7 +62,7 @@ The first run will create `.wiki/quickstart.md` plus a small set of section page
 
 ## 4. Update from CI
 
-Running `wiki --init` writes `.github/workflows/update-wiki.yml` into your repo. Set `WIKI_OLLAMA_API_KEY` as a secret to enable the scheduled job, which runs `wiki --update --print` and opens a PR with the `.wiki/` changes. See [GitHub Actions](./automation/github-actions.md).
+Running `wiki --init` writes `.github/workflows/update-wiki.yml` into your repo. Set `WIKI_OLLAMA_API_KEY` as a secret to enable the scheduled job, which runs `wiki --update --print --verbose` and opens a PR with the `.wiki/` changes. See [GitHub Actions](./automation/github-actions.md).
 
 ## What gets generated
 
