@@ -35,7 +35,7 @@ export function CredentialsSetup({
       const resolved: ResolvedConfig = {
         mode,
         ...(mode === "cloud" ? { apiKey } : {}),
-        baseUrl: mode === "cloud" ? "https://api.ollama.com" : "http://localhost:11434",
+        baseUrl: mode === "cloud" ? "https://ollama.com" : "http://localhost:11434",
         model,
       };
 

@@ -32,7 +32,7 @@ function getGlobalConfigPath(): string {
 }
 
 const DEFAULT_LOCAL_HOST = "http://localhost:11434";
-const DEFAULT_CLOUD_HOST = "https://api.ollama.com";
+const DEFAULT_CLOUD_HOST = "https://ollama.com";
 const DEFAULT_MODEL = "qwen3-coder";
 
 const MAX_TOOL_RESULT_LENGTH = 10_000;

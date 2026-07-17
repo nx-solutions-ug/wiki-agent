@@ -6,12 +6,17 @@
   "bin": {
     "wiki": "./dist/cli.js"
   },
+  "files": [
+    "dist",
+    "README.md",
+    ".github/workflows/wiki-update.yml"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
-    "prebuild": "pnpm run clean",
+    "prebuild": "bun run clean",
     "test": "vitest run",
-    "pack": "pnpm pack"
+    "pack": "bun pm pack"
   },
   "dependencies": {
     "ink": "^6.0.1",

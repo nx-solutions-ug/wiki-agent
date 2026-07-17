@@ -78,22 +78,51 @@ export async function runAgent(
     let assistantContent = "";
     let toolCalls: ToolCall[] = [];
 
-    if (stream) {
-      const streamResponse = await client.chat({
-        model,
-        messages: messages as never,
-        tools: tools.map((t) => t.definition) as never,
-        stream: true,
-      });
+    try {
+      if (stream) {
+        const streamResponse = await client.chat({
+          model,
+          messages: messages as never,
+          tools: tools.map((t) => t.definition) as never,
+          stream: true,
+        });
 
-      for await (const chunk of streamResponse) {
-        if (chunk.message?.content) {
-          assistantContent += chunk.message.content;
-          onEvent({ type: "assistant", content: chunk.message.content });
+        for await (const chunk of streamResponse) {
+          if (chunk.message?.content) {
+            assistantContent += chunk.message.content;
+            onEvent({ type: "assistant", content: chunk.message.content });
+          }
+
+          if (chunk.message?.tool_calls) {
+            for (const tc of chunk.message.tool_calls) {
+              if (tc.function?.name) {
+                toolCalls.push({
+                  function: {
+                    name: tc.function.name,
+                    arguments: typeof tc.function.arguments === "string"
+                      ? tc.function.arguments
+                      : JSON.stringify(tc.function.arguments ?? {}),
+                  },
+                  id: ("id" in tc && typeof tc.id === "string" ? tc.id : tc.function.name),
+                });
+              }
+            }
+          }
         }
+      } else {
+        const result = await client.chat({
+          model,
+          messages: messages as never,
+          tools: tools.map((t) => t.definition) as never,
+          stream: false,
+        });
 
-        if (chunk.message?.tool_calls) {
-          for (const tc of chunk.message.tool_calls) {
+        const msgContent = result.message?.content;
+        assistantContent = typeof msgContent === "string" ? msgContent : "";
+        onEvent({ type: "assistant", content: assistantContent });
+
+        if (result.message?.tool_calls) {
+          for (const tc of result.message.tool_calls) {
             if (tc.function?.name) {
               toolCalls.push({
                 function: {
@@ -108,33 +137,17 @@ export async function runAgent(
           }
         }
       }
-    } else {
-      const result = await client.chat({
-        model,
-        messages: messages as never,
-        tools: tools.map((t) => t.definition) as never,
-        stream: false,
-      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
 
-      const msgContent = result.message?.content;
-      assistantContent = typeof msgContent === "string" ? msgContent : "";
-      onEvent({ type: "assistant", content: assistantContent });
-
-      if (result.message?.tool_calls) {
-        for (const tc of result.message.tool_calls) {
-          if (tc.function?.name) {
-            toolCalls.push({
-              function: {
-                name: tc.function.name,
-                arguments: typeof tc.function.arguments === "string"
-                  ? tc.function.arguments
-                  : JSON.stringify(tc.function.arguments ?? {}),
-              },
-              id: ("id" in tc && typeof tc.id === "string" ? tc.id : tc.function.name),
-            });
-          }
-        }
+      // If we have content but the API errored on tool calls, treat as done
+      if (assistantContent) {
+        onEvent({ type: "done", summary: `Agent completed with API warning: ${message}` });
+        break;
       }
+
+      onEvent({ type: "error", message });
+      break;
     }
 
     const assistantMessage: ChatMessage = {
