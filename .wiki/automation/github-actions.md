@@ -22,7 +22,7 @@ The workflow:
 6. Checks whether `.wiki/.last-update-report.md` exists.
    - If it exists, it sets `has_changes=true` and streams the report into a `body<<EOF` heredoc on `$GITHUB_OUTPUT`, adding an empty `echo ""` before the `EOF` delimiter so the delimiter sits on its own line.
    - If the report is missing, it sets `has_changes=false` and no pull request is opened.
-7. Opens a pull request via `peter-evans/create-pull-request@v8` (only when `steps.report.outputs.has_changes == 'true'`) that adds the `.wiki` path on a unique `wiki/update-<timestamp>` branch.
+7. Opens a pull request via `peter-evans/create-pull-request@v8` (only when `steps.report.outputs.has_changes == 'true'`) that adds the `.wiki` path on a unique `wiki/update-<timestamp>` branch, using `token: ${{ steps.token.outputs.token || secrets.GITHUB_TOKEN }}` so it uses the generated GitHub App token when available.
 
 Permissions are explicitly granted for `contents: write` and `pull-requests: write`, both of which are required for the create-pull-request step.
 
