@@ -15,11 +15,11 @@ The workflow file is published as part of the npm tarball (`"files": ["dist", "R
 
 The bundled workflow:
 
-1. Checks out the repository with `actions/checkout@v4`.
-2. Sets up Node.js 22 with `actions/setup-node@v4`.
-3. Installs the global `wiki-agent` package.
-4. Runs `wiki --update --print` in headless mode with `WIKI_OLLAMA_MODE=cloud`.
-5. Opens a pull request via `peter-evans/create-pull-request@v7` that adds the `.wiki` path on the `wiki/update` branch.
+1. Checks out the repository with `actions/checkout@v7`.
+2. Sets up Node.js 22 with `actions/setup-node@v7`.
+3. Clones `https://github.com/nx-solutions-ug/wiki-agent.git` to `/tmp/wiki-agent`, installs dependencies, and compiles with `npx tsc -p tsconfig.json`.
+4. Runs `node /tmp/wiki-agent/dist/cli.js --update --print` in headless mode with `WIKI_OLLAMA_MODE=cloud`.
+5. Opens a pull request via `peter-evans/create-pull-request@v8` that adds the `.wiki` path on the `wiki/update` branch.
 
 Permissions are explicitly granted for `contents: write` and `pull-requests: write`, both of which are required for the create-pull-request step.
 
@@ -28,6 +28,7 @@ Permissions are explicitly granted for `contents: write` and `pull-requests: wri
 The default triggers are:
 
 - `workflow_dispatch` — manual run from the Actions tab.
+- `push` to the `main` branch.
 - `schedule: cron: "0 8 * * *"` — daily at 08:00 UTC.
 
 Adjust the cron expression to taste; remember that GitHub Actions cron is UTC.
@@ -37,7 +38,7 @@ Adjust the cron expression to taste; remember that GitHub Actions cron is UTC.
 | Name | Type | Purpose |
 |------|------|---------|
 | `WIKI_OLLAMA_API_KEY` | Secret | Bearer token for Ollama Cloud. Required because the workflow forces cloud mode. |
-| `WIKI_MODEL` | Variable (optional) | Model ID override. Defaults to `qwen3-coder` if unset. |
+| `WIKI_MODEL` | Variable (optional) | Model ID override. Defaults to `kimi-k2.7-code` if unset. |
 
 The `WIKI_OLLAMA_BASE_URL` environment variable is not set; the agent uses the cloud default `https://ollama.com`. Override it by adding a step that exports the variable if you need a self-hosted endpoint.
 
@@ -58,7 +59,7 @@ You can reproduce the same event stream locally without opening a PR:
 ```bash
 WIKI_OLLAMA_MODE=cloud \
 WIKI_OLLAMA_API_KEY="$WIKI_OLLAMA_API_KEY" \
-WIKI_MODEL=qwen3-coder \
+WIKI_MODEL=kimi-k2.7-code \
 wiki --update --print
 ```
 

@@ -37,7 +37,7 @@ For cloud mode:
 }
 ```
 
-The `defaultGlobalConfig()` helper returns `{ mode: "local", defaultModel: "qwen3-coder" }` when the file is absent or unreadable. `loadGlobalConfig` swallows parse errors and falls back to the default.
+The `defaultGlobalConfig()` helper returns `{ mode: "local", defaultModel: "kimi-k2.7-code" }` when the file is absent or unreadable. `loadGlobalConfig` swallows parse errors and falls back to the default.
 
 ## Project config: `.wiki/config.json`
 
@@ -62,7 +62,7 @@ Lives inside the wiki output directory. Currently only two fields are read:
 - `mode` — `WIKI_OLLAMA_MODE` if valid (`"local"` or `"cloud"`), otherwise the global config's `mode`.
 - `apiKey` — `WIKI_OLLAMA_API_KEY` if set, otherwise the global config's `apiKey`.
 - `baseUrl` — `WIKI_OLLAMA_BASE_URL` if set, otherwise the global config's `baseUrl`, otherwise the mode's default (`http://localhost:11434` for local, `https://ollama.com` for cloud).
-- `model` — `modelOverride` arg → `WIKI_MODEL` → `projectConfig.modelOverride` → `globalConfig.defaultModel` → `"qwen3-coder"`.
+- `model` — `modelOverride` arg → `WIKI_MODEL` → `projectConfig.modelOverride` → `globalConfig.defaultModel` → `"kimi-k2.7-code"`.
 
 ## Ollama client construction
 
