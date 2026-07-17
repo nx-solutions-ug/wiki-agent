@@ -1,29 +1,29 @@
 import { describe, expect, test } from "vitest";
-import { createSystemPrompt, createUserMessage, getHelpText, type WikiCommand } from "../src/prompt.ts";
+import { createSystemPrompt, createUserMessage, getHelpText } from "../src/prompt.ts";
 
 describe("prompt", () => {
   describe("createSystemPrompt", () => {
-    test("contains role definition", () => {
-      const prompt = createSystemPrompt("/test/project");
+    test("contains role definition", async () => {
+      const prompt = await createSystemPrompt("/test/project");
       expect(prompt).toContain("Wiki Agent");
       expect(prompt).toContain("technical writer");
     });
 
-    test("contains output location instruction", () => {
-      const prompt = createSystemPrompt("/test/project");
+    test("contains output location instruction", async () => {
+      const prompt = await createSystemPrompt("/test/project");
       expect(prompt).toContain(".wiki/");
       expect(prompt).toContain("quickstart.md");
     });
 
-    test("contains loop prevention section", () => {
-      const prompt = createSystemPrompt("/test/project");
+    test("contains loop prevention section", async () => {
+      const prompt = await createSystemPrompt("/test/project");
       expect(prompt).toContain("Loop prevention");
       expect(prompt).toContain("discover → plan → write → verify");
       expect(prompt).toContain("Do not begin a response with");
     });
 
-    test("contains frontmatter instruction", () => {
-      const prompt = createSystemPrompt("/test/project");
+    test("contains frontmatter instruction", async () => {
+      const prompt = await createSystemPrompt("/test/project");
       expect(prompt).toContain("YAML frontmatter");
       expect(prompt).toContain("type:");
       expect(prompt).toContain("title:");
@@ -31,12 +31,17 @@ describe("prompt", () => {
       expect(prompt).toContain("tags:");
     });
 
-    test("contains tool discipline", () => {
-      const prompt = createSystemPrompt("/test/project");
+    test("contains tool discipline", async () => {
+      const prompt = await createSystemPrompt("/test/project");
       expect(prompt).toContain("grep");
       expect(prompt).toContain("glob");
       expect(prompt).toContain("read_file");
       expect(prompt).toContain("write_file");
+    });
+
+    test("does not include repo instructions section when no AGENTS.md exists", async () => {
+      const prompt = await createSystemPrompt("/test/project");
+      expect(prompt).not.toContain("Repository instructions");
     });
   });
 

@@ -1,6 +1,31 @@
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+
 export type WikiCommand = "init" | "update";
 
-export function createSystemPrompt(projectRoot: string): string {
+/**
+ * Reads AGENTS.md or CLAUDE.md from the project root, if either exists.
+ * Returns the file content (first match wins: AGENTS.md, then CLAUDE.md).
+ */
+async function loadRepoInstructions(projectRoot: string): Promise<string | null> {
+  for (const filename of ["AGENTS.md", "CLAUDE.md"]) {
+    try {
+      const content = await readFile(path.join(projectRoot, filename), "utf8");
+      return content.trim();
+    } catch {
+ // File doesn't exist — try the next one
+    }
+  }
+
+  return null;
+}
+
+export async function createSystemPrompt(projectRoot: string): Promise<string> {
+  const repoInstructions = await loadRepoInstructions(projectRoot);
+
+  const instructionsSection = repoInstructions
+ ? `\n\nRepository instructions (from AGENTS.md or CLAUDE.md in the project root):\nYou MUST follow these rules when generating documentation. Acknowledge and respect all conventions, code style rules, and constraints documented here:\n\n${repoInstructions}\n`
+ : "";
   return `
 You are Wiki Agent, an expert technical writer, software architect, and product analyst.
 
@@ -43,6 +68,7 @@ Documentation quality:
 - If the source material already has substantial docs or prior wiki pages, create a wiki that functions as an opinionated map and synthesis layer over those docs.
 - Do not make formatting-only edits. Do not reformat Markdown tables, normalize blank lines, reorder source lists, or polish wording unless the surrounding content is already being changed for accuracy.
 - Updates may be a no-op. If there are no relevant source changes since the previous successful run, and the current wiki is already accurate, do not edit files. Say that the wiki is already current.
+${instructionsSection}
 `.trim();
 }
 

@@ -12,16 +12,22 @@ export type AgentEvent =
 
 const DEFAULT_MAX_ITERATIONS = 200;
 
-interface ToolCall {
-  function: { name: string; arguments: string };
-  id?: string;
-}
-
-interface ChatMessage {
+/**
+ * Ollama SDK message format. Tool call arguments are objects (not strings),
+ * and tool response messages use `tool_name` (not `tool_call_id`).
+ */
+interface OllamaMessage {
   role: string;
   content: string;
-  tool_calls?: ToolCall[];
-  tool_call_id?: string;
+  tool_calls?: OllamaToolCall[];
+  tool_name?: string;
+}
+
+interface OllamaToolCall {
+  function: {
+    name: string;
+    arguments: Record<string, unknown>;
+  };
 }
 
 export interface RunOptions {
@@ -50,6 +56,38 @@ function resolveMaxIterations(): number {
   return DEFAULT_MAX_ITERATIONS;
 }
 
+/**
+ * Normalizes tool call arguments to an object. The Ollama API returns
+ * arguments as a JSON string or as a parsed object depending on the model —
+ * handle both.
+ */
+function normalizeToolCallArgs(
+  args: unknown,
+): Record<string, unknown> {
+  if (args === null || args === undefined) {
+    return {};
+  }
+
+  if (typeof args === "string") {
+    try {
+      const parsed = JSON.parse(args);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      // Malformed JSON — return empty so the tool gets called with no args
+      return {};
+    }
+    return {};
+  }
+
+  if (typeof args === "object" && !Array.isArray(args)) {
+    return args as Record<string, unknown>;
+  }
+
+  return {};
+}
+
 export async function runAgent(
   client: Ollama,
   options: RunOptions,
@@ -66,17 +104,17 @@ export async function runAgent(
 
   const maxIter = maxIterations ?? resolveMaxIterations();
   const tools = createTools(projectRoot);
-  const systemPrompt = createSystemPrompt(projectRoot);
+  const systemPrompt = await createSystemPrompt(projectRoot);
   const userMessage = createUserMessage(command, projectRoot, gitSummary);
 
-  const messages: ChatMessage[] = [
+  const messages: OllamaMessage[] = [
     { role: "system", content: systemPrompt },
     { role: "user", content: userMessage },
   ];
 
   for (let i = 0; i < maxIter; i++) {
     let assistantContent = "";
-    let toolCalls: ToolCall[] = [];
+    let toolCalls: OllamaToolCall[] = [];
 
     try {
       if (stream) {
@@ -99,11 +137,8 @@ export async function runAgent(
                 toolCalls.push({
                   function: {
                     name: tc.function.name,
-                    arguments: typeof tc.function.arguments === "string"
-                      ? tc.function.arguments
-                      : JSON.stringify(tc.function.arguments ?? {}),
+                    arguments: normalizeToolCallArgs(tc.function.arguments),
                   },
-                  id: ("id" in tc && typeof tc.id === "string" ? tc.id : tc.function.name),
                 });
               }
             }
@@ -127,11 +162,8 @@ export async function runAgent(
               toolCalls.push({
                 function: {
                   name: tc.function.name,
-                  arguments: typeof tc.function.arguments === "string"
-                    ? tc.function.arguments
-                    : JSON.stringify(tc.function.arguments ?? {}),
+                  arguments: normalizeToolCallArgs(tc.function.arguments),
                 },
-                id: ("id" in tc && typeof tc.id === "string" ? tc.id : tc.function.name),
               });
             }
           }
@@ -140,9 +172,11 @@ export async function runAgent(
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
 
-      // If we have content but the API errored on tool calls, treat as done
       if (assistantContent) {
-        onEvent({ type: "done", summary: `Agent completed with API warning: ${message}` });
+        onEvent({
+          type: "done",
+          summary: `Agent completed with API warning: ${message}`,
+        });
         break;
       }
 
@@ -150,7 +184,7 @@ export async function runAgent(
       break;
     }
 
-    const assistantMessage: ChatMessage = {
+    const assistantMessage: OllamaMessage = {
       role: "assistant",
       content: assistantContent,
       ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
@@ -163,24 +197,19 @@ export async function runAgent(
 
     for (const toolCall of toolCalls) {
       const toolName = toolCall.function.name;
-      let parsedArgs: Record<string, unknown>;
-
-      try {
-        parsedArgs = JSON.parse(toolCall.function.arguments || "{}");
-      } catch {
-        parsedArgs = {};
-      }
+      const args = toolCall.function.arguments;
 
       onEvent({ type: "tool", name: toolName, result: "" });
 
-      const result = await executeTool(toolName, parsedArgs, projectRoot);
+      const result = await executeTool(toolName, args, projectRoot);
 
       onEvent({ type: "tool", name: toolName, result });
 
+      // Ollama uses tool_name (not tool_call_id) to associate tool results
       messages.push({
         role: "tool",
         content: result,
-        tool_call_id: toolCall.id ?? toolName,
+        tool_name: toolName,
       });
     }
   }
