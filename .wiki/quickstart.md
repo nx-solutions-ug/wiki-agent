@@ -11,19 +11,24 @@ Wiki Agent is a standalone documentation agent that uses Ollama (local or cloud)
 
 ## 1. Install
 
-Global install via npm:
+Build from source and install globally with bun:
 
 ```bash
-npm install --global wiki-agent
-```
-
-Or with bun from the local tarball:
-
-```bash
-cd ~/.bun/install/global && bun add /path/to/wiki-agent-0.1.0.tgz
+git clone https://github.com/nx-solutions-ug/wiki-agent.git
+cd wiki-agent
+npm install
+npx tsc -p tsconfig.json
+bun pm pack
+cd ~/.bun/install/global && bun add /path/to/wiki-agent/wiki-agent-0.1.0.tgz
 ```
 
 After install, the `wiki` command is on `PATH` (entrypoint: `dist/cli.js`, declared as the `bin` in `package.json`).
+
+Verify the install:
+
+```bash
+wiki --help
+```
 
 ## 2. Choose an Ollama mode
 
