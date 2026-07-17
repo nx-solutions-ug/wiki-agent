@@ -320,6 +320,7 @@ async function createWorkflowFile(projectRoot: string): Promise<void> {
     "            echo \"has_changes=true\" >> $GITHUB_OUTPUT",
     "            echo \"body<<EOF\" >> $GITHUB_OUTPUT",
     "            cat .wiki/.last-update-report.md >> $GITHUB_OUTPUT",
+    "            echo \"\" >> $GITHUB_OUTPUT",
     "            echo \"EOF\" >> $GITHUB_OUTPUT",
     "          else",
     "            echo \"has_changes=false\" >> $GITHUB_OUTPUT",
@@ -353,10 +354,8 @@ function generateUpdateReport(
     return [
       `# Wiki ${actionLabel}`,
       "",
-      `Run completed at ${timestamp}.`,
-      "",
       "No files were changed. The wiki is already current.",
-    ].join("\n");
+    ].join("\n") + "\n";
   }
 
   const created = changedFiles.filter((f) => f.action === "created");
@@ -383,5 +382,5 @@ function generateUpdateReport(
     `This ${command === "init" ? "initialization" : "update"} run ${created.length > 0 ? `created ${created.length} page${created.length > 1 ? "s" : ""}` : ""}${created.length > 0 && edited.length > 0 ? " and " : ""}${edited.length > 0 ? `edited ${edited.length} page${edited.length > 1 ? "s" : ""}` : ""}.`,
   );
 
-  return lines.join("\n");
+  return lines.join("\n") + "\n";
 }
