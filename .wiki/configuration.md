@@ -7,14 +7,10 @@ tags: [config, environment-variables, ollama, resolution-order]
 
 # Configuration
 
-Wiki Agent reads configuration from four places, in increasing priority:
+Wiki Agent merges configuration from several sources. The exact precedence is field-specific and is implemented in `resolveConfig(projectRoot, modelOverride?)` in `src/config.ts`:
 
-1. Built-in defaults (compiled into `config.ts`).
-2. Files on disk: `~/.wiki/config.json` (global) and `.wiki/config.json` (per project).
-3. Environment variables (`WIKI_*`).
-4. The `--model` CLI flag (highest priority for the model ID only).
-
-`resolveConfig(projectRoot, modelOverride?)` in `src/config.ts` is the single source of truth for this merge.
+- `mode`, `apiKey`, and `baseUrl`: environment variable → global config file (`~/.wiki/config.json`) → built-in default.
+- `model`: `--model` CLI flag → `.wiki/config.json` `modelOverride` → `WIKI_MODEL` environment variable → `~/.wiki/config.json` `defaultModel` → built-in `kimi-k2.7-code`.
 
 ## Global config: `~/.wiki/config.json`
 
