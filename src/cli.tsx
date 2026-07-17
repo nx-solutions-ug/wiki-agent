@@ -16,12 +16,13 @@ const execAsync = promisify(exec);
 interface CliArgs {
   command: "init" | "update" | null;
   print: boolean;
+  verbose: boolean;
   model?: string;
   help: boolean;
 }
 
 function parseArgs(argv: string[]): CliArgs {
-  const args: CliArgs = { command: null, print: false, help: false };
+  const args: CliArgs = { command: null, print: false, verbose: false, help: false };
 
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
@@ -35,6 +36,10 @@ function parseArgs(argv: string[]): CliArgs {
         break;
       case "--print":
         args.print = true;
+        break;
+      case "--verbose":
+      case "-v":
+        args.verbose = true;
         break;
       case "--model":
         args.model = argv[++i];
@@ -65,6 +70,7 @@ async function runHeadless(
   command: "init" | "update",
   cwd: string,
   model: string,
+  verbose: boolean,
 ): Promise<void> {
   const config = await resolveConfig(cwd, model);
   const client = createOllamaClient(config);
@@ -80,14 +86,11 @@ async function runHeadless(
       switch (event.type) {
         case "assistant":
           if (event.content) {
-            // Non-streaming: whole content arrives as one event. Separate
-            // it from preceding tool output and the next tool marker so
-            // assistant prose does not blend with tool results.
             process.stdout.write(`\n${event.content}\n`);
           }
           break;
         case "tool":
-          if (event.result) {
+          if (event.result && verbose) {
             process.stdout.write(`\n[tool: ${event.name}]\n${event.result}\n`);
           }
           break;
@@ -122,13 +125,14 @@ async function main() {
   }
 
   if (args.print) {
-    await runHeadless(command, cwd, config.model);
+    await runHeadless(command, cwd, config.model, args.verbose);
   } else {
     const { waitUntilExit } = inkRender(
       React.createElement(App, {
         command,
         cwd,
         config,
+        verbose: args.verbose,
       }),
     );
     await waitUntilExit();

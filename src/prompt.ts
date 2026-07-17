@@ -131,12 +131,14 @@ Usage
   wiki --init --print            Headless init (non-interactive)
   wiki --update --print          Headless update (non-interactive)
   wiki --init --print --model <id>   Specify model
+  wiki --update --print --verbose    Headless update with full tool logs
   wiki --help                     Show this help
 
 Options
   --init          Initialize documentation for the current repository
   --update        Update existing documentation
   --print         Run headless (non-interactive, output to stdout)
+  --verbose, -v   Show full tool call results (default: assistant prose only)
   --model <id>    Override the model ID
   --help, -h      Show help
 

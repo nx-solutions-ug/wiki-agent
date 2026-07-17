@@ -42,12 +42,11 @@ jobs:
           npx tsc -p tsconfig.json
 
       - name: Run Wiki Agent
-        run: node /tmp/wiki-agent/dist/cli.js --update --print
+        run: node /tmp/wiki-agent/dist/cli.js --update --print --verbose
         env:
           WIKI_OLLAMA_MODE: cloud
           WIKI_OLLAMA_API_KEY: ${{ secrets.WIKI_OLLAMA_API_KEY }}
           WIKI_MODEL: ${{ vars.WIKI_MODEL || 'kimi-k2.7-code' }}
-
       - name: Generate timestamp
         id: timestamp
         run: echo "timestamp=$(date +%s)" >> $GITHUB_OUTPUT
@@ -70,8 +69,7 @@ jobs:
         if: steps.report.outputs.has_changes == 'true'
         with:
           token: ${{ steps.token.outputs.token || secrets.GITHUB_TOKEN }}
-          add-paths: .wiki
           branch: wiki/update-${{ steps.timestamp.outputs.timestamp }}
-          commit-message: "docs: update wiki"
+          add-paths: .wiki
           title: "docs: update wiki"
           body: ${{ steps.report.outputs.body }}

@@ -8,6 +8,7 @@ interface RunViewProps {
   command: WikiCommand;
   cwd: string;
   config: ResolvedConfig;
+  verbose: boolean;
   onExit: () => void;
 }
 
@@ -17,11 +18,11 @@ interface DisplayEvent {
   toolName?: string;
   toolIndex?: number;
 }
-
 export function RunView({
   command,
   cwd,
   config,
+  verbose,
   onExit,
 }: RunViewProps): React.ReactElement {
   const [events, setEvents] = useState<DisplayEvent[]>([]);
@@ -61,14 +62,14 @@ export function RunView({
         let display: DisplayEvent | null = null;
         switch (event.type) {
           case "tool":
-            // Don't stream tool results into the TUI — just record that
-            // a tool was called. A running count gives the user a sense of
-            // progress without flooding the window with tool output.
-            if (event.result) {
+            // By default the TUI shows only assistant prose. In verbose
+            // mode, record the tool call (marker + result body) so the
+            // user can follow the full agent log.
+            if (event.result && verbose) {
               toolCount += 1;
               display = {
                 type: "tool",
-                text: "",
+                text: event.result.slice(0, 1000),
                 toolName: event.name,
                 toolIndex: toolCount,
               };
@@ -93,7 +94,7 @@ export function RunView({
       setError(err instanceof Error ? err.message : String(err));
       setRunning(false);
     });
-  }, [command, cwd, config]);
+  }, [command, cwd, config, verbose]);
 
   return React.createElement(Box, { flexDirection: "column", marginTop: 1 },
     ...events.map((event, i) =>
@@ -126,12 +127,19 @@ function EventLine({
     case "tool":
       return React.createElement(
         Box,
-        { marginTop: 1 },
+        { flexDirection: "column", marginTop: 1 },
         React.createElement(
           Text,
           { color: "gray", dimColor: true },
           `#${event.toolIndex ?? ""} → ${event.toolName}`,
         ),
+        event.text
+          ? React.createElement(
+              Text,
+              { color: "gray", dimColor: true },
+              event.text,
+            )
+          : null,
       );
     case "error":
       return React.createElement(Text, { color: "red" }, `Error: ${event.text}`);

@@ -9,9 +9,10 @@ interface AppProps {
   command: "init" | "update";
   cwd: string;
   config: ResolvedConfig;
+  verbose: boolean;
 }
 
-export function App({ command, cwd, config }: AppProps): React.ReactElement {
+export function App({ command, cwd, config, verbose }: AppProps): React.ReactElement {
   const [needsSetup, setNeedsSetup] = useState(config.mode === "cloud" && !config.apiKey);
   const [resolvedConfig, setResolvedConfig] = useState(config);
   const { exit } = useApp();
@@ -50,6 +51,7 @@ export function App({ command, cwd, config }: AppProps): React.ReactElement {
       command,
       cwd,
       config: resolvedConfig,
+      verbose,
       onExit: exit,
     }),
   );

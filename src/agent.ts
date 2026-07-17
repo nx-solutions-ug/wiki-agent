@@ -304,7 +304,7 @@ async function createWorkflowFile(projectRoot: string): Promise<void> {
     "          npx tsc -p tsconfig.json",
     "",
     "      - name: Run Wiki Agent",
-    "        run: node /tmp/wiki-agent/dist/cli.js --update --print",
+    "        run: node /tmp/wiki-agent/dist/cli.js --update --print --verbose",
     "        env:",
     "          WIKI_OLLAMA_MODE: cloud",
     '          WIKI_OLLAMA_API_KEY: ${{ secrets.WIKI_OLLAMA_API_KEY }}',
