@@ -243,10 +243,8 @@ export async function runAgent(
     "utf8",
   );
 
-  if (command === "init") {
-    await createWorkflowFile(projectRoot);
-    onEvent({ type: "tool", name: "create_workflow", result: "Created .github/workflows/update-wiki.yml" });
-  }
+  await createWorkflowFile(projectRoot);
+  onEvent({ type: "tool", name: "create_workflow", result: "Created .github/workflows/update-wiki.yml" });
 
   onEvent({ type: "done", summary: "Agent run complete" });
 }
