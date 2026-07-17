@@ -33,7 +33,9 @@ See [Configuration](../configuration.md) for the data model and [Tools](../tools
 4. Normalize tool call arguments. Ollama models return arguments as either an object or a JSON string depending on the backend; `normalizeToolCallArgs` handles both and falls back to `{}` on malformed JSON.
 5. Append the assistant message to the history. If there are tool calls, append a `tool` message per call (Ollama associates the result with `tool_name`, not a `tool_call_id`).
 6. Loop up to `WIKI_RECURSION_LIMIT` iterations (default `200`). A response with no tool calls ends the loop.
-7. After the loop, call `synchronizeWikiIndexes(.wiki)` and emit a `done` event.
+7. Track every successful `write_file` or `edit_file` call in `changedFiles`.
+8. After the loop, if `changedFiles` is empty, return early with a `done` event — "Wiki is already current. No files changed." — without writing `.last-updated.json`, `.last-update-report.md`, or synchronizing indexes.
+9. If there are content changes, call `synchronizeWikiIndexes(.wiki)`, write `.last-updated.json` and `.last-update-report.md`, and emit a `done` event.
 
 Errors from the Ollama SDK are surfaced through the `error` event stream. If the model had already produced content, the loop exits with a `done` summary that includes the error message; otherwise it emits `error` and stops.
 
@@ -71,7 +73,7 @@ Tool results are truncated at `MAX_TOOL_RESULT_LENGTH` (10 000 characters) befor
 
 `index-middleware.ts` walks the `.wiki/` tree and writes an `index.md` for every directory. For each subdirectory it recurses; for each `*.md` file it parses the YAML frontmatter, extracts `title` and `description`, and emits a sorted bulleted list grouped into "Files" and "Directories". `index.md` and `_plan.md` are excluded from listings. If a generated index matches the existing one byte-for-byte, the file is not rewritten.
 
-This step is invoked once at the end of `runAgent` — it does not run on every tool call.
+This step is invoked once at the end of `runAgent` — it does not run on every tool call, and it is skipped entirely when no wiki pages were changed.
 
 ## Build and test
 

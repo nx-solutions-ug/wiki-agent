@@ -13,13 +13,14 @@ Running `wiki --init` writes `.github/workflows/update-wiki.yml` (via `src/agent
 
 The workflow:
 
-1. Optionally generates a GitHub App token with `actions/create-github-app-token@v2` if `APP_ID` and `APP_PRIVATE_KEY` secrets are present; otherwise it falls back to `secrets.GITHUB_TOKEN`.
-2. Checks out the repository with `actions/checkout@v7`.
+1. Optionally generates a GitHub App token with `actions/create-github-app-token@v2` if `APP_ID` and `APP_PRIVATE_KEY` secrets are present. This step uses `continue-on-error: true`, so it falls back to `secrets.GITHUB_TOKEN` when the app secrets are absent.
+2. Checks out the repository with `actions/checkout@v7` and the generated or default token.
 3. Sets up Node.js 22 with `actions/setup-node@v7`.
 4. Clones `https://github.com/nx-solutions-ug/wiki-agent.git` to `/tmp/wiki-agent`, installs dependencies, and compiles with `npx tsc -p tsconfig.json`.
 5. Runs `node /tmp/wiki-agent/dist/cli.js --update --print` in headless mode with `WIKI_OLLAMA_MODE=cloud`.
-6. Reads `.wiki/.last-update-report.md` and uses it as the pull-request body.
-7. Opens a pull request via `peter-evans/create-pull-request@v8` that adds the `.wiki` path on a unique `wiki/update-<timestamp>` branch.
+6. Generates a timestamp for the branch name.
+7. Checks for `.wiki/.last-update-report.md`. If the file exists, it sets `has_changes=true` and loads the report contents into a multiline output; otherwise it sets `has_changes=false`.
+8. Opens a pull request via `peter-evans/create-pull-request@v8`, but only when `has_changes == 'true'`. The PR adds the `.wiki` path on a unique `wiki/update-<timestamp>` branch and uses the report as the PR body.
 
 Permissions are explicitly granted for `contents: write` and `pull-requests: write`, both of which are required for the create-pull-request step.
 
@@ -46,7 +47,9 @@ The `WIKI_OLLAMA_BASE_URL` environment variable is not set; the agent uses the c
 
 ## Output
 
-The pull request body is read from `.wiki/.last-update-report.md` after the run, so it reflects the pages that were actually changed. If the report is missing it falls back to a static message. The PR only includes files under `.wiki/` (via `add-paths: .wiki`), so source code is never touched by the bot.
+When the agent edits one or more wiki pages, it writes `.wiki/.last-update-report.md` and the workflow uses that report as the pull-request body. The PR only includes files under `.wiki/` (via `add-paths: .wiki`), so source code is never touched by the bot.
+
+If the agent makes no content changes, `.wiki/.last-update-report.md` is not written, `has_changes` remains `false`, and the `create-pull-request` step is skipped entirely. In that case the workflow run produces no pull request.
 
 ## Local dry run
 
@@ -59,4 +62,4 @@ WIKI_MODEL=kimi-k2.7-code \
 wiki --update --print
 ```
 
-If the wiki is already current, the agent emits no edits and the index synchronizer leaves `index.md` files untouched. See [Architecture](./../architecture/overview.md) for how that is detected.
+If the wiki is already current, the agent emits a `done` event with "Wiki is already current. No files changed." and skips both the index synchronizer and the report file. See [Architecture](./../architecture/overview.md) for how that is detected.
