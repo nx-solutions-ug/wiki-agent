@@ -50,7 +50,7 @@ wiki --update --print
 wiki --init --print --model llama3.2
 ```
 
-The first run will create `.wiki/quickstart.md` plus a small set of section pages. After every run, `index.md` files are generated for each directory under `.wiki/` (see [Architecture](./architecture/overview.md)).
+The first run will create `.wiki/quickstart.md` plus a small set of section pages. After every run, `index.md` files are generated for each directory under `.wiki/`, and the agent writes `.wiki/.last-updated.json` plus `.wiki/.last-update-report.md` (see [Architecture](./architecture/overview.md)).
 
 ## 4. Update from CI
 

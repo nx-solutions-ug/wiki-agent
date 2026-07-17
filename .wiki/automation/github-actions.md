@@ -7,19 +7,21 @@ tags: [github-actions, ci, automation, cron]
 
 # GitHub Actions
 
-Wiki Agent ships with a workflow at `.github/workflows/wiki-update.yml` that runs the agent on a cron schedule and opens a pull request with the changes. The same workflow can be triggered manually via `workflow_dispatch`.
+Wiki Agent ships with a workflow at `.github/workflows/update-wiki.yml` that runs the agent on a schedule and opens a pull request with the changes. The same workflow can be triggered manually via `workflow_dispatch` or on pushes to `main`.
 
 ## What the workflow does
 
-The workflow file is published as part of the npm tarball (`"files": ["dist", "README.md", ".github/workflows/wiki-update.yml"]` in `package.json`). To enable it, copy that file into your project's `.github/workflows/` directory and configure secrets.
+The workflow file is generated automatically by `wiki --init` at `.github/workflows/update-wiki.yml`. A copy is also included in the npm tarball for reference.
 
 The bundled workflow:
 
-1. Checks out the repository with `actions/checkout@v7`.
-2. Sets up Node.js 22 with `actions/setup-node@v7`.
-3. Clones `https://github.com/nx-solutions-ug/wiki-agent.git` to `/tmp/wiki-agent`, installs dependencies, and compiles with `npx tsc -p tsconfig.json`.
-4. Runs `node /tmp/wiki-agent/dist/cli.js --update --print` in headless mode with `WIKI_OLLAMA_MODE=cloud`.
-5. Opens a pull request via `peter-evans/create-pull-request@v8` that adds the `.wiki` path on the `wiki/update` branch.
+1. Generates a GitHub App token with `actions/create-github-app-token@v2` if `APP_ID` and `APP_PRIVATE_KEY` secrets are set; falls back to `GITHUB_TOKEN` otherwise.
+2. Checks out the repository with `actions/checkout@v7` using the resolved token.
+3. Sets up Node.js 22 with `actions/setup-node@v7`.
+4. Clones `https://github.com/nx-solutions-ug/wiki-agent.git` to `/tmp/wiki-agent`, installs dependencies, and compiles with `npx tsc -p tsconfig.json`.
+5. Runs `node /tmp/wiki-agent/dist/cli.js --update --print` in headless mode with `WIKI_OLLAMA_MODE=cloud`.
+6. Reads `.wiki/.last-update-report.md` and passes it to the pull-request body output.
+7. Opens a pull request via `peter-evans/create-pull-request@v8` that adds the `.wiki` path on the `wiki/update` branch.
 
 Permissions are explicitly granted for `contents: write` and `pull-requests: write`, both of which are required for the create-pull-request step.
 
@@ -33,18 +35,25 @@ The default triggers are:
 
 Adjust the cron expression to taste; remember that GitHub Actions cron is UTC.
 
-## Required secrets and variables
+## Required secrets
 
-| Name | Type | Purpose |
-|------|------|---------|
-| `WIKI_OLLAMA_API_KEY` | Secret | Bearer token for Ollama Cloud. Required because the workflow forces cloud mode. |
-| `WIKI_MODEL` | Variable (optional) | Model ID override. Defaults to `kimi-k2.7-code` if unset. |
+| Name | Type | Required | Purpose |
+|------|------|----------|---------|
+| `WIKI_OLLAMA_API_KEY` | Secret | Yes | Bearer token for Ollama Cloud. Required because the workflow forces cloud mode. |
+| `APP_ID` | Secret | No | GitHub App ID for token generation. Falls back to `GITHUB_TOKEN` if unset. |
+| `APP_PRIVATE_KEY` | Secret | No | GitHub App private key. Falls back to `GITHUB_TOKEN` if unset. |
+
+## Optional variables
+
+| Name | Type | Default | Purpose |
+|------|------|---------|---------|
+| `WIKI_MODEL` | Variable | `kimi-k2.7-code` | Model ID override. |
 
 The `WIKI_OLLAMA_BASE_URL` environment variable is not set; the agent uses the cloud default `https://ollama.com`. Override it by adding a step that exports the variable if you need a self-hosted endpoint.
 
 ## Output
 
-The pull request body is a short static message:
+The pull request body is read from `.wiki/.last-update-report.md`, which lists the pages created or edited during the run. If that report is missing, the workflow falls back to a static message:
 
 > Automated wiki documentation update.
 >

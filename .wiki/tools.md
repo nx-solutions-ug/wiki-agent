@@ -113,4 +113,8 @@ Runs a shell command with `cwd` set to the project root, a 1 MB output buffer, a
 - `read_file`, `ls`, `grep`, `glob`, `execute` — must stay within the project root.
 - `write_file`, `edit_file` — must stay within `.wiki/`.
 
+## Self-invocation guard
+
+`execute` blocks commands that match `\b(wiki\b|wiki-agent|dist/cli\.js)` to prevent the agent from recursively running itself. The block is returned as an error string rather than throwing.
+
 Both checks use `path.resolve` and a `startsWith` comparison against the appropriate root plus the platform separator. The tests in `test/tools.test.ts` cover both the in-bounds and out-of-bounds cases.

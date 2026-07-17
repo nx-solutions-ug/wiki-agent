@@ -33,7 +33,7 @@ For cloud mode:
 {
   "mode": "cloud",
   "apiKey": "your-api-key",
-  "defaultModel": "qwen3-coder"
+  "defaultModel": "kimi-k2.7-code"
 }
 ```
 
@@ -77,7 +77,7 @@ The TUI and headless runner both use this factory, so there is exactly one code 
 
 Two constants live in `config.ts` and are re-exported for tools:
 
-- `DEFAULT_MODEL = "qwen3-coder"` — fallback model ID.
+- `DEFAULT_MODEL = "kimi-k2.7-code"` — fallback model ID.
 - `MAX_TOOL_RESULT_LENGTH = 10_000` — truncation ceiling for any tool result string.
 
 A separate `MAX_READ_LENGTH = 50_000` lives in `tools.ts` and bounds `read_file` returns before the global tool-result truncation step.

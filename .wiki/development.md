@@ -13,7 +13,7 @@ This page covers the day-to-day commands for hacking on Wiki Agent itself, not o
 
 - Node.js 22+ (declared in `package.json` `engines.node`).
 - pnpm (the lockfile is `pnpm-lock.yaml`).
-- bun — only required if you want to use `bun pm pack` and `bun run clean`. The `prebuild` script uses bun; if you do not have bun, run `tsc` directly.
+- bun — only required if you want to use `bun pm pack` and `bun run clean`. The `prebuild` script uses bun; if you do not have bun, run `rm -rf dist` manually and then `tsc`.
 
 ## Install
 
@@ -27,7 +27,7 @@ pnpm install
 pnpm run build
 ```
 
-This runs the `prebuild` cleanup (`rm -rf dist`) and then `tsc -p tsconfig.json`. The compiler emits `*.js` and `*.d.ts` files into `dist/` from `src/**/*.ts(x)`. The TS config uses `module: nodenext`, `moduleResolution: nodenext`, `target: ES2022`, and `jsx: react-jsx`.
+`package.json` declares `prebuild` (which uses `bun run clean` to remove `dist/`) and `build` (which runs `tsc -p tsconfig.json`). The compiler emits `*.js` and `*.d.ts` files into `dist/` from `src/**/*.ts(x)`. The TS config uses `module: nodenext`, `moduleResolution: nodenext`, `target: ES2022`, and `jsx: react-jsx`.
 
 ## Test
 
@@ -47,10 +47,10 @@ The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.H
 ## Pack
 
 ```bash
-pnpm pack
+bun pm pack
 ```
 
-Produces `wiki-agent-0.1.0.tgz` (the file at the repo root is from a previous pack). The tarball includes `dist/`, `README.md`, and `.github/workflows/wiki-update.yml` per the `files` field.
+`package.json` defines the `pack` script as `bun pm pack`. It produces `wiki-agent-0.1.0.tgz`. The tarball includes `dist/`, `README.md`, and `.github/workflows/wiki-update.yml` per the `files` field.
 
 ## Project layout
 
