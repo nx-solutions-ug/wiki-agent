@@ -14,25 +14,29 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "22"
 
-      - name: Install Wiki Agent
-        run: npm install --global wiki-agent
+      - name: Build Wiki Agent
+        run: |
+          git clone --branch main --depth 1 https://github.com/niklasschaeffer/wiki-agent.git /tmp/wiki-agent
+          cd /tmp/wiki-agent
+          npm install
+          npx tsc -p tsconfig.json
 
       - name: Run Wiki Agent
-        run: wiki --update --print
+        run: node /tmp/wiki-agent/dist/cli.js --update --print
         env:
           WIKI_OLLAMA_MODE: cloud
           WIKI_OLLAMA_API_KEY: ${{ secrets.WIKI_OLLAMA_API_KEY }}
-          WIKI_MODEL: ${{ vars.WIKI_MODEL || 'qwen3-coder' }}
+          WIKI_MODEL: ${{ vars.WIKI_MODEL || 'minimax-m3' }}
 
       - name: Create Wiki update pull request
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           add-paths: .wiki
           branch: wiki/update
