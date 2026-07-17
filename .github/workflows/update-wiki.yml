@@ -20,7 +20,7 @@ jobs:
         id: token
         uses: actions/create-github-app-token@v3
         with:
-          client-id: ${{ secrets.CLIENT_ID }}
+          client-id: ${{ secrets.APP_CLIENT_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
         continue-on-error: true
 

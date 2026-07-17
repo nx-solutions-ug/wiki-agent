@@ -111,7 +111,7 @@ Environment variables take priority over config files.
 
 Running `wiki --init` automatically creates `.github/workflows/update-wiki.yml` in your repo. The workflow:
 
-1. Generates a GitHub App token if `CLIENT_ID` and `APP_PRIVATE_KEY` secrets are set (falls back to `GITHUB_TOKEN`)
+1. Generates a GitHub App token if `APP_CLIENT_ID` and `APP_PRIVATE_KEY` secrets are set (falls back to `GITHUB_TOKEN`)
 2. Checks out your repo
 3. Clones and builds wiki-agent from `nx-solutions-ug/wiki-agent`
 4. Runs `wiki --update --print` with your Ollama Cloud credentials
@@ -138,7 +138,7 @@ jobs:
         id: token
         uses: actions/create-github-app-token@v3
         with:
-          client-id: ${{ secrets.CLIENT_ID }}
+          client-id: ${{ secrets.APP_CLIENT_ID }}
           private-key: ${{ secrets.APP_PRIVATE_KEY }}
         continue-on-error: true
 
@@ -194,7 +194,7 @@ jobs:
 | Secret | Required | Description |
 |--------|----------|-------------|
 | `WIKI_OLLAMA_API_KEY` | Yes | Ollama Cloud API key |
-| `CLIENT_ID` | No | GitHub App client ID for token generation (falls back to `GITHUB_TOKEN`) |
+| `APP_CLIENT_ID` | No | GitHub App client ID for token generation (falls back to `GITHUB_TOKEN`) |
 | `APP_PRIVATE_KEY` | No | GitHub App private key |
 
 ### Optional variables
