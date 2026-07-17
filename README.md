@@ -18,14 +18,21 @@ A standalone Ollama-only documentation agent. It inspects your source code and g
 
 ### 1. Install
 
+Build from source and install globally with bun:
+
 ```bash
-npm install --global wiki-agent
+git clone https://github.com/nx-solutions-ug/wiki-agent.git
+cd wiki-agent
+npm install
+npx tsc -p tsconfig.json
+bun pm pack
+cd ~/.bun/install/global && bun add /path/to/wiki-agent/wiki-agent-0.1.0.tgz
 ```
 
-Or with bun:
+Verify the install:
 
 ```bash
-cd ~/.bun/install/global && bun add /path/to/wiki-agent-0.1.0.tgz
+wiki --help
 ```
 
 ### 2. Configure
