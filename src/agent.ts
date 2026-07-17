@@ -223,6 +223,9 @@ export async function runAgent(
     }
   }
 
+  await createWorkflowFile(projectRoot);
+  onEvent({ type: "tool", name: "create_workflow", result: "Created .github/workflows/update-wiki.yml" });
+
   if (changedFiles.length === 0) {
     onEvent({ type: "done", summary: "Wiki is already current. No files changed." });
     return;
@@ -242,9 +245,6 @@ export async function runAgent(
     report,
     "utf8",
   );
-
-  await createWorkflowFile(projectRoot);
-  onEvent({ type: "tool", name: "create_workflow", result: "Created .github/workflows/update-wiki.yml" });
 
   onEvent({ type: "done", summary: "Agent run complete" });
 }
