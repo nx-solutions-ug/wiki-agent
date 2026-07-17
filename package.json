@@ -19,6 +19,7 @@
     "pack": "bun pm pack"
   },
   "dependencies": {
+    "@ast-grep/cli": "^0.44.1",
     "ink": "^7.0.0",
     "ink-text-input": "^6.0.0",
     "marked": "^18.0.0",

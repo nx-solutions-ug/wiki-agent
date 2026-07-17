@@ -348,36 +348,56 @@ export function createTools(projectRoot: string): Tool[] {
     },
   };
 
-  const executeTool: Tool = {
+  const gitTool: Tool = {
     definition: {
       type: "function",
       function: {
-        name: "execute",
+        name: "git",
         description:
-          "Run a shell command in the project root. Use for git log, git diff, etc.",
+          "Run a read-only git subcommand in the project root. Use for git log, git diff, git show, git ls-files, git blame, etc. The agent has no general shell access — only git is exposed for repository history and inspection.",
         parameters: {
           type: "object",
           properties: {
-            command: {
+            args: {
               type: "string",
-              description: "The shell command to run",
+              description:
+                "Git subcommand and arguments, without the leading 'git'. Example: 'log --oneline -30', 'diff --stat', 'ls-files', 'show HEAD:README.md'.",
             },
           },
-          required: ["command"],
+          required: ["args"],
         },
       },
     },
     handler: async (args) => {
-      const command = args.command as string;
+      const argString = (args.args as string) ?? "";
 
-      // Prevent the agent from recursively invoking itself
-      const blocked = /\b(wiki\b|wiki-agent|dist\/cli\.js)/i.test(command);
-      if (blocked) {
-        return "Error: This command is blocked. The wiki agent cannot invoke itself or the wiki CLI.";
+      // Only read-only / inspection subcommands are permitted. The agent
+      // cannot mutate the repository state through this tool. Flags that
+      // would mutate state (e.g. -d, -D, --delete) are blocked by the
+      // metacharacter guard below for any subcommand that accepts them, but
+      // the list itself excludes mutating subcommands entirely.
+      const ALLOWED_GIT_SUBCOMMANDS: Record<string, true> = {
+        log: true, diff: true, show: true, "ls-files": true, blame: true,
+        status: true, remote: true, describe: true, "rev-parse": true,
+        shortlog: true, "name-rev": true, "ls-tree": true, "cat-file": true,
+        reflog: true,
+      };
+
+      const tokens = argString.trim().split(/\s+/);
+      const subcommand = tokens[0] ?? "";
+      if (!ALLOWED_GIT_SUBCOMMANDS[subcommand]) {
+        return `Error: git subcommand '${subcommand}' is not permitted. Only read-only inspection subcommands are allowed (log, diff, show, ls-files, blame, status, remote, describe, rev-parse, shortlog, name-rev, ls-tree, cat-file, reflog).`;
+      }
+
+      // Reject shell metacharacters that could chain commands or inject
+      // flags. Git flags begin with '-', which we permit, so the guard
+      // focuses on shell-control and redirection metacharacters.
+      if (/[;&|`$()<>]/.test(argString)) {
+        return "Error: shell metacharacters are not permitted in git arguments.";
       }
 
       try {
-        const { stdout, stderr } = await execAsync(command, {
+        const { stdout, stderr } = await execAsync(`git ${argString}`, {
           cwd: projectRoot,
           maxBuffer: 1024 * 1024,
           timeout: 30_000,
@@ -392,7 +412,148 @@ export function createTools(projectRoot: string): Tool[] {
     },
   };
 
-  return [readFileTool, writeFileTool, editFileTool, lsTool, grepTool, globTool, executeTool];
+  const astGrepTool: Tool = {
+    definition: {
+      type: "function",
+      function: {
+        name: "ast_grep",
+        description:
+          "Search code by AST pattern using ast-grep. Matches code structure (not text), so metavariables and node shapes work. Requires an explicit language. Use for precise structural queries like finding all calls to a function, all exports, or a specific control-flow shape.",
+        parameters: {
+          type: "object",
+          properties: {
+            pattern: {
+              type: "string",
+              description:
+                "AST pattern to match. Use $NAME for a single node metavariable and $$$ARGS for zero-or-more. Example: 'console.log($$$)'",
+            },
+            lang: {
+              type: "string",
+              description:
+                "Language of the pattern. Supported: bash, c, cpp, csharp, css, elixir, go, haskell, html, java, javascript, json, jsx, kotlin, lua, nix, php, python, ruby, rust, scala, solidity, swift, tsx, typescript, yaml.",
+            },
+            path: {
+              type: "string",
+              description: "Relative path to search in (default: project root)",
+            },
+            selector: {
+              type: "string",
+              description:
+                "Optional AST kind to extract as the actual matcher (ast-grep --selector).",
+            },
+            strictness: {
+              type: "string",
+              description:
+                "Optional pattern strictness: cst, smart, ast, relaxed, signature, template.",
+            },
+          },
+          required: ["pattern", "lang"],
+        },
+      },
+    },
+    handler: async (args) => {
+      const pattern = args.pattern as string;
+      const lang = args.lang as string;
+      const searchPath = resolveProjectPath(
+        (args.path as string) ?? ".",
+        projectRoot,
+      );
+
+      const cmd = [
+        "ast-grep",
+        "run",
+        "--json=compact",
+        "--lang",
+        `'${lang.replace(/'/g, "'\\''")}'`,
+        "--pattern",
+        `'${pattern.replace(/'/g, "'\\''")}'`,
+      ];
+
+      const selector = args.selector as string | undefined;
+      if (selector) {
+        cmd.push("--selector", `'${selector.replace(/'/g, "'\\''")}'`);
+      }
+
+      const strictness = args.strictness as string | undefined;
+      if (strictness) {
+        cmd.push("--strictness", `'${strictness.replace(/'/g, "'\\''")}'`);
+      }
+
+      cmd.push(`'${searchPath.replace(/'/g, "'\\''")}'`);
+
+      try {
+        const { stdout } = await execAsync(cmd.join(" "), {
+          cwd: projectRoot,
+          maxBuffer: 1024 * 1024,
+          timeout: 30_000,
+        });
+        return truncateResult(stdout || "(no matches)");
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return truncateResult(`Error: ${message}`);
+      }
+    },
+  };
+
+  const astSearchTool: Tool = {
+    definition: {
+      type: "function",
+      function: {
+        name: "ast_search",
+        description:
+          "Search code using an ast-grep YAML rule (inline). More powerful than ast_grep: supports relational/inside/has constraints and multiple rules separated by '---'. Use for complex structural queries that a single pattern cannot express.",
+        parameters: {
+          type: "object",
+          properties: {
+            rule: {
+              type: "string",
+              description:
+                "Inline ast-grep YAML rule(s). Must have id, language, and rule fields. Multiple rules separated by '---'.",
+            },
+            path: {
+              type: "string",
+              description: "Relative path to search in (default: project root)",
+            },
+          },
+          required: ["rule"],
+        },
+      },
+    },
+    handler: async (args) => {
+      const rule = args.rule as string;
+      const searchPath = resolveProjectPath(
+        (args.path as string) ?? ".",
+        projectRoot,
+      );
+
+      try {
+        const { stdout } = await execAsync(
+          `ast-grep scan --json=compact --inline-rules '${rule.replace(/'/g, "'\\''")}' '${searchPath.replace(/'/g, "'\\''")}'`,
+          {
+            cwd: projectRoot,
+            maxBuffer: 1024 * 1024,
+            timeout: 30_000,
+          },
+        );
+        return truncateResult(stdout || "(no matches)");
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return truncateResult(`Error: ${message}`);
+      }
+    },
+  };
+
+  return [
+    readFileTool,
+    writeFileTool,
+    editFileTool,
+    lsTool,
+    grepTool,
+    globTool,
+    gitTool,
+    astGrepTool,
+    astSearchTool,
+  ];
 }
 
 /**

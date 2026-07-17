@@ -1,8 +1,12 @@
 import { describe, expect, test, beforeEach, afterEach } from "vitest";
 import { mkdtemp, rm, writeFile, readFile, mkdir } from "node:fs/promises";
+import { exec } from "node:child_process";
+import { promisify } from "node:util";
 import os from "node:os";
 import path from "node:path";
 import { createTools, executeTool } from "../src/tools.ts";
+
+const execAsync = promisify(exec);
 
 function tempDir(): Promise<string> {
   return mkdtemp(path.join(os.tmpdir(), "wiki-tools-test-"));
@@ -155,41 +159,100 @@ describe("tools", () => {
     });
   });
 
-  describe("execute self-invocation guard", () => {
-    test("blocks wiki command", async () => {
+  describe("git tool", () => {
+    test("rejects non-git subcommands", async () => {
       const result = await executeTool(
-        "execute",
-        { command: "wiki --update --print" },
+        "git",
+        { args: "rm -rf ." },
         projectRoot,
       );
-      expect(result).toContain("blocked");
+      expect(result).toContain("not permitted");
     });
 
-    test("blocks wiki-agent path", async () => {
+    test("rejects mutating subcommands", async () => {
       const result = await executeTool(
-        "execute",
-        { command: "node /tmp/wiki-agent/dist/cli.js --init" },
+        "git",
+        { args: "commit -m test" },
         projectRoot,
       );
-      expect(result).toContain("blocked");
+      expect(result).toContain("not permitted");
     });
 
-    test("blocks dist/cli.js invocation", async () => {
+    test("rejects shell metacharacters", async () => {
       const result = await executeTool(
-        "execute",
-        { command: "node dist/cli.js --update" },
+        "git",
+        { args: "log --oneline; rm -rf ." },
         projectRoot,
       );
-      expect(result).toContain("blocked");
+      expect(result).toContain("metacharacters");
     });
 
-    test("allows non-wiki commands", async () => {
+    test("allows read-only log in a git repo", async () => {
+      // init a tiny git repo so log has something to show
+      await execAsync("git init", { cwd: projectRoot });
+      await execAsync(
+        'git -c user.email=t@t -c user.name=t commit --allow-empty -m first',
+        { cwd: projectRoot },
+      );
+
       const result = await executeTool(
-        "execute",
-        { command: "echo hello" },
+        "git",
+        { args: "log --oneline" },
         projectRoot,
       );
-      expect(result).toContain("hello");
+      expect(result).toContain("first");
+    });
+  });
+
+  describe("ast_grep tool", () => {
+    test("finds structural matches", async () => {
+      await mkdir(path.join(projectRoot, "src"), { recursive: true });
+      await writeFile(
+        path.join(projectRoot, "src", "sample.ts"),
+        "console.log('hi');\nconst x = 1;\n",
+        "utf8",
+      );
+
+      const result = await executeTool(
+        "ast_grep",
+        { pattern: "console.log($$$)", lang: "typescript", path: "src" },
+        projectRoot,
+      );
+
+      // Should return compact JSON array (possibly empty but no error).
+      expect(result).not.toContain("Error:");
+      expect(result.trim().startsWith("[")).toBe(true);
+    });
+
+    test("requires a language", async () => {
+      const result = await executeTool(
+        "ast_grep",
+        { pattern: "console.log($$$)", path: "." },
+        projectRoot,
+      );
+      expect(result).toContain("Error");
+    });
+  });
+
+  describe("ast_search tool", () => {
+    test("runs an inline yaml rule", async () => {
+      await mkdir(path.join(projectRoot, "src"), { recursive: true });
+      await writeFile(
+        path.join(projectRoot, "src", "sample.ts"),
+        "export function foo() {}\n",
+        "utf8",
+      );
+
+      const rule =
+        "id: find-foo\nlanguage: typescript\nrule:\n  pattern: export function foo() {}\n";
+      const result = await executeTool(
+        "ast_search",
+        { rule, path: "src" },
+        projectRoot,
+      );
+
+      expect(result).not.toContain("Error:");
+      expect(result.trim().startsWith("[")).toBe(true);
     });
   });
 
@@ -215,7 +278,15 @@ describe("tools", () => {
       expect(names).toContain("ls");
       expect(names).toContain("grep");
       expect(names).toContain("glob");
-      expect(names).toContain("execute");
+      expect(names).toContain("git");
+      expect(names).toContain("ast_grep");
+      expect(names).toContain("ast_search");
+    });
+
+    test("execute tool is removed", () => {
+      const tools = createTools(projectRoot);
+      const names = tools.map((t) => t.definition.function.name);
+      expect(names).not.toContain("execute");
     });
   });
 });
