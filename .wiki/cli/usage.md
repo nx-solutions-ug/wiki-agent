@@ -45,9 +45,9 @@ In headless mode, the model ID is selected as: `--model` flag → `projectConfig
 
 ## Headless event format
 
-When `--print` is set, `cli.tsx` invokes `runAgent` with a synchronous event sink:
+When `--print` is set, `cli.tsx` invokes `runAgent` with a synchronous event sink. Each event is wrapped with blank lines so that assistant prose, tool markers, and errors remain visually separated:
 
-- `assistant` events are concatenated to stdout as they arrive.
+- `assistant` events write `\n<content>\n` to stdout.
 - `tool` events write `\n[tool: <name>]\n<result>\n` to stdout.
 - `error` events write `\nError: <message>\n` to stderr.
 - The final `done` event writes its summary followed by a newline.
