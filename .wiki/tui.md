@@ -34,7 +34,7 @@ Errors from `saveGlobalConfig` are caught and rendered in red; the wizard drops 
 `RunView` creates the Ollama client via `createOllamaClient(config)` and calls `runAgent` with `stream: true`. Each `AgentEvent` is translated into a `DisplayEvent` and appended to a ref-backed state list, which Ink re-renders. The mapping is:
 
 - `assistant` — shown verbatim as it streams.
-- `tool` — shown as a dimmed `[tool: <name>]` line followed by the result (clamped to 500 characters for display).
+- `tool` — shown as a dimmed one-line marker with a running count, e.g. `#1 → ls`, `#2 → git`. The tool result body is intentionally not streamed into the window.
 - `error` — shown in red.
 - `done` — shown in green and bold; toggles the "Working…" indicator to "Done".
 
