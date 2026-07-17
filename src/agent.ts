@@ -264,7 +264,7 @@ async function createWorkflowFile(projectRoot: string): Promise<void> {
     "",
     "      - name: Build Wiki Agent",
     "        run: |",
-    "          git clone --branch main --depth 1 https://github.com/niklasschaeffer/wiki-agent.git /tmp/wiki-agent",
+    "          git clone --branch main --depth 1 https://github.com/nx-solutions-ug/wiki-agent.git /tmp/wiki-agent",
     "          cd /tmp/wiki-agent",
     "          npm install",
     "          npx tsc -p tsconfig.json",
