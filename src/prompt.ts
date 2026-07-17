@@ -107,12 +107,11 @@ ${gitSummary ?? "(not available)"}
 
 export function getHelpText(): string {
   return `
-  ___                  __        ___ _    _
- / _ \\ _ __   ___ _ __ \\ \\      / (_) | _(_)
- | | | | '_ \\ / _ \\ '_ \\ \\ \\ /\\ / /| | |/ / |
- | |_| | |_) |  __/ | | | \\ V  V / | |   <| |
- \\___/| .__/ \\___|_| |_|  \\_/\\_/  |_|_|\\_\\_|
-      |_|
+    __        _____ _  _____
+   \\ \\      / /_ _| |/ /_ _|
+    \\ \\ /\\ / / | || ' / | |
+     \\ V  V /  | || . \\ | |
+      \\_/\\_/  |___|_|\\_\\___|
 
 Usage
   wiki --init                    Initialize wiki documentation (interactive)
