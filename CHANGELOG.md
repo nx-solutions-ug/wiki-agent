@@ -1,3 +1,10 @@
+## [1.1.3](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.1.2...v1.1.3) (2026-07-18)
+
+
+### Bug Fixes
+
+* grant id-token:write permission for npm OIDC trusted publishing ([86bec14](https://github.com/nx-solutions-ug/wiki-agent/commit/86bec14a32817943a9bf3d6753f1b5ff9cd0053e))
+
 ## [1.1.2](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.1.1...v1.1.2) (2026-07-18)
 
 
