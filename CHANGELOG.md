@@ -1,3 +1,10 @@
+## [1.1.4](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.1.3...v1.1.4) (2026-07-18)
+
+
+### Bug Fixes
+
+* publish under [@chronova](https://github.com/chronova) scope (npm org nx-solutions-ug does not exist) ([6aec0cc](https://github.com/nx-solutions-ug/wiki-agent/commit/6aec0cc8fbfc6214bdcaebf2a8b8fe630edf8132))
+
 ## [1.1.3](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.1.2...v1.1.3) (2026-07-18)
 
 
