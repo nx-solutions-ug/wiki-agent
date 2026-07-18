@@ -112,7 +112,7 @@ export async function runAgent(
     { role: "system", content: systemPrompt },
     { role: "user", content: userMessage },
   ];
-  const changedFiles: { action: string; path: string }[] = [];
+  const changedFiles: { action: string; path: string; description: string }[] = [];
 
   for (let i = 0; i < maxIter; i++) {
     let assistantContent = "";
@@ -208,7 +208,15 @@ export async function runAgent(
       if (toolName === "write_file" || toolName === "edit_file") {
         const filePath = typeof args.path === "string" ? args.path : "unknown";
         if (result.startsWith("Wrote ") || result.startsWith("Edited ")) {
-          changedFiles.push({ action: toolName === "write_file" ? "created" : "edited", path: filePath });
+          // Use the assistant's prose preceding this tool call as the
+          // human-readable description of what changed. Falls back to the
+          // tool result if the model didn't narrate the change.
+          const description = assistantContent.trim() || result;
+          changedFiles.push({
+            action: toolName === "write_file" ? "created" : "edited",
+            path: filePath,
+            description,
+          });
         }
       }
 
@@ -316,7 +324,10 @@ async function createWorkflowFile(projectRoot: string): Promise<void> {
     "      - name: Check for changes",
     "        id: report",
     "        run: |",
-    "          if [ -f .wiki/.last-update-report.md ]; then",
+    "          # Collect changes under .wiki (tracked + untracked), excluding",
+    "          # the run metadata files. Only content changes open a PR.",
+    "          changes=$(git status --porcelain .wiki | sed 's/^...//' | grep -vE '^\\.wiki/\\.(last-update-report\\.md|last-updated\\.json)$' | sed '/^[[:space:]]*$/d')",
+    "          if [ -n \"$changes\" ]; then",
     "            echo \"has_changes=true\" >> $GITHUB_OUTPUT",
     "            echo \"body<<EOF\" >> $GITHUB_OUTPUT",
     "            cat .wiki/.last-update-report.md >> $GITHUB_OUTPUT",
@@ -344,9 +355,9 @@ async function createWorkflowFile(projectRoot: string): Promise<void> {
  * Generates a markdown report of what changed during this run.
  * Written to .wiki/.last-update-report.md and used as the PR body.
  */
-function generateUpdateReport(
+export function generateUpdateReport(
   command: WikiCommand,
-  changedFiles: { action: string; path: string }[],
+  changedFiles: { action: string; path: string; description?: string }[],
 ): string {
   const timestamp = new Date().toISOString();
   const actionLabel = command === "init" ? "Initialized" : "Updated";
@@ -370,11 +381,25 @@ function generateUpdateReport(
   ];
 
   if (created.length > 0) {
-    lines.push("## New pages", "", ...created.map((f) => `- \`${f.path}\``), "");
+    lines.push("## New pages", "");
+    for (const f of created) {
+      lines.push(`- \`${f.path}\``);
+      if (f.description && f.description.trim()) {
+        lines.push(...formatDescription(f.description));
+      }
+    }
+    lines.push("");
   }
 
   if (edited.length > 0) {
-    lines.push("## Updated pages", "", ...edited.map((f) => `- \`${f.path}\``), "");
+    lines.push("## Updated pages", "");
+    for (const f of edited) {
+      lines.push(`- \`${f.path}\``);
+      if (f.description && f.description.trim()) {
+        lines.push(...formatDescription(f.description));
+      }
+    }
+    lines.push("");
   }
 
   lines.push(
@@ -384,4 +409,17 @@ function generateUpdateReport(
   );
 
   return lines.join("\n") + "\n";
+}
+
+/**
+ * Formats a change description as indented markdown under a file listing.
+ * Collapses whitespace, truncates overly long prose, and wraps it as a
+ * blockquote so it renders cleanly under the `- \`path\`` bullet.
+ */
+function formatDescription(description: string): string[] {
+  const trimmed = description.trim().replace(/\s+/g, " ");
+  const maxLen = 500;
+  const text = trimmed.length > maxLen ? trimmed.slice(0, maxLen) + "…" : trimmed;
+  // Indent under the bullet as a nested blockquote
+  return ["", `  > ${text}`, ""];
 }

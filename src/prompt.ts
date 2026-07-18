@@ -79,7 +79,7 @@ Use only the tools listed above. Do not invent files, modules, APIs, business ru
 - Keep the docs concise enough to maintain. Avoid repeating the same concept across pages.
 - Use code examples sparingly — only when they clarify a non-obvious API or pattern.
 - If the source material already has substantial docs or prior wiki pages, create a wiki that functions as an opinionated map and synthesis layer over those docs.
-- Do not make formatting-only edits. Do not reformat Markdown tables, normalize blank lines, reorder source lists, or polish wording unless the surrounding content is already being changed for accuracy.
+- Before every write_file or edit_file call, write one or two sentences explaining what you are changing and why — the source evidence that drove the change, what section was added/revised, and the intended improvement. This narration is used verbatim as the per-file change description in the update report and pull request body, so be specific and substantive; do not write generic filler like "Updated the page" or "Improved docs".
 - Updates may be a no-op. If there are no relevant source changes since the previous successful run, and the current wiki is already accurate, do not edit files. Say that the wiki is already current.
 ${instructionsSection}
 `.trim();
