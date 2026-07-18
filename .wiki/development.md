@@ -77,7 +77,7 @@ See [Architecture](./architecture/overview.md) for how these pieces fit together
 Commit `74f5621` added `.github/workflows/release.yml`, which runs on every push to `main`:
 
 1. **Test job** — `bun install`, `bun run build`, `bun run test`.
-2. **Release job** — if tests pass, generates a GitHub App token (falls back to `GITHUB_TOKEN`), runs `npx --yes semantic-release`, and publishes to npm using the token in `secrets.NPM_TOKEN`.
+2. **Release job** — if tests pass, generates a GitHub App token (falls back to `GITHUB_TOKEN`), runs `npx --yes semantic-release`, and publishes to npm using the token in `secrets.NPM_TOKEN`. The release job is granted `id-token: write` (alongside `contents: write`, `issues: write`, and `pull-requests: write`) because `@semantic-release/npm` uses GitHub Actions OIDC for npm trusted publishing (commit `86bec14`).
 
 `.releaserc.json` configures semantic-release for branches `main`, `beta`, and `alpha`, writes `CHANGELOG.md`, commits `package.json`/`CHANGELOG.md`, creates a GitHub release, and publishes via the `@semantic-release/npm` plugin. Because the project uses Bun, `package-lock.json` is not part of the git assets.
 

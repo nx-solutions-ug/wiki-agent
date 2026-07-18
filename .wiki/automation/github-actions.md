@@ -39,7 +39,7 @@ Adjust the cron expression to taste; remember that GitHub Actions cron is UTC.
 
 ## Publishing workflow
 
-The same commit that refreshes this wiki can also run the release pipeline. `.github/workflows/release.yml` (added in commit `74f5621`) runs on every push to `main` and, after a passing test job, executes `semantic-release` to bump the version, write `CHANGELOG.md`, create a GitHub release, and publish `@nx-solutions-ug/wiki-agent` to npm. The `WIKI_OLLAMA_API_KEY` secret used by the wiki update job is unrelated to the `NPM_TOKEN` secret used by the release job.
+The same commit that refreshes this wiki can also run the release pipeline. `.github/workflows/release.yml` (added in commit `74f5621`) runs on every push to `main` and, after a passing test job, executes `semantic-release` to bump the version, write `CHANGELOG.md`, create a GitHub release, and publish `@nx-solutions-ug/wiki-agent` to npm. The release job must have `id-token: write` (added in commit `86bec14`) so that `@semantic-release/npm` can request the GitHub Actions OIDC token required by npm trusted publishing; without it, publishing fails with a scope-not-found 404. The `WIKI_OLLAMA_API_KEY` secret used by the wiki update job is unrelated to the `NPM_TOKEN` secret used by the release job.
 
 ## Secrets and variables
 
