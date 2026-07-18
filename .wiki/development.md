@@ -81,6 +81,8 @@ Commit `74f5621` added `.github/workflows/release.yml`, which runs on every push
 
 `.releaserc.json` configures semantic-release for branches `main`, `beta`, and `alpha`, writes `CHANGELOG.md`, commits `package.json`/`CHANGELOG.md`, creates a GitHub release, and publishes via the `@semantic-release/npm` plugin. Because the project uses Bun, `package-lock.json` is not part of the git assets.
 
+`package.json` carries the npm registry metadata for the package: `name` (`@nx-solutions-ug/wiki-agent`), `repository`, `homepage`, and `author`. Commit `c1b0a03` added the `homepage` and `author` fields so the package page on npm links back to the GitHub repository and lists the publishing organization.
+
 ## Release checklist
 
 1. `bun run build && bun run test`.
