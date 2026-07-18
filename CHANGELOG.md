@@ -1,3 +1,10 @@
+# [1.1.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.0.1...v1.1.0) (2026-07-18)
+
+
+### Features
+
+* skip PR on metadata-only wiki changes and document per-file changes ([05452da](https://github.com/nx-solutions-ug/wiki-agent/commit/05452daca2ccd2fec9b6c43367e06cd6863d8b32))
+
 ## [1.0.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.0.0...v1.0.1) (2026-07-18)
 
 
