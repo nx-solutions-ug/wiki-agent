@@ -1,3 +1,10 @@
+## [1.1.2](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.1.1...v1.1.2) (2026-07-18)
+
+
+### Bug Fixes
+
+* add homepage and author metadata for npm package listing ([3372d1b](https://github.com/nx-solutions-ug/wiki-agent/commit/3372d1b5a0ba815c0d8ad757c5f7c465513eba33))
+
 ## [1.1.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.1.0...v1.1.1) (2026-07-18)
 
 
