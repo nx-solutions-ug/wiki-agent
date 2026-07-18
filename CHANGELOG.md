@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.1.0...v1.1.1) (2026-07-18)
+
+
+### Bug Fixes
+
+* correct stale default model hint in credentials setup ([59cdcbb](https://github.com/nx-solutions-ug/wiki-agent/commit/59cdcbb05d5e4743f6166a4f426d8dc368b70b57))
+
 # [1.1.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.0.1...v1.1.0) (2026-07-18)
 
 
