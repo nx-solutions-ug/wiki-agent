@@ -103,7 +103,7 @@ export function CredentialsSetup({
   // model step
   return React.createElement(Box, { flexDirection: "column" },
     React.createElement(Text, { bold: true }, "Enter default model ID:"),
-    React.createElement(Text, { color: "gray" }, "Press Enter to use the default (qwen3-coder)"),
+    React.createElement(Text, { color: "gray" }, "Press Enter to use the default (kimi-k2.7-code)"),
     React.createElement(TextInput, {
       value: model,
       onChange: setModel,
