@@ -19,9 +19,10 @@ The workflow:
 4. Clones `https://github.com/nx-solutions-ug/wiki-agent.git` to `/tmp/wiki-agent`, installs dependencies, and compiles with `npx tsc -p tsconfig.json`.
 5. Runs `node /tmp/wiki-agent/dist/cli.js --update --print --verbose` in headless mode with `WIKI_OLLAMA_MODE=cloud`. The `--verbose` flag makes tool call results appear in the CI log alongside assistant prose.
    After the run the agent also updates `.wiki/.last-updated.json` and writes `.wiki/.last-update-report.md` (when there are changes).
-6. Checks whether `.wiki/.last-update-report.md` exists.
-   - If it exists, it sets `has_changes=true` and streams the report into a `body<<EOF` heredoc on `$GITHUB_OUTPUT`, adding an empty `echo ""` before the `EOF` delimiter so the delimiter sits on its own line.
-   - If the report is missing, it sets `has_changes=false` and no pull request is opened.
+6. Checks for content changes under `.wiki/` using `git status --porcelain .wiki`.
+   - It strips the two-letter status prefix, excludes the run metadata files `.wiki/.last-update-report.md` and `.wiki/.last-updated.json`, and removes blank lines.
+   - If any real content files changed, it sets `has_changes=true` and streams `.wiki/.last-update-report.md` into a `body<<EOF` heredoc on `$GITHUB_OUTPUT`, adding an empty `echo ""` before the `EOF` delimiter so the delimiter sits on its own line.
+   - If only the metadata files changed (or nothing changed), it sets `has_changes=false` and no pull request is opened.
 7. Opens a pull request via `peter-evans/create-pull-request@v8` (only when `steps.report.outputs.has_changes == 'true'`) that adds the `.wiki` path on a unique `wiki/update-<timestamp>` branch.
 
 Permissions are explicitly granted for `contents: write` and `pull-requests: write`, both of which are required for the create-pull-request step.
@@ -53,7 +54,11 @@ The `WIKI_OLLAMA_BASE_URL` environment variable is not set; the agent uses the c
 
 ## Output
 
-The pull request body is read from `.wiki/.last-update-report.md` after the run, so it reflects the pages that were actually changed. Because `generateUpdateReport` appends a trailing newline, the heredoc written to `$GITHUB_OUTPUT` is terminated correctly and GitHub Actions can parse it. If the report is missing it falls back to a static message. The PR only includes files under `.wiki/` (via `add-paths: .wiki`), so source code is never touched by the bot.
+The pull request body is read from `.wiki/.last-update-report.md` after the run, so it reflects the pages that were actually changed and includes a per-file description of what changed and why. Because `generateUpdateReport` appends a trailing newline, the heredoc written to `$GITHUB_OUTPUT` is terminated correctly and GitHub Actions can parse it. If the report is missing (or only metadata changed), it falls back to a static message. The PR only includes files under `.wiki/` (via `add-paths: .wiki`), so source code is never touched by the bot.
+
+## Skipping metadata-only runs
+
+The workflow deliberately skips opening a PR when the only files that changed are `.wiki/.last-update-report.md` and `.wiki/.last-updated.json`. Those files are rewritten on every agent run, so without the filter the bot would open empty pull requests every day. The `git status --porcelain .wiki` filter catches both tracked and untracked changes, then strips the two metadata paths before deciding whether to create a PR.
 
 ## Local dry run
 

@@ -9,7 +9,7 @@ tags: [tools, filesystem, sandbox]
 
 The agent in `src/agent.ts` does not speak to the filesystem directly. It receives a list of tool definitions built by `createTools(projectRoot)` in `src/tools.ts` and forwards them as the `tools` field of every Ollama `chat` request. The model returns `tool_calls`, the runtime normalizes the arguments (`normalizeToolCallArgs`) and dispatches them through `executeTool`.
 
-All tools are local to the runtime; no network calls are made by the tools themselves.
+All tools are local to the runtime; no network calls are made by the tools themselves. The agent loop in `src/agent.ts` tracks successful `write_file` and `edit_file` calls, captures the assistant's preceding prose as a per-file change description, and feeds them to `generateUpdateReport` for the PR body.
 
 ## Tool catalog
 

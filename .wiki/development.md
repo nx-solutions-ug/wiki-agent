@@ -34,12 +34,13 @@ This runs the `prebuild` cleanup (`rm -rf dist`) and then `tsc -p tsconfig.json`
 bun run test
 ```
 
-Runs `vitest run` against the test files in `test/`. There are four suites:
+Runs `vitest run` against the test files in `test/`. There are five suites:
 
 - `config.test.ts` — global/project config I/O and `resolveConfig` precedence.
 - `tools.test.ts` — path-safety checks, file read/write/edit, tool definition shape, `git` subcommand allowlist and metacharacter guard, and `ast_grep`/`ast_search` structural matching.
 - `index-middleware.test.ts` — `index.md` regeneration, exclusions, and idempotency.
 - `prompt.test.ts` — system prompt, user message templates, and help text contents.
+- `report.test.ts` — `generateUpdateReport`: no-op reports, created/edited listings, per-file description blockquotes, truncation, whitespace collapse, and summary counts.
 
 The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.HOME` so the global config path can be redirected.
 
