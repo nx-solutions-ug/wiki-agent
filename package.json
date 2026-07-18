@@ -1,5 +1,5 @@
 {
-  "name": "wiki-agent",
+  "name": "@nx-solutions-ug/wiki-agent",
   "version": "0.1.0",
   "description": "Standalone Ollama-only documentation agent",
   "type": "module",
@@ -8,15 +8,16 @@
   },
   "files": [
     "dist",
-    "README.md",
-    ".github/workflows/wiki-update.yml"
+    "README.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
     "prebuild": "bun run clean",
     "test": "vitest run",
-    "pack": "bun pm pack"
+    "pack": "bun pm pack",
+    "prepublishOnly": "npm run build",
+    "semantic-release": "semantic-release"
   },
   "dependencies": {
     "@ast-grep/cli": "^0.44.1",
@@ -28,13 +29,28 @@
     "yaml": "^2.7.1"
   },
   "devDependencies": {
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^12.0.0",
+    "@semantic-release/npm": "^13.0.0",
+    "@semantic-release/release-notes-generator": "^14.0.3",
     "@types/node": "^26.1.1",
     "@types/react": "^19.1.0",
+    "semantic-release": "^25.0.0",
     "tsx": "^4.20.0",
     "typescript": "^5.9.0",
     "vitest": "^4.0.0"
   },
   "engines": {
     "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nx-solutions-ug/wiki-agent.git"
+  },
+  "license": "ISC",
+  "publishConfig": {
+    "access": "public"
   }
 }
