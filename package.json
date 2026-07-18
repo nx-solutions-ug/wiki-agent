@@ -1,6 +1,6 @@
 {
   "name": "@nx-solutions-ug/wiki-agent",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Standalone Ollama-only documentation agent",
   "type": "module",
   "bin": {

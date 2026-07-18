@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.0.0...v1.0.1) (2026-07-18)
+
+
+### Bug Fixes
+
+* normalize package.json for npm publish (bin path, repo url) ([f8290ef](https://github.com/nx-solutions-ug/wiki-agent/commit/f8290efd66cb5ea385b6495cf502cfc7da918580))
+
 # 1.0.0 (2026-07-18)
 
 
