@@ -31,9 +31,9 @@ See [Configuration](../configuration.md) for the data model and [Tools](../tools
 2. Construct the Ollama `chat` request with the current `messages` array and the tool definitions.
 3. Stream or batch the response. Collect `content` and any `tool_calls` returned by the model.
 4. Normalize tool call arguments. Ollama models return arguments as either an object or a JSON string depending on the backend; `normalizeToolCallArgs` handles both and falls back to `{}` on malformed JSON.
-5. Append the assistant message to the history. If there are tool calls, append a `tool` message per call (Ollama associates the result with `tool_name`, not a `tool_call_id`).
+5. Append the assistant message to the history. If there are tool calls, append a `tool` message per call (Ollama associates the result with `tool_name`, not a `tool_call_id`). Successful `write_file`/`edit_file` calls also record a per-file description from the assistant's preceding prose (falling back to the tool result) for the update report.
 6. Loop up to `WIKI_RECURSION_LIMIT` iterations (default `200`). A response with no tool calls ends the loop.
-7. After the loop, call `synchronizeWikiIndexes(.wiki)` and emit a `done` event.
+7. After the loop, call `createWorkflowFile`, `synchronizeWikiIndexes(.wiki)`, write `.wiki/.last-updated.json`, and write `.wiki/.last-update-report.md` (via `generateUpdateReport`), then emit a `done` event.
 
 Errors from the Ollama SDK are surfaced through the `error` event stream. If the model had already produced content, the loop exits with a `done` summary that includes the error message; otherwise it emits `error` and stops.
 

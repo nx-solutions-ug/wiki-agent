@@ -16,7 +16,7 @@ Exactly one of `--init` or `--update` is required. If neither is present, the he
 | Command | Effect |
 |---------|--------|
 | `wiki --init` | Initialize wiki documentation. Drives the model with the "init" user message. |
-| `wiki --update` | Refresh an existing wiki. Drives the model with the "update" user message and recent git history. |
+| `wiki --update` | Refresh an existing wiki. Drives the model with the "update" user message and recent git history. Produces `.wiki/.last-update-report.md` and `.wiki/.last-updated.json` when content changes. |
 | `wiki --help` / `-h` | Print the help text and exit. |
 
 ## Flags
