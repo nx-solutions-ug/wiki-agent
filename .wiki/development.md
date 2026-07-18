@@ -49,7 +49,7 @@ The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.H
 bun pm pack
 ```
 
-Produces `wiki-agent-0.1.0.tgz`. The tarball includes `dist/`, `README.md`, and a workflow entry per the `files` field. Note that `package.json` `files` lists `.github/workflows/wiki-update.yml`, while `src/agent.ts:createWorkflowFile` writes `.github/workflows/update-wiki.yml`; these names are still not reconciled.
+Produces `wiki-agent-0.1.0.tgz`. The tarball includes `dist/` and `README.md` only (the stale `.github/workflows/wiki-update.yml` entry in `package.json` `files` was removed in commit `74f5621`).
 
 ## Project layout
 
@@ -71,10 +71,17 @@ test/                  Vitest suites
 
 See [Architecture](./architecture/overview.md) for how these pieces fit together at runtime.
 
+## Release pipeline
+
+Commit `74f5621` added `.github/workflows/release.yml`, which runs on every push to `main`:
+
+1. **Test job** — `bun install`, `bun run build`, `bun run test`.
+2. **Release job** — if tests pass, generates a GitHub App token (falls back to `GITHUB_TOKEN`), runs `npx --yes semantic-release`, and publishes to npm using the token in `secrets.NPM_TOKEN`.
+
+`.releaserc.json` configures semantic-release for branches `main`, `beta`, and `alpha`, writes `CHANGELOG.md`, commits `package.json`/`CHANGELOG.md`, creates a GitHub release, and publishes via the `@semantic-release/npm` plugin. Because the project uses Bun, `package-lock.json` is not part of the git assets.
+
 ## Release checklist
 
-1. Bump `version` in `package.json`.
-2. `bun run build && bun run test`.
-3. `bun pm pack` and inspect the tarball.
-4. `npm publish` (or your registry of choice).
-5. Tag the release in git so consumers can pin a version.
+1. `bun run build && bun run test`.
+2. `bun pm pack` and inspect the tarball.
+3. Push to `main`; the release workflow handles versioning, tagging, and npm publishing.
