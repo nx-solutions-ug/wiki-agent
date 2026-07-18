@@ -115,7 +115,7 @@ The tool is intentionally constrained — it is the only way the agent reaches r
 - **Subcommand allowlist**: only `log`, `diff`, `show`, `ls-files`, `blame`, `status`, `remote`, `describe`, `rev-parse`, `shortlog`, `name-rev`, `ls-tree`, `cat-file`, and `reflog` are permitted. Any other subcommand (e.g. `commit`, `rm`, `push`) returns `Error: git subcommand '<name>' is not permitted.`
 - **Metacharacter guard**: the argument string is rejected if it contains shell-control or redirection metacharacters (`[;&|\`$()<>]`). This prevents command chaining and flag injection even within an allowed subcommand.
 
-This replaced the older general-purpose `execute` shell tool; there is no longer any way for the model to run arbitrary host commands.
+The `execute` shell tool was removed from the tool catalog; the agent no longer has a general-purpose command executor.
 
 ## `ast_grep`
 
@@ -158,4 +158,4 @@ Output and error handling match `ast_grep`.
 - `read_file`, `ls`, `grep`, `glob`, `git`, `ast_grep`, `ast_search` — must stay within the project root.
 - `write_file`, `edit_file` — must stay within `.wiki/`.
 
-Both checks use `path.resolve` and a `startsWith` comparison against the appropriate root plus the platform separator. The tests in `test/tools.test.ts` cover both the in-bounds and out-of-bounds cases, plus the `git` subcommand allowlist, the metacharacter guard, and `ast_grep`/`ast_search` structural matching.
+Both checks use `path.resolve` and a `startsWith` comparison against the appropriate root plus the platform separator. The tests in `test/tools.test.ts` cover both the in-bounds and out-of-bounds cases, the absence of the old `execute` tool, the `git` subcommand allowlist, the metacharacter guard, and `ast_grep`/`ast_search` structural matching.

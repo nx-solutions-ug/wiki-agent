@@ -25,7 +25,7 @@ cd wiki-agent
 bun install
 bun run build
 bun pm pack
-cd ~/.bun/install/global && bun add /path/to/wiki-agent/wiki-agent-0.1.0.tgz
+cd ~/.bun/install/global && bun add /path/to/wiki-agent/wiki-agent-1.1.0.tgz
 ```
 
 After install, the `wiki` command is on `PATH` (entrypoint: `dist/cli.js`, declared as the `bin` in `package.json`).
@@ -59,13 +59,16 @@ wiki --update --print
 
 # Override the model for a single run
 wiki --init --print --model llama3.2
+
+# Run with full tool logs
+wiki --update --print --verbose
 ```
 
 The first run will create `.wiki/quickstart.md` plus a small set of section pages. After every run, `index.md` files are generated for each directory under `.wiki/` (see [Architecture](./architecture/overview.md)).
 
 ## 4. Update from CI
 
-Running `wiki --init` writes `.github/workflows/update-wiki.yml` into your repo. Set `WIKI_OLLAMA_API_KEY` as a secret to enable the scheduled job, which runs `wiki --update --print` and opens a PR with the `.wiki/` changes. See [GitHub Actions](./automation/github-actions.md).
+Running `wiki --init` writes `.github/workflows/update-wiki.yml` into your repo. Set `WIKI_OLLAMA_API_KEY` as a secret to enable the scheduled job, which runs `wiki --update --print --verbose` and opens a PR with the `.wiki/` changes. See [GitHub Actions](./automation/github-actions.md).
 
 ## What gets generated
 

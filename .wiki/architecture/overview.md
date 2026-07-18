@@ -33,9 +33,9 @@ See [Configuration](../configuration.md) for the data model and [Tools](../tools
 4. Normalize tool call arguments. Ollama models return arguments as either an object or a JSON string depending on the backend; `normalizeToolCallArgs` handles both and falls back to `{}` on malformed JSON.
 5. Append the assistant message to the history. If there are tool calls, append a `tool` message per call (Ollama associates the result with `tool_name`, not a `tool_call_id`). Successful `write_file`/`edit_file` calls also record a per-file description from the assistant's preceding prose (falling back to the tool result) for the update report.
 6. Loop up to `WIKI_RECURSION_LIMIT` iterations (default `200`). A response with no tool calls ends the loop.
-7. After the loop, call `createWorkflowFile`, `synchronizeWikiIndexes(.wiki)`, write `.wiki/.last-updated.json`, and write `.wiki/.last-update-report.md` (via `generateUpdateReport`), then emit a `done` event.
+7. After the loop, call `createWorkflowFile` (always refreshes `.github/workflows/update-wiki.yml`), `synchronizeWikiIndexes(.wiki)`, write `.wiki/.last-updated.json`, and write `.wiki/.last-update-report.md` (via `generateUpdateReport`), then emit a `done` event.
 
-Errors from the Ollama SDK are surfaced through the `error` event stream. If the model had already produced content, the loop exits with a `done` summary that includes the error message; otherwise it emits `error` and stops.
+Errors from the Ollama SDK are surfaced through the `error` event stream. If the model had already produced content, the loop exits with a `done` summary that includes the error message; otherwise it emits `error` and stops. When no writes or edits occurred, the `done` summary is `Wiki is already current. No files changed.`
 
 ## Streaming and headless
 
@@ -56,7 +56,9 @@ type AgentEvent =
 
 ## Tool sandboxing
 
-All write operations are constrained to `.wiki/`. `resolveWikiPath` in `tools.ts` rejects any path whose absolute resolution escapes the `.wiki/` directory. Read-only tools (`read_file`, `ls`, `grep`, `glob`, `git`, `ast_grep`, `ast_search`) are constrained to the project root. The `git` tool is further limited to a read-only subcommand allowlist and rejects shell metacharacters; there is no general shell tool.
+All write operations are constrained to `.wiki/`. `resolveWikiPath` in `tools.ts` rejects any path whose absolute resolution escapes the `.wiki/` directory. Read-only tools (`read_file`, `ls`, `grep`, `glob`, `git`, `ast_grep`, `ast_search`) are constrained to the project root.
+
+The `git` tool is further limited to a read-only subcommand allowlist and rejects shell metacharacters. The old general-purpose `execute` tool was removed, so there is no way for the model to run arbitrary host commands.
 
 Tool results are truncated at `MAX_TOOL_RESULT_LENGTH` (10 000 characters) before being returned to the model; `read_file` additionally slices by line offset and limit.
 

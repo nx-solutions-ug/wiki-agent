@@ -39,7 +39,7 @@ Runs `vitest run` against the test files in `test/`. There are five suites:
 - `config.test.ts` — global/project config I/O and `resolveConfig` precedence.
 - `tools.test.ts` — path-safety checks, file read/write/edit, tool definition shape, `git` subcommand allowlist and metacharacter guard, and `ast_grep`/`ast_search` structural matching.
 - `index-middleware.test.ts` — `index.md` regeneration, exclusions, and idempotency.
-- `prompt.test.ts` — system prompt, user message templates, and help text contents.
+- `prompt.test.ts` — system prompt, user message templates, help text contents, and AGENTS.md/CLAUDE.md injection.
 - `report.test.ts` — `generateUpdateReport`: no-op reports, created/edited listings, per-file description blockquotes, truncation, whitespace collapse, and summary counts.
 
 The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.HOME` so the global config path can be redirected.
@@ -50,7 +50,7 @@ The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.H
 bun pm pack
 ```
 
-Produces `wiki-agent-0.1.0.tgz`. The tarball includes `dist/` and `README.md` only (the stale `.github/workflows/wiki-update.yml` entry in `package.json` `files` was removed in commit `74f5621`).
+Produces `wiki-agent-1.1.0.tgz`. The tarball includes `dist/` and `README.md` only (`package.json` `files` does not list `.github/workflows`).
 
 ## Project layout
 
@@ -74,15 +74,15 @@ See [Architecture](./architecture/overview.md) for how these pieces fit together
 
 ## Release pipeline
 
-Commit `74f5621` added `.github/workflows/release.yml`, which runs on every push to `main`:
+`.github/workflows/release.yml` runs on every push to `main`:
 
 1. **Test job** — `bun install`, `bun run build`, `bun run test`.
-2. **Release job** — if tests pass, generates a GitHub App token (falls back to `GITHUB_TOKEN`), runs `npx --yes semantic-release`, and publishes to npm using the token in `secrets.NPM_TOKEN`.
+2. **Release job** — if tests pass, generates a GitHub App token with `actions/create-github-app-token@v3` (falls back to `GITHUB_TOKEN`), runs `npx --yes semantic-release`, and publishes to npm using the token in `secrets.NPM_TOKEN`.
 
 `.releaserc.json` configures semantic-release for branches `main`, `beta`, and `alpha`, writes `CHANGELOG.md`, commits `package.json`/`CHANGELOG.md`, creates a GitHub release, and publishes via the `@semantic-release/npm` plugin. Because the project uses Bun, `package-lock.json` is not part of the git assets.
 
 ## Release checklist
 
 1. `bun run build && bun run test`.
-2. `bun pm pack` and inspect the tarball.
+2. `bun pm pack` and inspect the tarball (the produced filename follows `package.json` `version`, currently `1.1.0`).
 3. Push to `main`; the release workflow handles versioning, tagging, and npm publishing.

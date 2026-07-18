@@ -29,6 +29,8 @@ A four-step state machine:
 
 Errors from `saveGlobalConfig` are caught and rendered in red; the wizard drops back to `mode-select` on failure.
 
+> Note: `CredentialsSetup.tsx` still renders the placeholder text "Press Enter to use the default (qwen3-coder)", but the actual initial model state and `DEFAULT_MODEL` are `kimi-k2.7-code`.
+
 ## Run view: `RunView.tsx`
 
 `RunView` creates the Ollama client via `createOllamaClient(config)` and calls `runAgent` with `stream: true`. Each `AgentEvent` is translated into a `DisplayEvent` and appended to a ref-backed state list, which Ink re-renders.

@@ -25,7 +25,7 @@ Exactly one of `--init` or `--update` is required. If neither is present, the he
 |------|--------|
 | `--print` | Run headless: write events to stdout/stderr instead of launching the TUI. Required for CI. |
 | `--model <id>` | Override the model for this run. Higher priority than env vars and config files. |
-| `--verbose`, `-v` | Show tool call results in addition to assistant prose. Without this flag, tool events are suppressed in both headless and TUI output. |
+| `--verbose`, `-v` | Show tool call results in addition to assistant prose. Without this flag, tool events are suppressed in both headless and TUI output. The GitHub Actions workflow runs the agent with this flag enabled. |
 | `--help`, `-h` | Show help. |
 
 Argument parsing is permissive: unknown flags are ignored. Combine freely, e.g. `wiki --update --print --model llama3.2`.
@@ -40,7 +40,7 @@ Environment variables are merged with config files by `resolveConfig` in `config
 | `WIKI_OLLAMA_API_KEY` | API key for cloud mode | from `~/.wiki/config.json` |
 | `WIKI_OLLAMA_BASE_URL` | Override the Ollama server URL | `http://localhost:11434` (local) or `https://ollama.com` (cloud) |
 | `WIKI_MODEL` | Override model ID | from `~/.wiki/config.json` |
-| `WIKI_RECURSION_LIMIT` | Max agent iterations | `200` |
+| `WIKI_RECURSION_LIMIT` | Max agent iterations (parsed as a positive integer; invalid values fall back to the default) | `200` |
 
 In headless mode, the model ID is selected as: `--model` flag → `projectConfig.modelOverride` → `WIKI_MODEL` → `globalConfig.defaultModel` → `kimi-k2.7-code`.
 

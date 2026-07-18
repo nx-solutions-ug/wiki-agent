@@ -12,6 +12,8 @@ Wiki Agent merges configuration from several sources. The exact precedence is fi
 - `mode`, `apiKey`, and `baseUrl`: environment variable → global config file (`~/.wiki/config.json`) → built-in default.
 - `model`: `--model` CLI flag → `.wiki/config.json` `modelOverride` → `WIKI_MODEL` environment variable → `~/.wiki/config.json` `defaultModel` → built-in `kimi-k2.7-code`.
 
+The `model` chain is field-specific: the CLI override wins, then project config, then the env variable, then global config, then the default.
+
 ## Global config: `~/.wiki/config.json`
 
 Lives in the user's home directory. Created and updated by the TUI's credentials setup wizard (`src/tui/CredentialsSetup.tsx`). The file is written with mode `0o600` because it may contain an API key.
@@ -49,7 +51,7 @@ Lives inside the wiki output directory. Currently only two fields are read:
 }
 ```
 
-`modelOverride` is the per-project pin for the model. `lastUpdate` is reserved for future change-detection; the agent does not yet read it.
+`modelOverride` is the per-project pin for the model. `lastUpdate` is stored but not yet read by the agent.
 
 ## Resolution order
 
