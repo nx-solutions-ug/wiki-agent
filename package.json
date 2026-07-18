@@ -49,7 +49,8 @@
     "type": "git",
     "url": "git+https://github.com/nx-solutions-ug/wiki-agent.git"
   },
-  "license": "ISC",
+  "homepage": "https://github.com/nx-solutions-ug/wiki-agent#readme",
+  "author": "nx-solutions-ug",
   "publishConfig": {
     "access": "public"
   }
