@@ -46,10 +46,10 @@ The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.H
 ## Pack
 
 ```bash
-bun pm pack
+bun run pack
 ```
 
-Produces `wiki-agent-0.1.0.tgz`. The tarball includes `dist/`, `README.md`, and a workflow entry per the `files` field. Note that `package.json` `files` lists `.github/workflows/wiki-update.yml`, while `src/agent.ts:createWorkflowFile` writes `.github/workflows/update-wiki.yml`; these names are still not reconciled.
+Produces `wiki-agent-<version>.tgz`. The `files` field ships `dist/` and `README.md`. The tarball does not include workflows; the `update-wiki.yml` workflow is written into target repositories by `wiki --init`.
 
 ## Project layout
 
@@ -71,10 +71,13 @@ test/                  Vitest suites
 
 See [Architecture](./architecture/overview.md) for how these pieces fit together at runtime.
 
-## Release checklist
+## Release
 
-1. Bump `version` in `package.json`.
-2. `bun run build && bun run test`.
-3. `bun pm pack` and inspect the tarball.
-4. `npm publish` (or your registry of choice).
-5. Tag the release in git so consumers can pin a version.
+Releases are automated with [semantic-release](https://semantic-release.gitbook.io/semantic-release/) via `.github/workflows/release.yml` on every push to `main`.
+
+The workflow runs `bun run build` and `bun run test` first; if both pass, it invokes `npx semantic-release`. `semantic-release` analyzes conventional commits, updates `package.json` and `CHANGELOG.md`, publishes the package to npm, and creates a GitHub release. The `.releaserc.json` config also produces `alpha` and `beta` pre-releases from matching branches.
+
+Required secrets for the release job:
+
+- `NPM_TOKEN` — npm publish token.
+- `APP_CLIENT_ID` and `APP_PRIVATE_KEY` — GitHub App credentials for generating a release token (fallback to `GITHUB_TOKEN`).
