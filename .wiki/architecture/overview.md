@@ -41,8 +41,8 @@ Errors from the Ollama SDK are surfaced through the `error` event stream. If the
 
 `runAgent` accepts a `stream` option:
 
-- TUI sets `stream: true` and the `RunView` component renders events incrementally.
-- Headless mode (`--print`) sets `stream: false` and writes assistant tokens, tool results, and the final summary to stdout/stderr.
+- TUI sets `stream: true` and the `RunView` component renders events incrementally. Consecutive assistant chunks are merged into one paragraph; tool calls are suppressed by default and shown only as one-line markers when `--verbose` is set.
+- Headless mode (`--print`) sets `stream: false` and writes assistant content (wrapped in blank lines), tool results (only with `--verbose`), and the final summary to stdout/stderr.
 
 The event shape is fixed (`AgentEvent` in `agent.ts`):
 
@@ -56,7 +56,7 @@ type AgentEvent =
 
 ## Tool sandboxing
 
-All write operations are constrained to `.wiki/`. `resolveWikiPath` in `tools.ts` rejects any path whose absolute resolution escapes the `.wiki/` directory. Read-only tools (`read_file`, `ls`, `grep`, `glob`, `execute`) are constrained to the project root.
+All write operations are constrained to `.wiki/`. `resolveWikiPath` in `tools.ts` rejects any path whose absolute resolution escapes the `.wiki/` directory. Read-only tools (`read_file`, `ls`, `grep`, `glob`, `git`, `ast_grep`, `ast_search`) are constrained to the project root. The `git` tool is further limited to a read-only subcommand allowlist and rejects shell metacharacters; there is no general shell tool.
 
 Tool results are truncated at `MAX_TOOL_RESULT_LENGTH` (10 000 characters) before being returned to the model; `read_file` additionally slices by line offset and limit.
 

@@ -17,7 +17,7 @@ The workflow:
 2. Checks out the repository with `actions/checkout@v7`.
 3. Sets up Node.js 25 with `actions/setup-node@v7`.
 4. Clones `https://github.com/nx-solutions-ug/wiki-agent.git` to `/tmp/wiki-agent`, installs dependencies, and compiles with `npx tsc -p tsconfig.json`.
-5. Runs `node /tmp/wiki-agent/dist/cli.js --update --print` in headless mode with `WIKI_OLLAMA_MODE=cloud`.
+5. Runs `node /tmp/wiki-agent/dist/cli.js --update --print --verbose` in headless mode with `WIKI_OLLAMA_MODE=cloud`. The `--verbose` flag makes tool call results appear in the CI log alongside assistant prose.
    After the run the agent also updates `.wiki/.last-updated.json` and writes `.wiki/.last-update-report.md` (when there are changes).
 6. Checks whether `.wiki/.last-update-report.md` exists.
    - If it exists, it sets `has_changes=true` and streams the report into a `body<<EOF` heredoc on `$GITHUB_OUTPUT`, adding an empty `echo ""` before the `EOF` delimiter so the delimiter sits on its own line.
@@ -59,7 +59,7 @@ You can reproduce the same event stream locally without opening a PR:
 WIKI_OLLAMA_MODE=cloud \
 WIKI_OLLAMA_API_KEY="$WIKI_OLLAMA_API_KEY" \
 WIKI_MODEL=kimi-k2.7-code \
-wiki --update --print
+wiki --update --print --verbose
 ```
 
 If the wiki is already current, the agent emits no edits and the index synchronizer leaves `index.md` files untouched. See [Architecture](./../architecture/overview.md) for how that is detected.

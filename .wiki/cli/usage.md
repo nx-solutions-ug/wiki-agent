@@ -25,6 +25,7 @@ Exactly one of `--init` or `--update` is required. If neither is present, the he
 |------|--------|
 | `--print` | Run headless: write events to stdout/stderr instead of launching the TUI. Required for CI. |
 | `--model <id>` | Override the model for this run. Higher priority than env vars and config files. |
+| `--verbose`, `-v` | Show tool call results in addition to assistant prose. Without this flag, tool events are suppressed in both headless and TUI output. |
 | `--help`, `-h` | Show help. |
 
 Argument parsing is permissive: unknown flags are ignored. Combine freely, e.g. `wiki --update --print --model llama3.2`.
@@ -47,8 +48,8 @@ In headless mode, the model ID is selected as: `--model` flag → `projectConfig
 
 When `--print` is set, `cli.tsx` invokes `runAgent` with a synchronous event sink:
 
-- `assistant` events are concatenated to stdout as they arrive.
-- `tool` events write `\n[tool: <name>]\n<result>\n` to stdout.
+- `assistant` events are written to stdout wrapped in blank lines (`\n<content>\n`) so prose does not run into adjacent tool markers.
+- `tool` events are written to stdout only when `--verbose` is set, as `\n[tool: <name>]\n<result>\n`. By default they are suppressed.
 - `error` events write `\nError: <message>\n` to stderr.
 - The final `done` event writes its summary followed by a newline.
 

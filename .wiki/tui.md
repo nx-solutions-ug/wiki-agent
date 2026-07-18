@@ -31,10 +31,12 @@ Errors from `saveGlobalConfig` are caught and rendered in red; the wizard drops 
 
 ## Run view: `RunView.tsx`
 
-`RunView` creates the Ollama client via `createOllamaClient(config)` and calls `runAgent` with `stream: true`. Each `AgentEvent` is translated into a `DisplayEvent` and appended to a ref-backed state list, which Ink re-renders. The mapping is:
+`RunView` creates the Ollama client via `createOllamaClient(config)` and calls `runAgent` with `stream: true`. Each `AgentEvent` is translated into a `DisplayEvent` and appended to a ref-backed state list, which Ink re-renders.
 
-- `assistant` — shown verbatim as it streams.
-- `tool` — shown as a dimmed `[tool: <name>]` line followed by the result (clamped to 500 characters for display).
+Consecutive `assistant` chunks are merged into a single `DisplayEvent` so streaming does not fragment prose into one line per token. The mapping is:
+
+- `assistant` — merged into one cyan paragraph prefixed with `» `. A new paragraph is started only when the previous display event was not an assistant event.
+- `tool` — by default suppressed entirely. With `--verbose`, a tool event renders as a gray one-line marker with a running count (`#1 → ls`, `#2 → git`) and, below it, the result body (clamped to 1000 characters for display). Without `--verbose` the tool call is not recorded at all.
 - `error` — shown in red.
 - `done` — shown in green and bold; toggles the "Working…" indicator to "Done".
 

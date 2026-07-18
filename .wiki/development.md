@@ -37,7 +37,7 @@ bun run test
 Runs `vitest run` against the test files in `test/`. There are four suites:
 
 - `config.test.ts` — global/project config I/O and `resolveConfig` precedence.
-- `tools.test.ts` — path-safety checks, file read/write/edit, and tool definition shape.
+- `tools.test.ts` — path-safety checks, file read/write/edit, tool definition shape, `git` subcommand allowlist and metacharacter guard, and `ast_grep`/`ast_search` structural matching.
 - `index-middleware.test.ts` — `index.md` regeneration, exclusions, and idempotency.
 - `prompt.test.ts` — system prompt, user message templates, and help text contents.
 
@@ -59,7 +59,7 @@ src/
   agent.ts             Ollama tool-calling loop, workflow/report generation
   config.ts            Global/project config, Ollama client factory
   prompt.ts            System prompt, user message, help text
-  tools.ts             read_file, write_file, edit_file, ls, grep, glob, execute
+  tools.ts             read_file, write_file, edit_file, ls, grep, glob, git, ast_grep, ast_search
   index-middleware.ts  Post-run index.md regeneration
   tui/
     App.tsx            Top-level TUI shell
