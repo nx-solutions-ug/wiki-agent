@@ -18,23 +18,25 @@ When the CLI is launched without `--print`, `cli.tsx` mounts an [Ink](https://gi
 
 A `useInput` hook listens for `q` or `Ctrl+C` at the top level and calls `useApp().exit()` to leave Ink cleanly. `q` and `Ctrl+C` work the same way in every screen.
 
+Verbose mode is forwarded from the CLI (`--verbose` / `-v`) to the TUI so the run view can decide whether to render tool calls.
+
 ## Credentials setup: `CredentialsSetup.tsx`
 
 A four-step state machine:
 
 1. `mode-select` — the user picks `1` for Ollama Local or `2` for Ollama Cloud. The TUI does not accept Enter here; key presses drive transitions.
 2. `api-key` — only reached from cloud mode. Uses `ink-text-input` to read the key, validates that it is non-empty on submit.
-3. `model` — defaults to `kimi-k2.7-code` and uses the same text input. The on-screen hint still mentions `qwen3-coder`, which is stale.
+3. `model` — defaults to `kimi-k2.7-code` and uses the same text input.
 4. `saving` — calls `saveGlobalConfig` with the assembled `GlobalConfig`, then calls the parent `onConfigSaved` callback with a synthesized `ResolvedConfig` so the run view can start without re-reading the disk.
 
 Errors from `saveGlobalConfig` are caught and rendered in red; the wizard drops back to `mode-select` on failure.
 
 ## Run view: `RunView.tsx`
 
-`RunView` creates the Ollama client via `createOllamaClient(config)` and calls `runAgent` with `stream: true`. Each `AgentEvent` is translated into a `DisplayEvent` and appended to a ref-backed state list, which Ink re-renders. The mapping is:
+`RunView` creates the Ollama client via `createOllamaClient(config)` and calls `runAgent` with `stream: true`. Each `AgentEvent` is translated into a `DisplayEvent` and appended to a ref-backed state list, which Ink re-renders. By default only assistant prose is visible:
 
-- `assistant` — shown verbatim as it streams.
-- `tool` — shown as a dimmed `[tool: <name>]` line followed by the result (clamped to 500 characters for display).
+- `assistant` — shown as it streams, merged into a single paragraph so chunks do not fragment into separate rows.
+- `tool` — hidden by default. In verbose mode, rendered as a dimmed `#<index> → <name>` line followed by the result (clamped to 1 000 characters for display).
 - `error` — shown in red.
 - `done` — shown in green and bold; toggles the "Working…" indicator to "Done".
 

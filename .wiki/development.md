@@ -51,6 +51,10 @@ bun pm pack
 
 Produces `wiki-agent-0.1.0.tgz`. The tarball includes `dist/`, `README.md`, and a workflow entry per the `files` field. Note that `package.json` `files` lists `.github/workflows/wiki-update.yml`, while `src/agent.ts:createWorkflowFile` writes `.github/workflows/update-wiki.yml`; these names are still not reconciled.
 
+## Runtime notes
+
+Wiki Agent is developed and tested primarily with Bun for dependency management and packing, but the compiled CLI is executed with Node.js. CI uses Node 25.
+
 ## Project layout
 
 ```
