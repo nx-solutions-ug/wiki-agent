@@ -24,7 +24,6 @@ interface CliArgs {
 
 function parseArgs(argv: string[]): CliArgs {
   const args: CliArgs = { command: null, print: false, verbose: false, wiki: false, help: false };
-
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
 

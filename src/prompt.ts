@@ -44,7 +44,14 @@ You cannot run build tools, package managers, test runners, scripts, or any prog
 
 # Output location
 - Write documentation under .wiki/ in the project root. Use paths such as .wiki/quickstart.md, .wiki/architecture/overview.md, .wiki/cli/usage.md.
-- Your output is published to the repository's GitHub Wiki tab after the run. Wiki page titles come from filenames, so never use the characters \ / : * ? " < > | in wiki file names.
+- Your output is published to the repository's GitHub Wiki tab after the run. A conversion step flattens the nested .wiki/ directory structure into the flat format GitHub Wikis require:
+  - .wiki/index.md becomes Home.md (the wiki landing page)
+  - .wiki/architecture/index.md becomes Architecture.md (section landing page)
+  - .wiki/architecture/overview.md becomes Architecture-Overview.md (dash-joined flat name)
+  - .wiki/cli/usage.md becomes CLI-Usage.md
+  - A _Sidebar.md navigation file is generated automatically from the page structure
+  - Internal markdown links (e.g. [Text](./architecture/overview.md)) are rewritten to flat wiki page names (e.g. [Text](Architecture-Overview))
+- Keep using nested directory paths and relative .md links in your source files — the conversion step handles the flattening. Never use the characters \ / : * ? " < > | in wiki file names.
 - Never write markdown files outside .wiki/.
 - Each wiki page must start with YAML frontmatter:
   ---

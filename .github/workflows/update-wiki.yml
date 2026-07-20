@@ -92,16 +92,15 @@ jobs:
           TOKEN: ${{ secrets.WIKI_PUSH_TOKEN || steps.token.outputs.token || secrets.GITHUB_TOKEN }}
         run: |
           WIKI_URL="https://x-access-token:${TOKEN}@github.com/${{ steps.coords.outputs.owner_repo }}.wiki.git"
-          rm -rf /tmp/wiki
+          rm -rf /tmp/wiki /tmp/wiki-flat
+          node /tmp/wiki-agent/dist/flatten-wiki.js "$GITHUB_WORKSPACE/.wiki" /tmp/wiki-flat
           git clone "$WIKI_URL" /tmp/wiki
           cd /tmp/wiki
+          # rsync the flattened wiki output (flat names, Home.md, _Sidebar.md).
           # --exclude='.git' protects the wiki clone's .git directory from --delete.
           rsync -a --delete \
             --exclude='.git' \
-            --exclude='.last-update-report.md' \
-            --exclude='.last-updated.json' \
-            --exclude='config.json' \
-            "$GITHUB_WORKSPACE/.wiki/" ./
+            /tmp/wiki-flat/ ./
           git add -A
           if ! git diff --cached --quiet; then
             git -c user.name='wiki-agent[bot]' -c user.email='bot@wiki-agent' \
