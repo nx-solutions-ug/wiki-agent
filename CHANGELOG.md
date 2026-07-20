@@ -1,3 +1,10 @@
+# [1.3.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.2.2...v1.3.0) (2026-07-20)
+
+
+### Features
+
+* gate wiki tab publish behind --wiki flag ([4932155](https://github.com/nx-solutions-ug/wiki-agent/commit/49321554b909e4b5ca45f2f2d825898c96136d90))
+
 ## [1.2.2](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.2.1...v1.2.2) (2026-07-20)
 
 
