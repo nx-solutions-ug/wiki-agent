@@ -73,6 +73,20 @@ Tool results are truncated at `MAX_TOOL_RESULT_LENGTH` (10 000 characters) befor
 
 This step is invoked once at the end of `runAgent` — it does not run on every tool call.
 
+## GitHub Wiki publish conversion
+
+The agent keeps its nested `.wiki/` directory structure, but GitHub Wikis require a flat file layout. `src/flatten-wiki.ts` converts the staged tree before the workflow pushes to `<repo>.wiki.git`:
+
+- `.wiki/index.md` → `Home.md`
+- `.wiki/architecture/index.md` → `Architecture.md`
+- `.wiki/architecture/overview.md` → `Architecture-Overview.md`
+- `.wiki/cli/usage.md` → `CLI-Usage.md`
+- Internal links are rewritten from relative `.md` paths to flat wiki page names, e.g. `[Text](./cli/usage.md)` → `[Text](CLI-Usage)`.
+- `_Sidebar.md` is generated automatically from the page structure.
+- Metadata files (`.last-update-report.md`, `.last-updated.json`, `config.json`, `_plan.md`) are excluded from the flatten.
+
+This step is invoked by `.github/workflows/update-wiki.yml` (when `--wiki` was passed to `--init`) immediately before the wiki repo is cloned and rsynced. See [GitHub Actions](../automation/github-actions.md).
+
 ## Build and test
 
 `tsconfig.json` targets `ES2022` with `nodenext` modules and `react-jsx`. `bun run build` cleans `dist/` and runs `tsc`; `bun run test` runs `vitest` over the test suite in `test/`. `bun pm pack` produces the npm tarball. See [Development](../development.md).
