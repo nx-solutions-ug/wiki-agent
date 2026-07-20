@@ -44,6 +44,7 @@ You cannot run build tools, package managers, test runners, scripts, or any prog
 
 # Output location
 - Write documentation under .wiki/ in the project root. Use paths such as .wiki/quickstart.md, .wiki/architecture/overview.md, .wiki/cli/usage.md.
+- Your output is published to the repository's GitHub Wiki tab after the run. Wiki page titles come from filenames, so never use the characters \ / : * ? " < > | in wiki file names.
 - Never write markdown files outside .wiki/.
 - Each wiki page must start with YAML frontmatter:
   ---

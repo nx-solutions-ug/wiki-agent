@@ -109,85 +109,21 @@ Environment variables take priority over config files.
 
 ## GitHub Actions
 
-Running `wiki --init` automatically creates `.github/workflows/update-wiki.yml` in your repo. The workflow:
+Running `wiki --init` automatically creates `.github/workflows/update-wiki.yml` in your repo. The workflow publishes generated pages to your repository's **GitHub Wiki tab**, not to the main repo's file tree:
 
 1. Generates a GitHub App token if `APP_CLIENT_ID` and `APP_PRIVATE_KEY` secrets are set (falls back to `GITHUB_TOKEN`)
-2. Checks out your repo
-3. Clones and builds wiki-agent from `nx-solutions-ug/wiki-agent`
-4. Runs `wiki --update --print` with your Ollama Cloud credentials
-5. Reads `.wiki/.last-update-report.md` and uses it as the PR body
-6. Creates a pull request with the `.wiki/` changes
+2. Checks out your repo, clones and builds wiki-agent from `nx-solutions-ug/wiki-agent`
+3. Runs `wiki --update --print` with your Ollama Cloud credentials, staging pages under `.wiki/`
+4. Probes the wiki remote (`<repo>.wiki.git`) with `git ls-remote` to detect whether the wiki has been initialized
+5. If there are content changes and the wiki is initialized: clones `<repo>.wiki.git`, syncs the `.wiki/` content (excluding `config.json`, `.last-update-report.md`, `.last-updated.json`) via `rsync`, commits on a `wiki/update-<timestamp>` branch, and pushes
+6. Opens a pull request against the wiki repo (`--repo <owner>/<repo>.wiki`, base `master`) with `.wiki/.last-update-report.md` as the body — a human merges to make updates live
+7. Always opens a `docs: wiki staging snapshot` pull request against the main repo with the `.wiki/` changes, so the staged content stays auditable
 
-```yaml
-name: Wiki Update
-on:
-  workflow_dispatch:
-  push:
-    branches:
-      - main
-  schedule:
-    - cron: "0 8 * * *"
-permissions:
-  contents: write
-  pull-requests: write
-jobs:
-  update:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Generate token
-        id: token
-        uses: actions/create-github-app-token@v3
-        with:
-          client-id: ${{ secrets.APP_CLIENT_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-        continue-on-error: true
+### Bootstrap the wiki first
 
-      - uses: actions/checkout@v7
-        with:
-          token: ${{ steps.token.outputs.token || secrets.GITHUB_TOKEN }}
+GitHub wikis must be initialized once through the UI before they can be pushed to programmatically. Open the **Wiki** tab in your repository, create the first page (any content), then run the workflow. Until then the publish step is skipped with a warning; the staging PR still opens so you can inspect the generated content.
 
-      - uses: actions/setup-node@v7
-        with:
-          node-version: "25"
-
-      - name: Build Wiki Agent
-        run: |
-          git clone --branch main --depth 1 https://github.com/nx-solutions-ug/wiki-agent.git /tmp/wiki-agent
-          cd /tmp/wiki-agent
-          npm install
-          npx tsc -p tsconfig.json
-
-      - name: Run Wiki Agent
-        run: node /tmp/wiki-agent/dist/cli.js --update --print
-        env:
-          WIKI_OLLAMA_MODE: cloud
-          WIKI_OLLAMA_API_KEY: ${{ secrets.WIKI_OLLAMA_API_KEY }}
-          WIKI_MODEL: ${{ vars.WIKI_MODEL || 'kimi-k2.7-code' }}
-
-      - name: Generate timestamp
-        id: timestamp
-        run: echo "timestamp=$(date +%s)" >> $GITHUB_OUTPUT
-
-      - name: Read update report
-        id: report
-        run: |
-          if [ -f .wiki/.last-update-report.md ]; then
-            echo "body<<EOF" >> $GITHUB_OUTPUT
-            cat .wiki/.last-update-report.md >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-          else
-            echo "body=Automated wiki documentation update." >> $GITHUB_OUTPUT
-          fi
-
-      - uses: peter-evans/create-pull-request@v8
-        with:
-          token: ${{ steps.token.outputs.token || secrets.GITHUB_TOKEN }}
-          add-paths: .wiki
-          branch: wiki/update-${{ steps.timestamp.outputs.timestamp }}
-          commit-message: "docs: update wiki"
-          title: "docs: update wiki"
-          body: ${{ steps.report.outputs.body }}
-```
+The full workflow is written to `.github/workflows/update-wiki.yml` by `wiki --init`. See that file (or the template in [`src/agent.ts`](src/agent.ts) `createWorkflowFile`) for the authoritative, current definition. The steps in brief: generate token → checkout → build wiki-agent → run `--update --print` → probe wiki remote → if there are content changes and the wiki is initialized, clone `<repo>.wiki.git`, `rsync` the staged `.wiki/` content (excluding `config.json` and the run metadata), commit on `wiki/update-<timestamp>`, push → open a PR against the wiki repo (base `master`) → open a `docs: wiki staging snapshot` PR against the main repo.
 
 ### Required secrets
 
@@ -196,6 +132,7 @@ jobs:
 | `WIKI_OLLAMA_API_KEY` | Yes | Ollama Cloud API key |
 | `APP_CLIENT_ID` | No | GitHub App client ID for token generation (falls back to `GITHUB_TOKEN`) |
 | `APP_PRIVATE_KEY` | No | GitHub App private key |
+| `WIKI_PUSH_TOKEN` | No | PAT with `repo` scope used to push to the wiki repo. If unset, the GitHub App token or `GITHUB_TOKEN` is used. Set this only if the default token cannot push to the wiki repo. |
 
 ### Optional variables
 
