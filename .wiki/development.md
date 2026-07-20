@@ -50,7 +50,7 @@ The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.H
 bun pm pack
 ```
 
-Produces `wiki-agent-1.1.4.tgz`. The tarball includes `dist/` and `README.md` only (the stale `.github/workflows/wiki-update.yml` entry in `package.json` `files` was removed in commit `74f5621`).
+Produces `wiki-agent-1.3.1.tgz`. The tarball includes `dist/` and `README.md` only (the stale `.github/workflows/wiki-update.yml` entry in `package.json` `files` was removed in commit `74f5621`).
 
 ## Project layout
 

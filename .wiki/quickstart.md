@@ -11,21 +11,16 @@ Wiki Agent is a standalone documentation agent that uses Ollama (local or cloud)
 
 ## 1. Install
 
-Install from npm:
+Install globally from npm:
+
+```bash
+npm install -g @chronova/wiki-agent
+```
+
+Or with Bun:
 
 ```bash
 bun add -g @chronova/wiki-agent
-```
-
-Or build from source and install globally with bun:
-
-```bash
-git clone https://github.com/nx-solutions-ug/wiki-agent.git
-cd wiki-agent
-bun install
-bun run build
-bun pm pack
-cd ~/.bun/install/global && bun add /path/to/wiki-agent/wiki-agent-0.1.0.tgz
 ```
 
 After install, the `wiki` command is on `PATH` (entrypoint: `dist/cli.js`, declared as the `bin` in `package.json`).
@@ -51,11 +46,20 @@ You can configure the mode interactively by running `wiki --init` once, or non-i
 # Initialize a wiki for the current repository
 wiki --init
 
+# Initialize and publish to the GitHub Wiki tab
+wiki --init --wiki
+
 # Refresh an existing wiki
 wiki --update
 
+# Refresh and publish to the GitHub Wiki tab
+wiki --update --wiki
+
 # Headless / CI mode (prints events to stdout)
 wiki --update --print
+
+# Headless with wiki tab publishing
+wiki --update --print --wiki
 
 # Override the model for a single run
 wiki --init --print --model llama3.2
@@ -65,7 +69,7 @@ The first run will create `.wiki/quickstart.md` plus a small set of section page
 
 ## 4. Update from CI
 
-Running `wiki --init` writes `.github/workflows/update-wiki.yml` into your repo. Set `WIKI_OLLAMA_API_KEY` as a secret to enable the scheduled job, which runs `wiki --update --print` and opens a PR with the `.wiki/` changes. See [GitHub Actions](./automation/github-actions.md).
+Running `wiki --init` writes `.github/workflows/update-wiki.yml` into your repo. Set `WIKI_OLLAMA_API_KEY` as a secret to enable the scheduled job, which runs `wiki --update --print` and opens a PR with the `.wiki/` changes. Add `--wiki` to also publish the generated pages to the repository's GitHub Wiki tab. See [GitHub Actions](./automation/github-actions.md).
 
 ## What gets generated
 

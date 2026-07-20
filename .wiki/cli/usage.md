@@ -26,6 +26,7 @@ Exactly one of `--init` or `--update` is required. If neither is present, the he
 | `--print` | Run headless: write events to stdout/stderr instead of launching the TUI. Required for CI. |
 | `--model <id>` | Override the model for this run. Higher priority than env vars and config files. |
 | `--verbose`, `-v` | Show tool call results in addition to assistant prose. Without this flag, tool events are suppressed in both headless and TUI output. |
+| `--wiki` | On `--init`, create the workflow with wiki-tab publishing enabled. The workflow passes `--wiki` to the agent run. |
 | `--help`, `-h` | Show help. |
 
 Argument parsing is permissive: unknown flags are ignored. Combine freely, e.g. `wiki --update --print --model llama3.2`.

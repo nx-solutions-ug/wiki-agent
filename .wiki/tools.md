@@ -13,17 +13,19 @@ All tools are local to the runtime; no network calls are made by the tools thems
 
 ## Tool catalog
 
+There are nine tools in total: seven read-only discovery tools and two write tools that are constrained to `.wiki/`.
+
 | Name | Purpose | Writes? |
 |------|---------|---------|
 | `read_file` | Read a file by relative path with offset/limit. | No |
-| `write_file` | Create or overwrite a file under `.wiki/`. | Yes (`.wiki/` only) |
-| `edit_file` | Find-and-replace a string in an existing `.wiki/` file. | Yes (`.wiki/` only) |
 | `ls` | List a directory's entries. | No |
 | `grep` | Recursive text search using system `grep`. | No |
 | `glob` | Find files by name using system `find`. | No |
 | `git` | Run a read-only git subcommand in the project root. | No (whitelisted subcommands only) |
 | `ast_grep` | Search code by AST pattern using `ast-grep`. | No |
 | `ast_search` | Search code using an inline `ast-grep` YAML rule. | No |
+| `write_file` | Create or overwrite a file under `.wiki/`. | Yes (`.wiki/` only) |
+| `edit_file` | Find-and-replace a string in an existing `.wiki/` file. | Yes (`.wiki/` only) |
 
 ## `read_file`
 
