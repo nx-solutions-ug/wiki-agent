@@ -133,6 +133,7 @@ Usage
   wiki --update --print          Headless update (non-interactive)
   wiki --init --print --model <id>   Specify model
   wiki --update --print --verbose    Headless update with full tool logs
+  wiki --update --print --wiki       Update and publish to the GitHub Wiki tab
   wiki --help                     Show this help
 
 Options
@@ -141,6 +142,7 @@ Options
   --print         Run headless (non-interactive, output to stdout)
   --verbose, -v   Show full tool call results (default: assistant prose only)
   --model <id>    Override the model ID
+  --wiki          Publish to the GitHub Wiki tab (generates wiki-publish workflow)
   --help, -h      Show help
 
 Environment variables

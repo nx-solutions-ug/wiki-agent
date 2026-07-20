@@ -9,6 +9,7 @@ interface RunViewProps {
   cwd: string;
   config: ResolvedConfig;
   verbose: boolean;
+  wiki: boolean;
   onExit: () => void;
 }
 
@@ -23,6 +24,7 @@ export function RunView({
   cwd,
   config,
   verbose,
+  wiki,
   onExit,
 }: RunViewProps): React.ReactElement {
   const [events, setEvents] = useState<DisplayEvent[]>([]);
@@ -39,6 +41,7 @@ export function RunView({
       command,
       projectRoot: cwd,
       model: config.model,
+      wikiPublish: wiki,
       stream: true,
       onEvent: (event: AgentEvent) => {
         // Merge consecutive assistant chunks into one line so streaming

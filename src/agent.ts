@@ -38,6 +38,7 @@ export interface RunOptions {
   gitSummary?: string;
   maxIterations?: number;
   stream?: boolean;
+  wikiPublish?: boolean;
   onEvent?: (event: AgentEvent) => void;
 }
 
@@ -100,6 +101,7 @@ export async function runAgent(
     gitSummary,
     maxIterations,
     stream = false,
+    wikiPublish = false,
     onEvent = () => {},
   } = options;
 
@@ -230,9 +232,8 @@ export async function runAgent(
       });
     }
   }
-
-  await createWorkflowFile(projectRoot);
-  onEvent({ type: "tool", name: "create_workflow", result: "Created .github/workflows/update-wiki.yml" });
+  await createWorkflowFile(projectRoot, wikiPublish);
+  onEvent({ type: "tool", name: "create_workflow", result: wikiPublish ? "Created .github/workflows/update-wiki.yml (with wiki publish)" : "Created .github/workflows/update-wiki.yml" });
 
   if (changedFiles.length === 0) {
     onEvent({ type: "done", summary: "Wiki is already current. No files changed." });
@@ -261,13 +262,15 @@ export async function runAgent(
  * Creates a GitHub Actions workflow file in the target repo that checks out
  * the wiki-agent source, builds it, and runs --update --print on a schedule.
  */
-async function createWorkflowFile(projectRoot: string): Promise<void> {
+async function createWorkflowFile(projectRoot: string, wikiPublish: boolean): Promise<void> {
   const workflowsDir = path.join(projectRoot, ".github", "workflows");
   const workflowPath = path.join(workflowsDir, "update-wiki.yml");
 
   await mkdir(workflowsDir, { recursive: true });
 
-  const workflow = [
+  const runFlags = wikiPublish ? "--update --print --verbose --wiki" : "--update --print --verbose";
+
+  const workflow: string[] = [
     "name: Wiki Update",
     "",
     "on:",
@@ -312,7 +315,7 @@ async function createWorkflowFile(projectRoot: string): Promise<void> {
     "          npx tsc -p tsconfig.json",
     "",
     "      - name: Run Wiki Agent",
-    "        run: node /tmp/wiki-agent/dist/cli.js --update --print --verbose",
+    `        run: node /tmp/wiki-agent/dist/cli.js ${runFlags}`,
     "        env:",
     "          WIKI_OLLAMA_MODE: cloud",
     '          WIKI_OLLAMA_API_KEY: ${{ secrets.WIKI_OLLAMA_API_KEY }}',
@@ -321,23 +324,6 @@ async function createWorkflowFile(projectRoot: string): Promise<void> {
     "      - name: Generate timestamp",
     "        id: timestamp",
     "        run: echo \"timestamp=$(date +%s)\" >> $GITHUB_OUTPUT",
-    "",
-    "      - name: Repository coordinates",
-    "        id: coords",
-    "        run: echo \"owner_repo=${GITHUB_REPOSITORY}\" >> $GITHUB_OUTPUT",
-    "",
-    "      - name: Detect wiki initialization",
-    "        id: wiki-init",
-    "        env:",
-    "          TOKEN: ${{ secrets.WIKI_PUSH_TOKEN || steps.token.outputs.token || secrets.GITHUB_TOKEN }}",
-    "        run: |",
-    "          REMOTE=\"https://x-access-token:${TOKEN}@github.com/${{ steps.coords.outputs.owner_repo }}.wiki.git\"",
-    "          if git ls-remote --exit-code \"$REMOTE\" HEAD >/dev/null 2>&1; then",
-    "            echo \"initialized=true\" >> $GITHUB_OUTPUT",
-    "          else",
-    "            echo \"initialized=false\" >> $GITHUB_OUTPUT",
-    "            echo \"::warning::Wiki is not initialized. Create the first page in the GitHub UI (Wiki tab -> New Page), then rerun. Staging PR will still be opened.\" >> $GITHUB_OUTPUT",
-    "          fi",
     "",
     "      - name: Check for changes",
     "        id: report",
@@ -355,50 +341,75 @@ async function createWorkflowFile(projectRoot: string): Promise<void> {
     "            echo \"has_changes=false\" >> $GITHUB_OUTPUT",
     "          fi",
     "",
-    "      - name: Publish to wiki repo",
-    "        id: publish",
-    "        if: steps.report.outputs.has_changes == 'true' && steps.wiki-init.outputs.initialized == 'true'",
-    "        env:",
-    "          TOKEN: ${{ secrets.WIKI_PUSH_TOKEN || steps.token.outputs.token || secrets.GITHUB_TOKEN }}",
-    "        run: |",
-    "          BRANCH=\"wiki/update-${{ steps.timestamp.outputs.timestamp }}\"",
-    "          WIKI_URL=\"https://x-access-token:${TOKEN}@github.com/${{ steps.coords.outputs.owner_repo }}.wiki.git\"",
-    "          rm -rf /tmp/wiki",
-    "          git clone \"$WIKI_URL\" /tmp/wiki",
-    "          cd /tmp/wiki",
-    "          git checkout -b \"$BRANCH\"",
-    "          # --exclude='.git' protects the wiki clone's .git directory from --delete.",
-    "          rsync -a --delete \\",
-    "            --exclude='.git' \\",
-    "            --exclude='.last-update-report.md' \\",
-    "            --exclude='.last-updated.json' \\",
-    "            --exclude='config.json' \\",
-    "            \"$GITHUB_WORKSPACE/.wiki/\" ./",
-    "          git add -A",
-    "          if ! git diff --cached --quiet; then",
-    "            git -c user.name='wiki-agent[bot]' -c user.email='bot@wiki-agent' \\",
-    "              commit -m \"docs: update wiki\"",
-    "            if ! git push origin \"$BRANCH\" 2>&1 | tee /tmp/wiki-push.log; then",
-    "              echo \"::error::Failed to push to the wiki repo. Ensure the GitHub App has contents:write on the repository (which covers the wiki), or set a WIKI_PUSH_TOKEN secret with repo scope.\"",
-    "              exit 1",
-    "            fi",
-    "            echo \"branch=$BRANCH\" >> $GITHUB_OUTPUT",
-    "          else",
-    "            echo \"::warning::No net wiki content changes after sync; skipping wiki push.\"",
-    "            echo \"branch=\" >> $GITHUB_OUTPUT",
-    "          fi",
-    "",
-    "      - name: Open wiki update pull request",
-    "        if: steps.report.outputs.has_changes == 'true' && steps.wiki-init.outputs.initialized == 'true' && steps.publish.outputs.branch != ''",
-    "        env:",
-    "          GH_TOKEN: ${{ secrets.WIKI_PUSH_TOKEN || steps.token.outputs.token || secrets.GITHUB_TOKEN }}",
-    "        run: |",
-    "          gh pr create --repo \"${{ steps.coords.outputs.owner_repo }}.wiki\" \\",
-    "            --head \"wiki/update-${{ steps.timestamp.outputs.timestamp }}\" \\",
-    "            --base master \\",
-    "            --title \"docs: update wiki\" \\",
-    "            --body-file .wiki/.last-update-report.md",
-    "",
+  ];
+
+  if (wikiPublish) {
+    workflow.push(
+      "      - name: Repository coordinates",
+      "        id: coords",
+      "        run: echo \"owner_repo=${GITHUB_REPOSITORY}\" >> $GITHUB_OUTPUT",
+      "",
+      "      - name: Detect wiki initialization",
+      "        id: wiki-init",
+      "        env:",
+      "          TOKEN: ${{ secrets.WIKI_PUSH_TOKEN || steps.token.outputs.token || secrets.GITHUB_TOKEN }}",
+      "        run: |",
+      "          REMOTE=\"https://x-access-token:${TOKEN}@github.com/${{ steps.coords.outputs.owner_repo }}.wiki.git\"",
+      "          if git ls-remote --exit-code \"$REMOTE\" HEAD >/dev/null 2>&1; then",
+      "            echo \"initialized=true\" >> $GITHUB_OUTPUT",
+      "          else",
+      "            echo \"initialized=false\" >> $GITHUB_OUTPUT",
+      "            echo \"::warning::Wiki is not initialized. Create the first page in the GitHub UI (Wiki tab -> New Page), then rerun. Staging PR will still be opened.\" >> $GITHUB_OUTPUT",
+      "          fi",
+      "",
+      "      - name: Publish to wiki repo",
+      "        id: publish",
+      "        if: steps.report.outputs.has_changes == 'true' && steps.wiki-init.outputs.initialized == 'true'",
+      "        env:",
+      "          TOKEN: ${{ secrets.WIKI_PUSH_TOKEN || steps.token.outputs.token || secrets.GITHUB_TOKEN }}",
+      "        run: |",
+      "          BRANCH=\"wiki/update-${{ steps.timestamp.outputs.timestamp }}\"",
+      "          WIKI_URL=\"https://x-access-token:${TOKEN}@github.com/${{ steps.coords.outputs.owner_repo }}.wiki.git\"",
+      "          rm -rf /tmp/wiki",
+      "          git clone \"$WIKI_URL\" /tmp/wiki",
+      "          cd /tmp/wiki",
+      "          git checkout -b \"$BRANCH\"",
+      "          # --exclude='.git' protects the wiki clone's .git directory from --delete.",
+      "          rsync -a --delete \\",
+      "            --exclude='.git' \\",
+      "            --exclude='.last-update-report.md' \\",
+      "            --exclude='.last-updated.json' \\",
+      "            --exclude='config.json' \\",
+      "            \"$GITHUB_WORKSPACE/.wiki/\" ./",
+      "          git add -A",
+      "          if ! git diff --cached --quiet; then",
+      "            git -c user.name='wiki-agent[bot]' -c user.email='bot@wiki-agent' \\",
+      "              commit -m \"docs: update wiki\"",
+      "            if ! git push origin \"$BRANCH\" 2>&1 | tee /tmp/wiki-push.log; then",
+      "              echo \"::error::Failed to push to the wiki repo. Ensure the GitHub App has contents:write on the repository (which covers the wiki), or set a WIKI_PUSH_TOKEN secret with repo scope.\"",
+      "              exit 1",
+      "            fi",
+      "            echo \"branch=$BRANCH\" >> $GITHUB_OUTPUT",
+      "          else",
+      "            echo \"::warning::No net wiki content changes after sync; skipping wiki push.\"",
+      "            echo \"branch=\" >> $GITHUB_OUTPUT",
+      "          fi",
+      "",
+      "      - name: Open wiki update pull request",
+      "        if: steps.report.outputs.has_changes == 'true' && steps.wiki-init.outputs.initialized == 'true' && steps.publish.outputs.branch != ''",
+      "        env:",
+      "          GH_TOKEN: ${{ secrets.WIKI_PUSH_TOKEN || steps.token.outputs.token || secrets.GITHUB_TOKEN }}",
+      "        run: |",
+      "          gh pr create --repo \"${{ steps.coords.outputs.owner_repo }}.wiki\" \\",
+      "            --head \"wiki/update-${{ steps.timestamp.outputs.timestamp }}\" \\",
+      "            --base master \\",
+      "            --title \"docs: update wiki\" \\",
+      "            --body-file .wiki/.last-update-report.md",
+      "",
+    );
+  }
+
+  workflow.push(
     "      - name: Create wiki staging snapshot pull request",
     "        uses: peter-evans/create-pull-request@v8",
     "        if: steps.report.outputs.has_changes == 'true'",
@@ -408,8 +419,9 @@ async function createWorkflowFile(projectRoot: string): Promise<void> {
     "          add-paths: .wiki",
     '          title: "docs: wiki staging snapshot"',
     '          body: ${{ steps.report.outputs.body }}',
-  ].join("\n");
-  await writeFile(workflowPath, workflow, "utf8");
+  );
+
+  await writeFile(workflowPath, workflow.join("\n") + "\n", "utf8");
 }
 
 /**
