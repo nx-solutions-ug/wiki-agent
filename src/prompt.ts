@@ -107,7 +107,7 @@ ${gitSummary ?? "(not available)"}
   }
 
   return `
-Update the existing OpenWiki documentation for this repository.
+Update the existing wiki documentation for this repository.
 
 Inspect .wiki/, identify recent source changes or newly relevant evidence, and refresh only the documentation pages directly affected by those changes. Use the git evidence below when available. Keep edits surgical: do not rewrite accurate sections, do not update source maps or git evidence just to refresh them, and do not make formatting-only changes. If the wiki is already current, do not edit files.
 
