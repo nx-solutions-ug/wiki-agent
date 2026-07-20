@@ -50,7 +50,7 @@ The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.H
 bun pm pack
 ```
 
-Produces `wiki-agent-1.1.4.tgz`. The tarball includes `dist/` and `README.md` only (the stale `.github/workflows/wiki-update.yml` entry in `package.json` `files` was removed in commit `74f5621`).
+Produces `wiki-agent-<version>.tgz` matching the current `package.json` `version` (e.g. `1.3.0`). The tarball includes `dist/` and `README.md` only.
 
 ## Project layout
 
@@ -74,7 +74,7 @@ See [Architecture](./architecture/overview.md) for how these pieces fit together
 
 ## Release pipeline
 
-Commit `74f5621` added `.github/workflows/release.yml`, which runs on every push to `main`:
+`.github/workflows/release.yml` runs on every push to `main`:
 
 1. **Test job** — `bun install`, `bun run build`, `bun run test`.
 2. **Release job** — if tests pass, generates a GitHub App token with `actions/create-github-app-token@v3` using `secrets.APP_CLIENT_ID` and `secrets.APP_PRIVATE_KEY`, runs `npx --yes semantic-release`, and publishes `@chronova/wiki-agent` to npm using the token in `secrets.NPM_TOKEN`.
