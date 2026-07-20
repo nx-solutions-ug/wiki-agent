@@ -29,20 +29,14 @@ jobs:
         with:
           token: ${{ steps.token.outputs.token || secrets.GITHUB_TOKEN }}
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: "25"
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
 
-      - name: Build Wiki Agent
-        run: |
-          git clone --branch main --depth 1 https://github.com/nx-solutions-ug/wiki-agent.git /tmp/wiki-agent
-          cd /tmp/wiki-agent
-          npm install
-          npx tsc -p tsconfig.json
+      - name: Install Wiki Agent
+        run: bun add -g @chronova/wiki-agent
 
       - name: Run Wiki Agent
-        run: node /tmp/wiki-agent/dist/cli.js --update --print --verbose --wiki
+        run: wiki --update --print --verbose --wiki
         env:
           WIKI_OLLAMA_MODE: cloud
           WIKI_OLLAMA_API_KEY: ${{ secrets.WIKI_OLLAMA_API_KEY }}
@@ -93,7 +87,7 @@ jobs:
         run: |
           WIKI_URL="https://x-access-token:${TOKEN}@github.com/${{ steps.coords.outputs.owner_repo }}.wiki.git"
           rm -rf /tmp/wiki /tmp/wiki-flat
-          node /tmp/wiki-agent/dist/flatten-wiki.js "$GITHUB_WORKSPACE/.wiki" /tmp/wiki-flat
+          wiki-flatten "$GITHUB_WORKSPACE/.wiki" /tmp/wiki-flat
           git clone "$WIKI_URL" /tmp/wiki
           cd /tmp/wiki
           # rsync the flattened wiki output (flat names, Home.md, _Sidebar.md).

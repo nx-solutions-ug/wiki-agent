@@ -4,7 +4,8 @@
   "description": "Standalone Ollama-only documentation agent",
   "type": "module",
   "bin": {
-    "wiki": "dist/cli.js"
+    "wiki": "dist/cli.js",
+    "wiki-flatten": "dist/flatten-wiki.js"
   },
   "files": [
     "dist",

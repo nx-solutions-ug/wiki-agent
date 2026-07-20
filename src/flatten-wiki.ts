@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { readFile, writeFile, mkdir, rm, readdir } from "node:fs/promises";
 import path from "node:path";
 
