@@ -1,3 +1,10 @@
+# [1.2.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.1.4...v1.2.0) (2026-07-20)
+
+
+### Features
+
+* publish wiki to the GitHub Wiki tab via wiki.git PR ([94a1743](https://github.com/nx-solutions-ug/wiki-agent/commit/94a1743d77718696bbe51c42cf735effbf257d33))
+
 ## [1.1.4](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.1.3...v1.1.4) (2026-07-18)
 
 
