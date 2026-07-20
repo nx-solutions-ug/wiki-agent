@@ -1,6 +1,9 @@
 # Wiki Agent
 
-A standalone Ollama-only documentation agent. It inspects your source code and generates a wiki under `.wiki/` in your project root.
+[![npm version](https://img.shields.io/npm/v/@chronova/wiki-agent.svg)](https://www.npmjs.com/package/@chronova/wiki-agent)
+[![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
+
+A standalone Ollama-only documentation agent. It inspects your source code and generates a wiki under `.wiki/` in your project root, with optional publishing to the GitHub Wiki tab.
 
 ## Features
 
@@ -8,25 +11,27 @@ A standalone Ollama-only documentation agent. It inspects your source code and g
 - **Local or Cloud** — connect to a local Ollama server or Ollama Cloud with an API key
 - **TUI + Headless** — interactive terminal UI or `--print` for CI/CD
 - **Two commands** — `--init` to create docs from scratch, `--update` to refresh existing docs
+- **GitHub Wiki tab publishing** — `--wiki` flag generates a workflow that pushes generated pages directly to `<repo>.wiki.git`
 - **Configurable** — global config in `~/.wiki/`, project config in `.wiki/`
 - **GitHub Actions** — `--init` automatically creates a scheduled update workflow in your repo
 - **Repo instructions** — reads `AGENTS.md` or `CLAUDE.md` from the project root and follows all conventions documented there
-- **Change reports** — each run writes `.wiki/.last-update-report.md` with created/edited pages, used as the PR body in CI
-- **Self-invocation guard** — the agent cannot recursively invoke `wiki` or `wiki-agent` via shell commands
+- **Change reports** — each run writes `.wiki/.last-update-report.md` with created/edited pages, used as the staging PR body in CI
+- **Restricted toolset** — the agent can only read files, write under `.wiki/`, and run read-only git subcommands; there is no shell tool
 
 ## Quickstart
 
 ### 1. Install
 
-Build from source and install globally with bun:
+Install globally from npm:
 
 ```bash
-git clone https://github.com/nx-solutions-ug/wiki-agent.git
-cd wiki-agent
-npm install
-npx tsc -p tsconfig.json
-bun pm pack
-cd ~/.bun/install/global && bun add /path/to/wiki-agent/wiki-agent-0.1.0.tgz
+npm install -g @chronova/wiki-agent
+```
+
+Or with bun:
+
+```bash
+bun add -g @chronova/wiki-agent
 ```
 
 Verify the install:
@@ -52,11 +57,20 @@ This launches the TUI where you select Ollama Local or Cloud and enter your API 
 # Initialize documentation (also creates .github/workflows/update-wiki.yml)
 wiki --init
 
+# Initialize and publish to the GitHub Wiki tab
+wiki --init --wiki
+
 # Update existing documentation
 wiki --update
 
+# Update and publish to the GitHub Wiki tab
+wiki --update --wiki
+
 # Headless mode (for CI)
 wiki --update --print
+
+# Headless mode with wiki tab publishing
+wiki --update --print --wiki
 
 # Specify a model override
 wiki --init --print --model llama3.2
@@ -159,7 +173,7 @@ Each run produces:
 ```
 
 - `.last-updated.json` — `{ "lastUpdated": "2026-07-17T10:30:00.000Z" }`
-- `.last-update-report.md` — markdown report listing created and edited pages, used as the PR body in CI
+- `.last-update-report.md` — markdown report listing created and edited pages, used as the staging PR body in CI
 - `index.md` files — auto-generated for each directory, listing pages and subdirectories with frontmatter titles/descriptions
 
 ## Development
@@ -174,11 +188,12 @@ bun pm pack
 ## How it works
 
 1. The agent reads `AGENTS.md` or `CLAUDE.md` from the project root and follows all conventions documented there
-2. It inspects your source code using filesystem tools (read, grep, glob, execute)
-3. It generates wiki pages under `.wiki/` with YAML frontmatter
+2. It inspects your source code using a restricted, read-only toolset: `read_file`, `ls`, `glob`, `grep`, `ast_grep`, `ast_search`, and a read-only `git` tool (whitelisted subcommands only — no mutating git, no shell)
+3. It generates wiki pages under `.wiki/` with YAML frontmatter using `write_file` and `edit_file` (the only mutating tools, constrained to `.wiki/`)
 4. After the run, `index.md` files are synchronized for each directory
 5. `.last-updated.json` and `.last-update-report.md` are written
 6. On `--init`, a GitHub Actions workflow is created for scheduled updates
 7. In update mode, only pages affected by recent changes are refreshed
+8. With `--wiki`, the workflow also publishes to the GitHub Wiki tab by pushing directly to `<repo>.wiki.git` `master`
 
-The agent uses a manual tool-calling loop with the Ollama chat API — no LangChain or LangGraph dependency. The recursion limit prevents infinite loops. The `execute` tool blocks self-invocation to prevent recursive runs.
+The agent uses a manual tool-calling loop with the Ollama chat API — no LangChain or LangGraph dependency. The recursion limit prevents infinite loops. There is no general-purpose shell tool; the agent cannot execute arbitrary commands on the host system.
