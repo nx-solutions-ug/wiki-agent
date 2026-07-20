@@ -91,12 +91,10 @@ jobs:
         env:
           TOKEN: ${{ secrets.WIKI_PUSH_TOKEN || steps.token.outputs.token || secrets.GITHUB_TOKEN }}
         run: |
-          BRANCH="wiki/update-${{ steps.timestamp.outputs.timestamp }}"
           WIKI_URL="https://x-access-token:${TOKEN}@github.com/${{ steps.coords.outputs.owner_repo }}.wiki.git"
           rm -rf /tmp/wiki
           git clone "$WIKI_URL" /tmp/wiki
           cd /tmp/wiki
-          git checkout -b "$BRANCH"
           # --exclude='.git' protects the wiki clone's .git directory from --delete.
           rsync -a --delete \
             --exclude='.git' \
@@ -108,27 +106,15 @@ jobs:
           if ! git diff --cached --quiet; then
             git -c user.name='wiki-agent[bot]' -c user.email='bot@wiki-agent' \
               commit -m "docs: update wiki"
-            if ! git push origin "$BRANCH" 2>&1 | tee /tmp/wiki-push.log; then
+            if ! git push origin master 2>&1 | tee /tmp/wiki-push.log; then
               echo "::error::Failed to push to the wiki repo. Ensure the GitHub App has contents:write on the repository (which covers the wiki), or set a WIKI_PUSH_TOKEN secret with repo scope."
               exit 1
             fi
-            echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+            echo "published=true" >> $GITHUB_OUTPUT
           else
             echo "::warning::No net wiki content changes after sync; skipping wiki push."
-            echo "branch=" >> $GITHUB_OUTPUT
+            echo "published=false" >> $GITHUB_OUTPUT
           fi
-
-      - name: Open wiki update pull request
-        if: steps.report.outputs.has_changes == 'true' && steps.wiki-init.outputs.initialized == 'true' && steps.publish.outputs.branch != ''
-        env:
-          GH_TOKEN: ${{ secrets.WIKI_PUSH_TOKEN || steps.token.outputs.token || secrets.GITHUB_TOKEN }}
-        run: |
-          gh pr create --repo "${{ steps.coords.outputs.owner_repo }}.wiki" \
-            --head "wiki/update-${{ steps.timestamp.outputs.timestamp }}" \
-            --base master \
-            --title "docs: update wiki" \
-            --body-file .wiki/.last-update-report.md
-
       - name: Create wiki staging snapshot pull request
         uses: peter-evans/create-pull-request@v8
         if: steps.report.outputs.has_changes == 'true'

@@ -7,7 +7,7 @@ tags: [github-actions, ci, automation, cron]
 
 # GitHub Actions
 
-Running `wiki --init` writes `.github/workflows/update-wiki.yml` (via `src/agent.ts:createWorkflowFile`). The workflow runs the agent on a cron schedule and publishes the generated pages to the repository's **GitHub Wiki tab** (via the separate `<repo>.wiki.git` Git remote), not to the main repo's file tree. It can also be triggered manually via `workflow_dispatch`.
+Running `wiki --init` writes `.github/workflows/update-wiki.yml` (via `src/agent.ts:createWorkflowFile`). The workflow runs the agent on a cron schedule. When the `--wiki` flag is passed, the workflow also publishes the generated pages to the repository's **GitHub Wiki tab** (via the separate `<repo>.wiki.git` Git remote), pushing directly to `master`. Without `--wiki`, the workflow only stages `.wiki/` and opens a staging PR. It can also be triggered manually via `workflow_dispatch`.
 
 ## What the workflow does
 
@@ -17,16 +17,15 @@ The workflow:
 2. Checks out the repository with `actions/checkout@v7`.
 3. Sets up Node.js 25 with `actions/setup-node@v7`.
 4. Clones `https://github.com/nx-solutions-ug/wiki-agent.git` to `/tmp/wiki-agent`, installs dependencies, and compiles with `npx tsc -p tsconfig.json`.
-5. Runs `node /tmp/wiki-agent/dist/cli.js --update --print --verbose` in headless mode with `WIKI_OLLAMA_MODE=cloud`. The `--verbose` flag makes tool call results appear in the CI log alongside assistant prose.
+5. Runs `node /tmp/wiki-agent/dist/cli.js --update --print --verbose` (with `--wiki` if the flag was passed at `--init` time) in headless mode with `WIKI_OLLAMA_MODE=cloud`. The `--verbose` flag makes tool call results appear in the CI log alongside assistant prose.
    After the run the agent also updates `.wiki/.last-updated.json` and writes `.wiki/.last-update-report.md` (when there are changes).
 6. Emits repository coordinates (`GITHUB_REPOSITORY` → `owner/repo`) and a timestamp into step outputs.
 7. Probes the wiki remote `https://github.com/<owner>/<repo>.wiki.git` with `git ls-remote --exit-code` to detect whether the wiki has been initialized. If not, emits a `::warning::` and sets `initialized=false`.
 8. Checks for content changes under `.wiki/` using `git status --porcelain .wiki`, stripping the status prefix and excluding the run metadata files `.wiki/.last-update-report.md` and `.wiki/.last-updated.json`. If real content files changed, sets `has_changes=true` and streams the report into a `body<<EOF` heredoc on `$GITHUB_OUTPUT` (with an empty `echo ""` before `EOF` so the delimiter sits on its own line).
-9. **Publish to wiki repo** (only when `has_changes=true` and `initialized=true`): clones `<repo>.wiki.git` into `/tmp/wiki`, creates a `wiki/update-<timestamp>` branch, `rsync`s the staged `.wiki/` content over the clone excluding `config.json`, `.last-update-report.md`, and `.last-updated.json`, commits, and pushes the branch. If the push fails with 401/403, emits a `::error::` explaining that either the GitHub App needs `contents:write` (which covers the wiki repo) or a `WIKI_PUSH_TOKEN` secret must be set, then exits 1.
-10. **Open wiki update pull request** (only when the publish step produced a branch): `gh pr create --repo <owner>/<repo>.wiki --head wiki/update-<timestamp> --base master --title "docs: update wiki" --body-file .wiki/.last-update-report.md`. The `--base master` is load-bearing — GitHub wiki repos default to `master`, not `main`, and this is not configurable on github.com. A human merges to make the pages live.
-11. **Create wiki staging snapshot pull request** (always when `has_changes=true`): `peter-evans/create-pull-request@v8` adds `.wiki/` on a `wiki/staging-<timestamp>` branch of the main repo and opens a `docs: wiki staging snapshot` PR. This keeps the staged content auditable in the main repo even though the live surface is the wiki tab.
+9. **Publish to wiki repo** (only when `has_changes=true` and `initialized=true`): clones `<repo>.wiki.git` into `/tmp/wiki`, `rsync`s the staged `.wiki/` content over the clone excluding `.git`, `config.json`, `.last-update-report.md`, and `.last-updated.json`, commits, and **pushes directly to `master`** — the wiki goes live immediately with no PR or review gate. GitHub wiki repos are hidden Git remotes, not API-accessible repositories, so `gh pr create` cannot open a PR against them; direct push to `master` is the only programmatic publish path. If the push fails with 401/403, emits a `::error::` explaining that either the GitHub App needs `contents:write` (which covers the wiki repo) or a `WIKI_PUSH_TOKEN` secret must be set, then exits 1.
+10. **Create wiki staging snapshot pull request** (always when `has_changes=true`): `peter-evans/create-pull-request@v8` adds `.wiki/` on a `wiki/staging-<timestamp>` branch of the main repo and opens a `docs: wiki staging snapshot` PR. This keeps the staged content auditable in the main repo even though the live surface is the wiki tab.
 
-Permissions are explicitly granted for `contents: write` and `pull-requests: write`. `contents: write` is required both for the wiki repo clone/push (the wiki repo shares the parent's installation) and for the staging PR. `pull-requests: write` is required to open the staging PR; the wiki-repo PR is opened with `gh` using the same token.
+Permissions are explicitly granted for `contents: write` and `pull-requests: write`. `contents: write` is required both for the wiki repo clone/push (the wiki repo shares the parent's installation) and for the staging PR. `pull-requests: write` is required to open the staging PR.
 
 ## Triggering
 

@@ -109,21 +109,20 @@ Environment variables take priority over config files.
 
 ## GitHub Actions
 
-Running `wiki --init` automatically creates `.github/workflows/update-wiki.yml` in your repo. The workflow publishes generated pages to your repository's **GitHub Wiki tab**, not to the main repo's file tree:
+Running `wiki --init --wiki` automatically creates `.github/workflows/update-wiki.yml` in your repo. With `--wiki`, the workflow publishes generated pages to your repository's **GitHub Wiki tab**; without `--wiki` it only stages `.wiki/` and opens a staging PR.
 
 1. Generates a GitHub App token if `APP_CLIENT_ID` and `APP_PRIVATE_KEY` secrets are set (falls back to `GITHUB_TOKEN`)
 2. Checks out your repo, clones and builds wiki-agent from `nx-solutions-ug/wiki-agent`
-3. Runs `wiki --update --print` with your Ollama Cloud credentials, staging pages under `.wiki/`
+3. Runs `wiki --update --print --verbose` (with `--wiki` if the flag was passed at `--init` time), staging pages under `.wiki/`
 4. Probes the wiki remote (`<repo>.wiki.git`) with `git ls-remote` to detect whether the wiki has been initialized
-5. If there are content changes and the wiki is initialized: clones `<repo>.wiki.git`, syncs the `.wiki/` content (excluding `config.json`, `.last-update-report.md`, `.last-updated.json`) via `rsync`, commits on a `wiki/update-<timestamp>` branch, and pushes
-6. Opens a pull request against the wiki repo (`--repo <owner>/<repo>.wiki`, base `master`) with `.wiki/.last-update-report.md` as the body — a human merges to make updates live
-7. Always opens a `docs: wiki staging snapshot` pull request against the main repo with the `.wiki/` changes, so the staged content stays auditable
+5. If there are content changes and the wiki is initialized: clones `<repo>.wiki.git`, syncs the staged `.wiki/` content (excluding `config.json` and the run metadata) via `rsync`, commits, and **pushes directly to `master`** — the wiki goes live immediately (no PR, no review gate)
+6. Always opens a `docs: wiki staging snapshot` pull request against the main repo with the `.wiki/` changes, so the staged content stays auditable
 
 ### Bootstrap the wiki first
 
 GitHub wikis must be initialized once through the UI before they can be pushed to programmatically. Open the **Wiki** tab in your repository, create the first page (any content), then run the workflow. Until then the publish step is skipped with a warning; the staging PR still opens so you can inspect the generated content.
 
-The full workflow is written to `.github/workflows/update-wiki.yml` by `wiki --init`. See that file (or the template in [`src/agent.ts`](src/agent.ts) `createWorkflowFile`) for the authoritative, current definition. The steps in brief: generate token → checkout → build wiki-agent → run `--update --print` → probe wiki remote → if there are content changes and the wiki is initialized, clone `<repo>.wiki.git`, `rsync` the staged `.wiki/` content (excluding `config.json` and the run metadata), commit on `wiki/update-<timestamp>`, push → open a PR against the wiki repo (base `master`) → open a `docs: wiki staging snapshot` PR against the main repo.
+The full workflow is written to `.github/workflows/update-wiki.yml` by `wiki --init`. See that file (or the template in [`src/agent.ts`](src/agent.ts) `createWorkflowFile`) for the authoritative, current definition.
 
 ### Required secrets
 
