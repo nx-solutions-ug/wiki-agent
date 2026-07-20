@@ -1,3 +1,10 @@
+## [1.2.2](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.2.1...v1.2.2) (2026-07-20)
+
+
+### Bug Fixes
+
+* protect wiki clone .git from rsync --delete ([8916fbd](https://github.com/nx-solutions-ug/wiki-agent/commit/8916fbd882722f68da0bea186bda7ae1f7d2fbcb))
+
 ## [1.2.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.2.0...v1.2.1) (2026-07-20)
 
 
