@@ -1,3 +1,10 @@
+## [1.2.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.2.0...v1.2.1) (2026-07-20)
+
+
+### Bug Fixes
+
+* drop stray OpenWiki reference in update prompt ([434ee61](https://github.com/nx-solutions-ug/wiki-agent/commit/434ee61b27a4cd847c8759d870410021f9a3c4aa))
+
 # [1.2.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.1.4...v1.2.0) (2026-07-20)
 
 
