@@ -1,3 +1,10 @@
+# [1.5.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.4.0...v1.5.0) (2026-07-20)
+
+
+### Features
+
+* install wiki-agent via bun instead of cloning+building ([705eeae](https://github.com/nx-solutions-ug/wiki-agent/commit/705eeaecc936419c20a5e68932cfa56c866059df))
+
 # [1.4.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.3.1...v1.4.0) (2026-07-20)
 
 
