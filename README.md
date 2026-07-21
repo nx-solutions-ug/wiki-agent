@@ -120,7 +120,7 @@ For cloud:
 | `WIKI_OLLAMA_BASE_URL` | Override Ollama server URL | `http://localhost:11434` / `https://ollama.com` |
 | `WIKI_MODEL` | Override model ID | from config |
 | `WIKI_RECURSION_LIMIT` | Max agent iterations | `200` |
-| `GH_TOKEN` | GitHub token for the read-only `gh` CLI tool (used in CI for the staging PR staleness check) | from environment |
+| `GH_TOKEN` | GitHub token for the `gh` CLI tool (read-only inspection plus staging PR close/comment; used in CI for the staging PR staleness check) | from environment |
 
 Environment variables take priority over config files.
 
