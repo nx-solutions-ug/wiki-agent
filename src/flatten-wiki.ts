@@ -275,11 +275,15 @@ export async function flattenWiki(
   await writeFile(path.join(outputDir, "_Sidebar.md"), sidebar, "utf8");
 }
 
-// CLI entrypoint: node dist/flatten-wiki.js <wiki-root> <output-dir>
-if (process.argv[1] && process.argv[1].endsWith("flatten-wiki.js")) {
+// CLI entrypoint: wiki-flatten <wiki-root> <output-dir>
+// Match both the compiled filename (flatten-wiki.js) and the bin symlink
+// name (wiki-flatten) so it works under `node dist/flatten-wiki.js` and
+// `wiki-flatten` (Bun/npm global install) alike.
+const entrypoint = process.argv[1] ?? "";
+if (entrypoint.endsWith("flatten-wiki.js") || entrypoint.endsWith("wiki-flatten")) {
   const [wikiRoot, outputDir] = process.argv.slice(2);
   if (!wikiRoot || !outputDir) {
-    console.error("Usage: node flatten-wiki.js <wiki-root> <output-dir>");
+    console.error("Usage: wiki-flatten <wiki-root> <output-dir>");
     process.exit(1);
   }
   flattenWiki(wikiRoot, outputDir)

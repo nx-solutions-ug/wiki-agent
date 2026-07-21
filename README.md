@@ -16,7 +16,9 @@ A standalone Ollama-only documentation agent. It inspects your source code and g
 - **GitHub Actions** — `--init` automatically creates a scheduled update workflow in your repo
 - **Repo instructions** — reads `AGENTS.md` or `CLAUDE.md` from the project root and follows all conventions documented there
 - **Change reports** — each run writes `.wiki/.last-update-report.md` with created/edited pages, used as the staging PR body in CI
-- **Restricted toolset** — the agent can only read files, write under `.wiki/`, and run read-only git subcommands; there is no shell tool
+- **Restricted toolset** — the agent can only read files, write under `.wiki/`, run read-only git subcommands, and inspect pull requests via a read-only `gh` CLI tool; there is no shell tool
+- **Staging PR staleness check** — before writing in update mode, the agent checks for open wiki staging PRs and abandons the update if a newer one already exists, preventing duplicate PRs
+- **Frontmatter stripping** — YAML frontmatter is stripped before publishing to the GitHub Wiki tab, since GitHub Wiki renders frontmatter as literal text
 
 ## Quickstart
 
@@ -118,6 +120,7 @@ For cloud:
 | `WIKI_OLLAMA_BASE_URL` | Override Ollama server URL | `http://localhost:11434` / `https://ollama.com` |
 | `WIKI_MODEL` | Override model ID | from config |
 | `WIKI_RECURSION_LIMIT` | Max agent iterations | `200` |
+| `GH_TOKEN` | GitHub token for the read-only `gh` CLI tool (used in CI for the staging PR staleness check) | from environment |
 
 Environment variables take priority over config files.
 
@@ -126,10 +129,10 @@ Environment variables take priority over config files.
 Running `wiki --init --wiki` automatically creates `.github/workflows/update-wiki.yml` in your repo. With `--wiki`, the workflow publishes generated pages to your repository's **GitHub Wiki tab**; without `--wiki` it only stages `.wiki/` and opens a staging PR.
 
 1. Generates a GitHub App token if `APP_CLIENT_ID` and `APP_PRIVATE_KEY` secrets are set (falls back to `GITHUB_TOKEN`)
-2. Checks out your repo, clones and builds wiki-agent from `nx-solutions-ug/wiki-agent`
-3. Runs `wiki --update --print --verbose` (with `--wiki` if the flag was passed at `--init` time), staging pages under `.wiki/`
+2. Checks out your repo, sets up Bun and Node.js, and installs wiki-agent globally from npm
+3. Runs `wiki --update --print --verbose --wiki` with `GH_TOKEN` set so the agent's `gh` tool can inspect open PRs, staging pages under `.wiki/`
 4. Probes the wiki remote (`<repo>.wiki.git`) with `git ls-remote` to detect whether the wiki has been initialized
-5. If there are content changes and the wiki is initialized: clones `<repo>.wiki.git`, syncs the staged `.wiki/` content (excluding `config.json` and the run metadata) via `rsync`, commits, and **pushes directly to `master`** — the wiki goes live immediately (no PR, no review gate)
+5. If there are content changes and the wiki is initialized: flattens the `.wiki/` tree (stripping frontmatter, converting to flat wiki filenames), clones `<repo>.wiki.git`, rsyncs the flattened output, commits, and **pushes directly to `master`** — the wiki goes live immediately (no PR, no review gate)
 6. Always opens a `docs: wiki staging snapshot` pull request against the main repo with the `.wiki/` changes, so the staged content stays auditable
 
 ### Bootstrap the wiki first
@@ -188,12 +191,13 @@ bun pm pack
 ## How it works
 
 1. The agent reads `AGENTS.md` or `CLAUDE.md` from the project root and follows all conventions documented there
-2. It inspects your source code using a restricted, read-only toolset: `read_file`, `ls`, `glob`, `grep`, `ast_grep`, `ast_search`, and a read-only `git` tool (whitelisted subcommands only — no mutating git, no shell)
-3. It generates wiki pages under `.wiki/` with YAML frontmatter using `write_file` and `edit_file` (the only mutating tools, constrained to `.wiki/`)
-4. After the run, `index.md` files are synchronized for each directory
-5. `.last-updated.json` and `.last-update-report.md` are written
-6. On `--init`, a GitHub Actions workflow is created for scheduled updates
-7. In update mode, only pages affected by recent changes are refreshed
-8. With `--wiki`, the workflow also publishes to the GitHub Wiki tab by pushing directly to `<repo>.wiki.git` `master`
+2. It inspects your source code using a restricted, read-only toolset: `read_file`, `ls`, `glob`, `grep`, `ast_grep`, `ast_search`, a read-only `git` tool (whitelisted subcommands only — no mutating git, no shell), and a read-only `gh` CLI tool for inspecting pull requests and repository metadata
+3. In update mode, it checks for open wiki staging PRs via `gh pr list` and compares branch timestamps against the latest commit — if a newer staging PR already exists, it abandons the update to prevent duplicates
+4. It generates wiki pages under `.wiki/` with YAML frontmatter using `write_file` and `edit_file` (the only mutating tools, constrained to `.wiki/`)
+5. After the run, `index.md` files are synchronized for each directory
+6. `.last-updated.json` and `.last-update-report.md` are written
+7. On `--init`, a GitHub Actions workflow is created for scheduled updates
+8. In update mode, only pages affected by recent changes are refreshed
+9. With `--wiki`, the workflow flattens the `.wiki/` tree (stripping frontmatter, converting nested paths to flat dash-joined filenames, rewriting links) and publishes to the GitHub Wiki tab by pushing directly to `<repo>.wiki.git` `master`
 
-The agent uses a manual tool-calling loop with the Ollama chat API — no LangChain or LangGraph dependency. The recursion limit prevents infinite loops. There is no general-purpose shell tool; the agent cannot execute arbitrary commands on the host system.
+The agent uses a manual tool-calling loop with the Ollama chat API — no LangChain or LangGraph dependency. The recursion limit prevents infinite loops. There is no general-purpose shell tool; the agent cannot execute arbitrary commands on the host system. The `gh` tool is restricted to read-only subcommands (pr list, pr view, repo view, etc.) — mutating operations like create, merge, and close are blocked.
