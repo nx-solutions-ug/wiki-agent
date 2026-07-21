@@ -10,7 +10,7 @@ A standalone Ollama-only documentation agent. It inspects your source code and g
 - **Ollama-only** — uses the native `ollama` SDK, no LangChain dependency
 - **Local or Cloud** — connect to a local Ollama server or Ollama Cloud with an API key
 - **TUI + Headless** — interactive terminal UI or `--print` for CI/CD
-- **Two commands** — `--init` to create docs from scratch, `--update` to refresh existing docs
+- **Two commands** — `--init` to create docs from scratch, `--update` to refresh existing docs; `--version` to show the current version
 - **GitHub Wiki tab publishing** — `--wiki` flag generates a workflow that pushes generated pages directly to `<repo>.wiki.git`
 - **Configurable** — global config in `~/.wiki/`, project config in `.wiki/`
 - **GitHub Actions** — `--init` automatically creates a scheduled update workflow in your repo
@@ -39,6 +39,7 @@ bun add -g @chronova/wiki-agent
 Verify the install:
 
 ```bash
+wiki --version
 wiki --help
 ```
 
@@ -73,6 +74,9 @@ wiki --update --print
 
 # Headless mode with wiki tab publishing
 wiki --update --print --wiki
+
+# Show version
+wiki --version
 
 # Specify a model override
 wiki --init --print --model llama3.2
