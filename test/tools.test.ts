@@ -344,6 +344,7 @@ describe("tools", () => {
       expect(names).toContain("grep");
       expect(names).toContain("glob");
       expect(names).toContain("git");
+      expect(names).toContain("ast_grep");
       expect(names).toContain("ast_search");
       expect(names).toContain("gh");
     });
