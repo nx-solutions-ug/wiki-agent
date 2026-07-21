@@ -26,7 +26,7 @@ bun install
 bun run build
 ```
 
-This runs the `prebuild` cleanup (`rm -rf dist`) and then `tsc -p tsconfig.json`. The compiler emits `*.js` and `*.d.ts` files into `dist/` from `src/**/*.ts(x)`. The TS config uses `module: nodenext`, `moduleResolution: nodenext`, `target: ES2022`, and `jsx: react-jsx`.
+This runs the `prebuild` cleanup (`rm -rf dist`) and then `tsc -p tsconfig.json`. The compiler emits `*.js` and `*.d.ts` files into `dist/` from `src/**/*.ts(x)`. The TS config uses `module: nodenext`, `moduleResolution: nodenext`, `target: ES2022`, and `jsx: react-jsx`. The local `engines.node` requirement is `>=22`; the GitHub Actions workflows now run on Node 25.
 
 ## Test
 
@@ -51,7 +51,7 @@ The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.H
 bun pm pack
 ```
 
-Produces `wiki-agent-1.6.3.tgz`. The tarball includes `dist/` and `README.md` only.
+Produces `wiki-agent-1.6.5.tgz`. The tarball includes `dist/` and `README.md` only.
 
 ## Project layout
 
@@ -79,7 +79,7 @@ See [Architecture](./architecture/overview.md) for how these pieces fit together
 
 Commit `74f5621` added `.github/workflows/release.yml`, which runs on every push to `main`:
 
-1. **Test job** — `bun install`, `bun run build`, `bun run test`.
+1. **Test job** — `bun install`, `bun run build`, `bun run test`. Both `update-wiki.yml` and `release.yml` set Node.js 25 via `actions/setup-node@v7`.
 2. **Release job** — if tests pass, generates a GitHub App token with `actions/create-github-app-token@v3` using `secrets.APP_CLIENT_ID` and `secrets.APP_PRIVATE_KEY`, runs `npx --yes semantic-release`, and publishes `@chronova/wiki-agent` to npm using the token in `secrets.NPM_TOKEN`.
 
 `.releaserc.json` configures semantic-release for branches `main`, `beta`, and `alpha`, writes `CHANGELOG.md`, commits `package.json`/`CHANGELOG.md`, creates a GitHub release, and publishes via the `@semantic-release/npm` plugin. Because the project uses Bun, `package-lock.json` is not part of the git assets.

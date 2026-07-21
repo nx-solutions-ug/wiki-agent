@@ -25,7 +25,7 @@ cd wiki-agent
 bun install
 bun run build
 bun pm pack
-cd ~/.bun/install/global && bun add /path/to/wiki-agent/wiki-agent-1.6.3.tgz
+cd ~/.bun/install/global && bun add /path/to/wiki-agent/wiki-agent-1.6.5.tgz
 ```
 
 After install, the `wiki` command is on `PATH` (entrypoint: `dist/cli.js`, declared as the `bin` in `package.json`).
@@ -65,7 +65,7 @@ The first run will create `.wiki/quickstart.md` plus a small set of section page
 
 ## 4. Update from CI
 
-Running `wiki --init` writes `.github/workflows/update-wiki.yml` into your repo. Set `WIKI_OLLAMA_API_KEY` as a secret to enable the scheduled job, which runs `wiki --update --print --verbose` and, if you passed `--wiki` to `--init`, also publishes the generated pages to the repository's GitHub Wiki tab. A staging pull request with the `.wiki/` changes is opened in the main repo either way. See [GitHub Actions](./automation/github-actions.md).
+Running `wiki --init` writes `.github/workflows/update-wiki.yml` into your repo. Set `WIKI_OLLAMA_API_KEY` as a secret to enable the scheduled job, which runs `wiki --update --print --verbose --wiki`. That always attempts to publish the generated pages to the repository's GitHub Wiki tab after flattening them; the actual push is skipped only if the wiki repo is not initialized. A staging pull request with the `.wiki/` changes is opened in the main repo whenever content files changed. See [GitHub Actions](./automation/github-actions.md).
 
 ## What gets generated
 
