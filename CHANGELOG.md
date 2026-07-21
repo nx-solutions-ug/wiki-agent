@@ -1,3 +1,10 @@
+# [1.6.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.5.1...v1.6.0) (2026-07-21)
+
+
+### Features
+
+* **tools:** add read-only gh CLI tool with staging PR staleness check ([01e294b](https://github.com/nx-solutions-ug/wiki-agent/commit/01e294b3c4378d21723cf5b19b02b06579887881))
+
 ## [1.5.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.5.0...v1.5.1) (2026-07-21)
 
 
