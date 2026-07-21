@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.5.0...v1.5.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* **flatten-wiki:** strip YAML frontmatter before publishing to GitHub Wiki ([ec8a2b8](https://github.com/nx-solutions-ug/wiki-agent/commit/ec8a2b86a178f6a6ab3de64d1c28aeb117b46cb0))
+
 # [1.5.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.4.0...v1.5.0) (2026-07-20)
 
 
