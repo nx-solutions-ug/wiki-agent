@@ -1,3 +1,10 @@
+## [1.6.2](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.6.1...v1.6.2) (2026-07-21)
+
+
+### Bug Fixes
+
+* **ci:** pass GH_TOKEN to wiki --update for gh CLI authentication ([8a7fc7c](https://github.com/nx-solutions-ug/wiki-agent/commit/8a7fc7ccbe285d8524506227a25ad8052589a689))
+
 ## [1.6.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.6.0...v1.6.1) (2026-07-21)
 
 
