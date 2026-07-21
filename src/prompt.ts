@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { VERSION } from "./version.js";
 
 export type WikiCommand = "init" | "update";
 
@@ -146,8 +147,9 @@ export function getHelpText(): string {
     __        _____ _  _____      _    ____ _____ _   _ _____
    \\ \\      / /_ _| |/ /_ _|    / \\  / ___| ____| \\ | |_   _|
     \\ \\ /\\ / / | || ' / | |    / _ \\| |  _|  _| |  \\| | | |
-     \\ V  V /  | || . \\ | |   / ___ \\ |_| | |___| |\\  | | |
       \\_/\\_/  |___|_|\\_\\___| /_/   \\_\\____|_____|_| \\_| |_|
+
+  v${VERSION}
 
 Usage
   wiki --init                    Initialize wiki documentation (interactive)
@@ -157,6 +159,7 @@ Usage
   wiki --init --print --model <id>   Specify model
   wiki --update --print --verbose    Headless update with full tool logs
   wiki --update --print --wiki       Update and publish to the GitHub Wiki tab
+  wiki --version                  Show version
   wiki --help                     Show this help
 
 Options
@@ -165,7 +168,7 @@ Options
   --print         Run headless (non-interactive, output to stdout)
   --verbose, -v   Show full tool call results (default: assistant prose only)
   --model <id>    Override the model ID
-  --wiki          Publish to the GitHub Wiki tab (generates wiki-publish workflow)
+  --version       Show version
   --help, -h      Show help
 
 Environment variables

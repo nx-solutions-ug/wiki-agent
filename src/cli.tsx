@@ -9,10 +9,10 @@ import {
   createOllamaClient,
 } from "./config.js";
 import { getHelpText } from "./prompt.js";
+import { VERSION } from "./version.js";
 import { App } from "./tui/App.js";
 
 const execAsync = promisify(exec);
-
 interface CliArgs {
   command: "init" | "update" | null;
   print: boolean;
@@ -20,10 +20,10 @@ interface CliArgs {
   model?: string;
   wiki: boolean;
   help: boolean;
+  version: boolean;
 }
-
 function parseArgs(argv: string[]): CliArgs {
-  const args: CliArgs = { command: null, print: false, verbose: false, wiki: false, help: false };
+  const args: CliArgs = { command: null, print: false, verbose: false, wiki: false, help: false, version: false };
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
 
@@ -50,6 +50,9 @@ function parseArgs(argv: string[]): CliArgs {
       case "--help":
       case "-h":
         args.help = true;
+        break;
+      case "--version":
+        args.version = true;
         break;
     }
   }
@@ -112,6 +115,11 @@ async function runHeadless(
 
 async function main() {
   const args = parseArgs(process.argv);
+
+  if (args.version) {
+    console.log(`wiki-agent v${VERSION}`);
+    process.exit(0);
+  }
 
   if (args.help || args.command === null) {
     console.log(getHelpText());
