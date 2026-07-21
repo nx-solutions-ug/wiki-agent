@@ -78,6 +78,19 @@ function extractTitle(content: string, wikiName: string): string {
 }
 
 /**
+ * Strips a leading YAML frontmatter block (`---\n...\n---`) from markdown
+ * content. GitHub Wiki does not process frontmatter — it renders the YAML
+ * as visible text — so the block must be removed before publishing.
+ * A single optional newline after the closing `---` is also trimmed so the
+ * body starts cleanly. Files without frontmatter are returned unchanged.
+ */
+function stripFrontmatter(content: string): string {
+  const match = content.match(/^---\n[\s\S]*?\n---\n?/);
+  if (!match) return content;
+  return content.slice(match[0].length);
+}
+
+/**
  * Recursively walks the source .wiki/ directory and collects all .md files
  * with their relative paths, excluding metadata and config files.
  */
@@ -244,10 +257,12 @@ export async function flattenWiki(
     // Determine the source file's directory relative to .wiki/
     const sourceRelDir = path.dirname(file.relPath) === "." ? "" : path.dirname(file.relPath);
 
-    // Rewrite links
-    const rewritten = rewriteLinks(content, sourceRelDir, pathMap);
+    // Rewrite links on the frontmatter-stripped body. GitHub Wiki renders
+    // frontmatter as literal text, so strip it before publishing.
+    const body = stripFrontmatter(content);
+    const rewritten = rewriteLinks(body, sourceRelDir, pathMap);
 
-    // Extract title for sidebar
+    // Extract title for sidebar (uses the original content with frontmatter)
     const title = extractTitle(content, wikiName);
     pageInfos.push({ relPath: file.relPath, wikiName, title });
 
