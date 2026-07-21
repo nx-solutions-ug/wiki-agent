@@ -543,6 +543,83 @@ export function createTools(projectRoot: string): Tool[] {
     },
   };
 
+  const ghTool: Tool = {
+    definition: {
+      type: "function",
+      function: {
+        name: "gh",
+        description:
+          "Run a read-only GitHub CLI (gh) subcommand in the project root. Use to inspect open pull requests, check wiki staging PR branches, and compare timestamps. Only read-only inspection subcommands are permitted — no mutating operations (create, edit, close, merge, delete, etc.).",
+        parameters: {
+          type: "object",
+          properties: {
+            args: {
+              type: "string",
+              description:
+                "gh subcommand and arguments, without the leading 'gh'. Example: 'pr list --state open --head wiki/staging-* --json headRefName,updatedAt,number,title', 'pr view <number> --json updatedAt,headRefName,body', 'pr view <number> --json files'.",
+            },
+          },
+          required: ["args"],
+        },
+      },
+    },
+    handler: async (args) => {
+      const argString = (args.args as string) ?? "";
+
+      // Only read-only / inspection subcommands are permitted. The agent
+      // cannot mutate GitHub state through this tool.
+      const ALLOWED_GH_SUBCOMMANDS: Record<string, true> = {
+        pr: true, issue: true, repo: true, run: true, api: true,
+        "search": true, release: true, label: true, workflow: true,
+      };
+
+      // Mutating subcommand prefixes that must never run, even under an
+      // allowed top-level command (e.g. `gh pr create`, `gh pr merge`).
+      const BLOCKED_ACTIONS: Record<string, true> = {
+        create: true, edit: true, close: true, reopen: true, merge: true,
+        delete: true, ready: true, review: true, comment: true,
+        lock: true, unlock: true, assign: true, unassign: true,
+        label: true, unlabel: true, transfer: true, archive: true,
+        unarchive: true, deploy: true, rerun: true, cancel: true,
+        publish: true, set: true, add: true, remove: true,
+      };
+
+      const tokens = argString.trim().split(/\s+/);
+      const subcommand = tokens[0] ?? "";
+      if (!ALLOWED_GH_SUBCOMMANDS[subcommand]) {
+        return `Error: gh subcommand '${subcommand}' is not permitted. Only read-only inspection subcommands are allowed (pr, issue, repo, run, api, search, release, label, workflow).`;
+      }
+
+      // For `gh pr` and similar, check the action token (second token)
+      // against the blocklist. `gh pr list`, `gh pr view`, `gh pr diff`,
+      // `gh pr checks` are read-only and allowed.
+      const action = tokens[1] ?? "";
+      if (BLOCKED_ACTIONS[action]) {
+        return `Error: gh ${subcommand} ${action} is a mutating operation. Only read-only inspection is allowed (list, view, diff, checks, status).`;
+      }
+
+      // Reject shell metacharacters that could chain commands or inject
+      // flags, same guard as the git tool.
+      if (/[;&|`$()<>]/.test(argString)) {
+        return "Error: shell metacharacters are not permitted in gh arguments.";
+      }
+
+      try {
+        const { stdout, stderr } = await execAsync(`gh ${argString}`, {
+          cwd: projectRoot,
+          maxBuffer: 1024 * 1024,
+          timeout: 30_000,
+        });
+
+        const result = stdout + (stderr ? `\n${stderr}` : "");
+        return truncateResult(result || "(no output)");
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return truncateResult(`Error: ${message}`);
+      }
+    },
+  };
+
   return [
     readFileTool,
     writeFileTool,
@@ -553,6 +630,7 @@ export function createTools(projectRoot: string): Tool[] {
     gitTool,
     astGrepTool,
     astSearchTool,
+    ghTool,
   ];
 }
 

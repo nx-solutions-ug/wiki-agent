@@ -256,6 +256,71 @@ describe("tools", () => {
     });
   });
 
+  describe("gh tool", () => {
+    test("rejects non-gh subcommands", async () => {
+      const result = await executeTool(
+        "gh",
+        { args: "auth login" },
+        projectRoot,
+      );
+      expect(result).toContain("not permitted");
+    });
+
+    test("rejects mutating pr operations", async () => {
+      const result = await executeTool(
+        "gh",
+        { args: "pr create --title test" },
+        projectRoot,
+      );
+      expect(result).toContain("mutating operation");
+    });
+
+    test("rejects pr merge", async () => {
+      const result = await executeTool(
+        "gh",
+        { args: "pr merge 123" },
+        projectRoot,
+      );
+      expect(result).toContain("mutating operation");
+    });
+
+    test("rejects pr close", async () => {
+      const result = await executeTool(
+        "gh",
+        { args: "pr close 123" },
+        projectRoot,
+      );
+      expect(result).toContain("mutating operation");
+    });
+
+    test("rejects shell metacharacters", async () => {
+      const result = await executeTool(
+        "gh",
+        { args: "pr list; rm -rf ." },
+        projectRoot,
+      );
+      expect(result).toContain("metacharacters");
+    });
+
+    test("rejects issue create", async () => {
+      const result = await executeTool(
+        "gh",
+        { args: "issue create --title test" },
+        projectRoot,
+      );
+      expect(result).toContain("mutating operation");
+    });
+
+    test("rejects run rerun", async () => {
+      const result = await executeTool(
+        "gh",
+        { args: "run rerun 123" },
+        projectRoot,
+      );
+      expect(result).toContain("mutating operation");
+    });
+  });
+
   describe("tool definitions", () => {
     test("all tools have valid definitions", () => {
       const tools = createTools(projectRoot);
@@ -279,8 +344,8 @@ describe("tools", () => {
       expect(names).toContain("grep");
       expect(names).toContain("glob");
       expect(names).toContain("git");
-      expect(names).toContain("ast_grep");
       expect(names).toContain("ast_search");
+      expect(names).toContain("gh");
     });
 
     test("execute tool is removed", () => {

@@ -39,6 +39,19 @@ describe("prompt", () => {
       expect(prompt).toContain("write_file");
     });
 
+    test("contains gh tool in capabilities", async () => {
+      const prompt = await createSystemPrompt("/test/project");
+      expect(prompt).toContain("gh: run a READ-ONLY GitHub CLI");
+    });
+
+    test("contains staging PR staleness check section", async () => {
+      const prompt = await createSystemPrompt("/test/project");
+      expect(prompt).toContain("Staging PR staleness check");
+      expect(prompt).toContain("gh pr list --state open");
+      expect(prompt).toContain("wiki/staging-<timestamp>");
+      expect(prompt).toContain("git log -1 --format=%ct");
+    });
+
     test("does not include repo instructions section when no AGENTS.md exists", async () => {
       const prompt = await createSystemPrompt("/test/project");
       expect(prompt).not.toContain("Repository instructions");
@@ -94,6 +107,7 @@ describe("prompt", () => {
       expect(message).toContain("Update the existing");
       expect(message).toContain("surgical");
       expect(message).toContain("discovery pass");
+      expect(message).toContain("staging PR staleness check");
     });
 
     test("includes git context when provided", () => {
