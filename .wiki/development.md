@@ -34,13 +34,14 @@ This runs the `prebuild` cleanup (`rm -rf dist`) and then `tsc -p tsconfig.json`
 bun run test
 ```
 
-Runs `vitest run` against the test files in `test/`. There are five suites:
+Runs `vitest run` against the test files in `test/`. There are six suites:
 
 - `config.test.ts` — global/project config I/O and `resolveConfig` precedence.
 - `tools.test.ts` — path-safety checks, file read/write/edit, tool definition shape, `git` subcommand allowlist and metacharacter guard, and `ast_grep`/`ast_search` structural matching.
 - `index-middleware.test.ts` — `index.md` regeneration, exclusions, and idempotency.
 - `prompt.test.ts` — system prompt, user message templates, and help text contents.
 - `report.test.ts` — `generateUpdateReport`: no-op reports, created/edited listings, per-file description blockquotes, truncation, whitespace collapse, and summary counts.
+- `flatten-wiki.test.ts` — filename conversion, link rewriting, frontmatter stripping, sidebar generation, and metadata exclusions.
 
 The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.HOME` so the global config path can be redirected.
 
@@ -50,7 +51,7 @@ The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.H
 bun pm pack
 ```
 
-Produces `wiki-agent-1.3.1.tgz`. The tarball includes `dist/` and `README.md` only.
+Produces `wiki-agent-1.6.3.tgz`. The tarball includes `dist/` and `README.md` only.
 
 ## Project layout
 
@@ -60,7 +61,7 @@ src/
   agent.ts             Ollama tool-calling loop, workflow/report generation
   config.ts            Global/project config, Ollama client factory
   prompt.ts            System prompt, user message, help text
-  tools.ts             read_file, write_file, edit_file, ls, grep, glob, git, ast_grep, ast_search
+  tools.ts             read_file, write_file, edit_file, ls, grep, glob, git, ast_grep, ast_search, gh
   index-middleware.ts  Post-run index.md regeneration
   flatten-wiki.ts      Convert nested .wiki/ to flat GitHub Wiki format before publish
   tui/
@@ -69,6 +70,7 @@ src/
     RunView.tsx
 test/                  Vitest suites
 .github/workflows/update-wiki.yml
+.github/workflows/release.yml
 ```
 
 See [Architecture](./architecture/overview.md) for how these pieces fit together at runtime.
