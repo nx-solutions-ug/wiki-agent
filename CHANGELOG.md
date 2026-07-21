@@ -1,3 +1,10 @@
+## [1.6.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.6.0...v1.6.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* **ci:** add setup-node step to update-wiki workflow ([b8051d9](https://github.com/nx-solutions-ug/wiki-agent/commit/b8051d9c28955e9d6c7e1d07c03b485b04baf110))
+
 # [1.6.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.5.1...v1.6.0) (2026-07-21)
 
 
