@@ -1,3 +1,10 @@
+# [1.7.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.6.5...v1.7.0) (2026-07-21)
+
+
+### Features
+
+* **gh-tool:** allow pr close/comment on stale wiki staging PRs ([2346351](https://github.com/nx-solutions-ug/wiki-agent/commit/23463519075e26db150eb11177ebedbbdfe9ef71)), closes [#tool](https://github.com/nx-solutions-ug/wiki-agent/issues/tool)
+
 ## [1.6.5](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.6.4...v1.6.5) (2026-07-21)
 
 
