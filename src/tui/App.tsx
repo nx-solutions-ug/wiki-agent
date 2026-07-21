@@ -4,6 +4,7 @@ import { runAgent, type AgentEvent } from "../agent.js";
 import { createOllamaClient, type ResolvedConfig } from "../config.js";
 import { CredentialsSetup } from "./CredentialsSetup.js";
 import { RunView } from "./RunView.js";
+import { VERSION } from "../version.js";
 
 interface AppProps {
   command: "init" | "update";
@@ -39,7 +40,7 @@ export function App({ command, cwd, config, verbose, wiki }: AppProps): React.Re
   return React.createElement(Box, { flexDirection: "column" },
     React.createElement(Box, { borderStyle: "round", borderColor: "cyan", paddingX: 1 },
       React.createElement(Text, null,
-        React.createElement(Text, { bold: true }, "Wiki Agent v0.1.0"),
+        React.createElement(Text, { bold: true }, `Wiki Agent v${VERSION}`),
         " | ",
         React.createElement(Text, { color: "cyan" }, `Ollama (${resolvedConfig.mode})`),
         " | ",
