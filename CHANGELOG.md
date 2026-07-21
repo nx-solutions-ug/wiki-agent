@@ -1,3 +1,10 @@
+# [1.8.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.7.1...v1.8.0) (2026-07-21)
+
+
+### Features
+
+* **cli:** add --version flag and display version in help banner ([c93327a](https://github.com/nx-solutions-ug/wiki-agent/commit/c93327a2cfd1254209d84c1bb501f420a7bf9e18))
+
 ## [1.7.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.7.0...v1.7.1) (2026-07-21)
 
 
