@@ -1,3 +1,10 @@
+## [1.6.3](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.6.2...v1.6.3) (2026-07-21)
+
+
+### Bug Fixes
+
+* **flatten-wiki:** detect wiki-flatten bin name in CLI entrypoint ([a2b1fd4](https://github.com/nx-solutions-ug/wiki-agent/commit/a2b1fd481242c8faaf91dcf30303175e9074c2b9))
+
 ## [1.6.2](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.6.1...v1.6.2) (2026-07-21)
 
 
