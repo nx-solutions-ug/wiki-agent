@@ -7,28 +7,33 @@ tags: [cli, commands, flags, environment-variables]
 
 # CLI Usage
 
-The `wiki` command is installed by the `wiki-agent` package and resolves to `dist/cli.js`. It is parsed in `cli.tsx` and dispatches to either the Ink TUI or a headless runner depending on `--print`.
+The `wiki-agent` package installs two binaries: `wiki` (the main agent) and `wiki-flatten` (the wiki publish converter). Both are declared in `package.json` `bin` and resolve to compiled files in `dist/`.
 
-## Commands
+## `wiki` — agent runner
+
+The `wiki` command is parsed in `cli.tsx` and dispatches to either the Ink TUI or a headless runner depending on `--print`.
+
+### Commands
 
 Exactly one of `--init` or `--update` is required. If neither is present, the help text is printed and the process exits `0`.
 
 | Command | Effect |
 |---------|--------|
-| `wiki --init` | Initialize wiki documentation. Drives the model with the "init" user message. |
+| `wiki --init` | Initialize wiki documentation. Drives the model with the "init" user message and writes `.github/workflows/update-wiki.yml`. |
 | `wiki --update` | Refresh an existing wiki. Drives the model with the "update" user message and recent git history. Produces `.wiki/.last-update-report.md` and `.wiki/.last-updated.json` when content changes. |
 | `wiki --help` / `-h` | Print the help text and exit. |
 
-## Flags
+### Flags
 
 | Flag | Effect |
 |------|--------|
+| `--wiki` | Meaningful with `--init`: the generated `.github/workflows/update-wiki.yml` will also publish to the repository's GitHub Wiki tab. Ignored by the CLI in other combinations; the workflow handles publishing. |
 | `--print` | Run headless: write events to stdout/stderr instead of launching the TUI. Required for CI. |
 | `--model <id>` | Override the model for this run. Higher priority than env vars and config files. |
 | `--verbose`, `-v` | Show tool call results in addition to assistant prose. Without this flag, tool events are suppressed in both headless and TUI output. |
 | `--help`, `-h` | Show help. |
 
-Argument parsing is permissive: unknown flags are ignored. Combine freely, e.g. `wiki --update --print --model llama3.2`.
+Argument parsing is permissive: unknown flags are ignored. Combine freely, e.g. `wiki --update --print --model llama3.2` or `wiki --init --wiki`.
 
 ## Environment variables
 
@@ -60,7 +65,35 @@ This is the format the GitHub Actions workflow relies on.
 
 Without `--print`, `cli.tsx` mounts the Ink app defined in `src/tui/`. See [TUI](../tui.md) for the interactive flow, the credentials setup wizard, and the run view.
 
+## `wiki-flatten` — publish converter
+
+The `wiki-flatten` binary is a standalone CLI exported from `src/flatten-wiki.ts`. It converts the nested `.wiki/` directory into the flat file layout required by GitHub Wikis.
+
+```bash
+wiki-flatten <wiki-root> <output-dir>
+```
+
+Examples:
+
+```bash
+wiki-flatten ./.wiki /tmp/wiki-flat
+node dist/flatten-wiki.js ./.wiki /tmp/wiki-flat
+```
+
+Conversion rules:
+
+- `.wiki/index.md` → `Home.md`
+- `.wiki/quickstart.md` → `Quickstart.md`
+- `.wiki/architecture/index.md` → `Architecture.md`
+- `.wiki/architecture/overview.md` → `Architecture-Overview.md`
+- Internal relative markdown links are rewritten to flat wiki page names, e.g. `[Text](./cli/usage.md)` → `[Text](CLI-Usage)`.
+- YAML frontmatter is stripped because GitHub Wiki renders it as literal text.
+- `_Sidebar.md` is generated from page frontmatter titles.
+- Metadata files (`.last-update-report.md`, `.last-updated.json`, `config.json`, `_plan.md`) are excluded.
+
+The GitHub Actions workflow created by `wiki --init --wiki` invokes `wiki-flatten` before pushing to `<repo>.wiki.git`.
+
 ## Exit codes
 
-- `0` — normal completion (including `--help`).
-- `1` — unhandled exception in `main`, or `WIKI_OLLAMA_API_KEY` missing when `config.mode === "cloud"`.
+- `wiki`: `0` — normal completion (including `--help`); `1` — unhandled exception in `main`, or `WIKI_OLLAMA_API_KEY` missing when `config.mode === "cloud"`.
+- `wiki-flatten`: `0` — success; `1` — missing arguments or unexpected error.
