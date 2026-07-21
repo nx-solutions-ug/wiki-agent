@@ -167,10 +167,11 @@ Runs a read-only GitHub CLI (`gh`) subcommand with `cwd` set to the project root
 The tool is constrained the same way as the `git` tool:
 
 - **Subcommand allowlist**: only `pr`, `issue`, `repo`, `run`, `api`, `search`, `release`, `label`, and `workflow` are permitted.
-- **Blocked actions**: mutating action tokens are rejected even under an allowed top-level command. Blocked actions include `create`, `edit`, `close`, `reopen`, `merge`, `delete`, `ready`, `review`, `comment`, `lock`, `unlock`, `assign`, `unassign`, `label`, `unlabel`, `transfer`, `archive`, `unarchive`, `deploy`, `rerun`, `cancel`, `publish`, `set`, `add`, and `remove`. So `gh pr list` and `gh pr view` are allowed, but `gh pr create`, `gh pr merge`, and `gh issue close` are rejected.
+- **Blocked actions for general use**: mutating action tokens are rejected even under an allowed top-level command. Blocked actions include `create`, `edit`, `reopen`, `merge`, `delete`, `ready`, `review`, `lock`, `unlock`, `assign`, `unassign`, `label`, `unlabel`, `transfer`, `archive`, `unarchive`, `deploy`, `rerun`, `cancel`, `publish`, `set`, `add`, and `remove`. So `gh pr create`, `gh pr merge`, and `gh issue close` are rejected.
+- **Staging-only actions**: `close` and `comment` are allowed only on PRs whose `headRefName` starts with `wiki/staging-*`. The handler verifies the target PR branch before executing the command.
 - **Metacharacter guard**: the argument string is rejected if it contains shell-control or redirection metacharacters (`[;&|\`$()<>]`).
 
-The update-mode staging PR staleness check uses this tool to list open `wiki/staging-*` PRs and compare branch timestamps against the latest commit timestamp. See [CLI Usage](../cli/usage.md) for the `GH_TOKEN` environment variable used by the workflow.
+The update-mode staging PR staleness check uses this tool to list open `wiki/staging-*` PRs and compare branch timestamps against the latest commit timestamp, close stale PRs with a comment, and abort when a newer staging PR already exists. See [CLI Usage](../cli/usage.md) for the `GH_TOKEN` environment variable used by the workflow.
 
 ## Sandboxing summary
 
