@@ -266,13 +266,13 @@ describe("tools", () => {
       expect(result).toContain("not permitted");
     });
 
-    test("rejects mutating pr operations", async () => {
+    test("rejects pr create", async () => {
       const result = await executeTool(
         "gh",
         { args: "pr create --title test" },
         projectRoot,
       );
-      expect(result).toContain("mutating operation");
+      expect(result).toContain("blocked operation");
     });
 
     test("rejects pr merge", async () => {
@@ -281,16 +281,40 @@ describe("tools", () => {
         { args: "pr merge 123" },
         projectRoot,
       );
-      expect(result).toContain("mutating operation");
+      expect(result).toContain("blocked operation");
     });
 
-    test("rejects pr close", async () => {
+    test("rejects pr close without a valid PR number", async () => {
       const result = await executeTool(
         "gh",
-        { args: "pr close 123" },
+        { args: "pr close abc" },
         projectRoot,
       );
-      expect(result).toContain("mutating operation");
+      expect(result).toContain("valid PR number");
+    });
+
+    test("rejects pr close when PR verification fails (no gh auth)", async () => {
+      const result = await executeTool(
+        "gh",
+        { args: "pr close 999" },
+        projectRoot,
+      );
+      // The handler tries to verify the PR is a wiki/staging-* branch.
+      // Without gh auth, this fails with an error mentioning the PR number.
+      expect(result).toContain("Error");
+      expect(result).toContain("999");
+    });
+
+    test("rejects pr comment on non-staging branch", async () => {
+      // Mock: we can't easily test the full flow without a real PR,
+      // but we can verify the subcommand is not blocked outright.
+      // The handler will try gh pr view and fail — that's expected.
+      const result = await executeTool(
+        "gh",
+        { args: "pr comment 999 --body test" },
+        projectRoot,
+      );
+      expect(result).toContain("Error");
     });
 
     test("rejects shell metacharacters", async () => {
@@ -308,7 +332,7 @@ describe("tools", () => {
         { args: "issue create --title test" },
         projectRoot,
       );
-      expect(result).toContain("mutating operation");
+      expect(result).toContain("blocked operation");
     });
 
     test("rejects run rerun", async () => {
@@ -317,7 +341,7 @@ describe("tools", () => {
         { args: "run rerun 123" },
         projectRoot,
       );
-      expect(result).toContain("mutating operation");
+      expect(result).toContain("blocked operation");
     });
   });
 

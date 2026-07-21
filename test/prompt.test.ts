@@ -41,7 +41,7 @@ describe("prompt", () => {
 
     test("contains gh tool in capabilities", async () => {
       const prompt = await createSystemPrompt("/test/project");
-      expect(prompt).toContain("gh: run a READ-ONLY GitHub CLI");
+      expect(prompt).toContain("gh: run a GitHub CLI");
     });
 
     test("contains staging PR staleness check section", async () => {
@@ -50,6 +50,8 @@ describe("prompt", () => {
       expect(prompt).toContain("gh pr list --state open");
       expect(prompt).toContain("wiki/staging-<timestamp>");
       expect(prompt).toContain("git log -1 --format=%ct");
+      expect(prompt).toContain("pr close");
+      expect(prompt).toContain("This branch is from an earlier staging run and is stale. Closing");
     });
 
     test("does not include repo instructions section when no AGENTS.md exists", async () => {
