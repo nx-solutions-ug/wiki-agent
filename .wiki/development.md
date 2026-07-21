@@ -34,7 +34,7 @@ This runs the `prebuild` cleanup (`rm -rf dist`) and then `tsc -p tsconfig.json`
 bun run test
 ```
 
-Runs `vitest run` against the test files in `test/`. There are six suites:
+Runs `vitest run` against the test files in `test/`. There are seven suites:
 
 - `config.test.ts` — global/project config I/O and `resolveConfig` precedence.
 - `tools.test.ts` — path-safety checks, file read/write/edit, tool definition shape, `git` subcommand allowlist and metacharacter guard, and `ast_grep`/`ast_search` structural matching.
@@ -42,6 +42,7 @@ Runs `vitest run` against the test files in `test/`. There are six suites:
 - `prompt.test.ts` — system prompt, user message templates, and help text contents.
 - `report.test.ts` — `generateUpdateReport`: no-op reports, created/edited listings, per-file description blockquotes, truncation, whitespace collapse, and summary counts.
 - `flatten-wiki.test.ts` — filename conversion, link rewriting, frontmatter stripping, sidebar generation, and metadata exclusions.
+- `version.test.ts` — asserts `VERSION` from `src/version.ts` matches the current `package.json` version and is not the stale `0.1.0`.
 
 The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.HOME` so the global config path can be redirected.
 
@@ -51,7 +52,7 @@ The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.H
 bun pm pack
 ```
 
-Produces `wiki-agent-1.6.3.tgz`. The tarball includes `dist/` and `README.md` only.
+Produces `wiki-agent-1.7.0.tgz` (matching the current `package.json` version). The tarball includes `dist/` and `README.md` only.
 
 ## Project layout
 
@@ -64,6 +65,7 @@ src/
   tools.ts             read_file, write_file, edit_file, ls, grep, glob, git, ast_grep, ast_search, gh
   index-middleware.ts  Post-run index.md regeneration
   flatten-wiki.ts      Convert nested .wiki/ to flat GitHub Wiki format before publish
+  version.ts           Reads version from package.json at runtime for TUI/CLI
   tui/
     App.tsx            Top-level TUI shell
     CredentialsSetup.tsx

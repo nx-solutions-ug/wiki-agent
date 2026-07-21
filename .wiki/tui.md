@@ -14,7 +14,7 @@ When the CLI is launched without `--print`, `cli.tsx` mounts an [Ink](https://gi
 `App` receives the parsed command, the current working directory, and a `ResolvedConfig` from `cli.tsx`. It decides which screen to render based on whether the resolved configuration is missing a credential:
 
 - If `config.mode === "cloud"` and no API key is set, it renders `CredentialsSetup`.
-- Otherwise it renders the run view inside a rounded header box that shows the agent version, the Ollama mode, the model, and the project root.
+- Otherwise it renders the run view inside a rounded header box that shows the agent version, the Ollama mode, the model, and the project root. The version is read dynamically from `package.json` by `src/version.ts` using `createRequire`, so the displayed `v${VERSION}` stays in sync with releases without a hardcoded string.
 
 A `useInput` hook listens for `q` or `Ctrl+C` at the top level and calls `useApp().exit()` to leave Ink cleanly. `q` and `Ctrl+C` work the same way in every screen.
 
