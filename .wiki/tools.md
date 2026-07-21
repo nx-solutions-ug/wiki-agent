@@ -162,15 +162,16 @@ Output and error handling match `ast_grep`.
 }
 ```
 
-Runs a read-only GitHub CLI (`gh`) subcommand with `cwd` set to the project root, a 1 MB output buffer, and a 30-second timeout. Stdout is returned; stderr is appended on a new line. Errors are caught and returned as `Error: <message>` strings.
+Runs a GitHub CLI (`gh`) subcommand with `cwd` set to the project root, a 1 MB output buffer, and a 30-second timeout. Stdout is returned; stderr is appended on a new line. Errors are caught and returned as `Error: <message>` strings.
 
-The tool is constrained the same way as the `git` tool:
+The tool is constrained similarly to the `git` tool, but with one mutating exception:
 
 - **Subcommand allowlist**: only `pr`, `issue`, `repo`, `run`, `api`, `search`, `release`, `label`, and `workflow` are permitted.
-- **Blocked actions**: mutating action tokens are rejected even under an allowed top-level command. Blocked actions include `create`, `edit`, `close`, `reopen`, `merge`, `delete`, `ready`, `review`, `comment`, `lock`, `unlock`, `assign`, `unassign`, `label`, `unlabel`, `transfer`, `archive`, `unarchive`, `deploy`, `rerun`, `cancel`, `publish`, `set`, `add`, and `remove`. So `gh pr list` and `gh pr view` are allowed, but `gh pr create`, `gh pr merge`, and `gh issue close` are rejected.
+- **Blocked actions**: mutating actions are rejected even under an allowed top-level command. Blocked actions include `create`, `edit`, `reopen`, `merge`, `delete`, `ready`, `review`, `lock`, `unlock`, `assign`, `unassign`, `label`, `unlabel`, `transfer`, `archive`, `unarchive`, `deploy`, `rerun`, `cancel`, `publish`, `set`, `add`, and `remove`. So `gh pr list` and `gh pr view` are allowed, but `gh pr create`, `gh pr merge`, and `gh issue close` are rejected.
+- **Staging-only actions**: `gh pr close <number>` and `gh pr comment <number> --body <text>` are allowed, but only when the target PR's head ref starts with `wiki/staging-`. The handler calls `gh pr view <number> --json headRefName` to verify the branch before executing; if the PR is not a wiki staging PR, it returns an error.
 - **Metacharacter guard**: the argument string is rejected if it contains shell-control or redirection metacharacters (`[;&|\`$()<>]`).
 
-The update-mode staging PR staleness check uses this tool to list open `wiki/staging-*` PRs and compare branch timestamps against the latest commit timestamp. See [CLI Usage](../cli/usage.md) for the `GH_TOKEN` environment variable used by the workflow.
+The update-mode staging PR staleness check uses this tool to list open `wiki/staging-*` PRs, compare branch timestamps against the latest commit timestamp, and close stale staging PRs with the comment "This branch is from an earlier staging run and is stale. Closing". See [CLI Usage](../cli/usage.md) for the `GH_TOKEN` environment variable used by the workflow.
 
 ## Sandboxing summary
 

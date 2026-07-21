@@ -46,7 +46,7 @@ Environment variables are merged with config files by `resolveConfig` in `config
 | `WIKI_OLLAMA_BASE_URL` | Override the Ollama server URL | `http://localhost:11434` (local) or `https://ollama.com` (cloud) |
 | `WIKI_MODEL` | Override model ID | from `~/.wiki/config.json` |
 | `WIKI_RECURSION_LIMIT` | Max agent iterations | `200` |
-| `GH_TOKEN` | GitHub token for the read-only `gh` CLI tool (used in CI for the staging PR staleness check) | from environment |
+| `GH_TOKEN` | GitHub token for the `gh` CLI tool (used in CI for the staging PR staleness check; the tool can close and comment on `wiki/staging-*` PRs) | from environment |
 
 In headless mode, the model ID is selected as: `--model` flag → `projectConfig.modelOverride` → `WIKI_MODEL` → `globalConfig.defaultModel` → `kimi-k2.7-code`.
 
