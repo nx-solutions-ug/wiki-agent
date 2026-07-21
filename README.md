@@ -16,8 +16,8 @@ A standalone Ollama-only documentation agent. It inspects your source code and g
 - **GitHub Actions** — `--init` automatically creates a scheduled update workflow in your repo
 - **Repo instructions** — reads `AGENTS.md` or `CLAUDE.md` from the project root and follows all conventions documented there
 - **Change reports** — each run writes `.wiki/.last-update-report.md` with created/edited pages, used as the staging PR body in CI
-- **Restricted toolset** — the agent can only read files, write under `.wiki/`, run read-only git subcommands, and inspect pull requests via a read-only `gh` CLI tool; there is no shell tool
-- **Staging PR staleness check** — before writing in update mode, the agent checks for open wiki staging PRs and abandons the update if a newer one already exists, preventing duplicate PRs
+- **Restricted toolset** — the agent can only read files, write under `.wiki/`, run read-only git subcommands, and use a `gh` CLI tool for inspecting pull requests and closing stale wiki staging PRs; there is no shell tool
+- **Staging PR staleness check** — before writing in update mode, the agent checks for open wiki staging PRs, abandons the update if a newer one already exists, and closes stale ones with a comment ("This branch is from an earlier staging run and is stale. Closing")
 - **Frontmatter stripping** — YAML frontmatter is stripped before publishing to the GitHub Wiki tab, since GitHub Wiki renders frontmatter as literal text
 
 ## Quickstart
@@ -191,8 +191,8 @@ bun pm pack
 ## How it works
 
 1. The agent reads `AGENTS.md` or `CLAUDE.md` from the project root and follows all conventions documented there
-2. It inspects your source code using a restricted, read-only toolset: `read_file`, `ls`, `glob`, `grep`, `ast_grep`, `ast_search`, a read-only `git` tool (whitelisted subcommands only — no mutating git, no shell), and a read-only `gh` CLI tool for inspecting pull requests and repository metadata
-3. In update mode, it checks for open wiki staging PRs via `gh pr list` and compares branch timestamps against the latest commit — if a newer staging PR already exists, it abandons the update to prevent duplicates
+2. It inspects your source code using a restricted toolset: `read_file`, `ls`, `glob`, `grep`, `ast_grep`, `ast_search`, a read-only `git` tool (whitelisted subcommands only — no mutating git, no shell), and a `gh` CLI tool for inspecting pull requests and managing stale wiki staging PRs
+3. In update mode, it checks for open wiki staging PRs via `gh pr list` and compares branch timestamps against the latest commit — if a newer staging PR already exists, it abandons the update; stale PRs (older branch timestamp) are closed with a comment ("This branch is from an earlier staging run and is stale. Closing")
 4. It generates wiki pages under `.wiki/` with YAML frontmatter using `write_file` and `edit_file` (the only mutating tools, constrained to `.wiki/`)
 5. After the run, `index.md` files are synchronized for each directory
 6. `.last-updated.json` and `.last-update-report.md` are written
@@ -200,4 +200,4 @@ bun pm pack
 8. In update mode, only pages affected by recent changes are refreshed
 9. With `--wiki`, the workflow flattens the `.wiki/` tree (stripping frontmatter, converting nested paths to flat dash-joined filenames, rewriting links) and publishes to the GitHub Wiki tab by pushing directly to `<repo>.wiki.git` `master`
 
-The agent uses a manual tool-calling loop with the Ollama chat API — no LangChain or LangGraph dependency. The recursion limit prevents infinite loops. There is no general-purpose shell tool; the agent cannot execute arbitrary commands on the host system. The `gh` tool is restricted to read-only subcommands (pr list, pr view, repo view, etc.) — mutating operations like create, merge, and close are blocked.
+The agent uses a manual tool-calling loop with the Ollama chat API — no LangChain or LangGraph dependency. The recursion limit prevents infinite loops. There is no general-purpose shell tool; the agent cannot execute arbitrary commands on the host system. The `gh` tool allows read-only inspection (pr list, pr view, repo view, etc.) plus `pr close` and `pr comment` — but only on wiki staging PRs (branches matching `wiki/staging-*`); all other mutating operations are blocked.
