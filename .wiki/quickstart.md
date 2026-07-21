@@ -25,7 +25,7 @@ cd wiki-agent
 bun install
 bun run build
 bun pm pack
-cd ~/.bun/install/global && bun add /path/to/wiki-agent/wiki-agent-1.6.3.tgz
+cd ~/.bun/install/global && bun add /path/to/wiki-agent/wiki-agent-1.8.0.tgz
 ```
 
 After install, the `wiki` command is on `PATH` (entrypoint: `dist/cli.js`, declared as the `bin` in `package.json`).
@@ -33,6 +33,7 @@ After install, the `wiki` command is on `PATH` (entrypoint: `dist/cli.js`, decla
 Verify the install:
 
 ```bash
+wiki --version
 wiki --help
 ```
 
@@ -56,6 +57,9 @@ wiki --update
 
 # Headless / CI mode (prints events to stdout)
 wiki --update --print
+
+# Show the installed version
+wiki --version
 
 # Override the model for a single run
 wiki --init --print --model llama3.2
