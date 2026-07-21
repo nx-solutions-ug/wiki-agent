@@ -1,3 +1,10 @@
+## [1.7.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.7.0...v1.7.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* **tui:** show correct version from package.json instead of hardcoded 0.1.0 ([7003a09](https://github.com/nx-solutions-ug/wiki-agent/commit/7003a09e9ace692a340d263fb8eefaf7b2cdb092))
+
 # [1.7.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.6.5...v1.7.0) (2026-07-21)
 
 

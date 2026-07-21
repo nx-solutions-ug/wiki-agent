@@ -1,6 +1,6 @@
 {
   "name": "@chronova/wiki-agent",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "description": "Standalone Ollama-only documentation agent",
   "type": "module",
   "bin": {
