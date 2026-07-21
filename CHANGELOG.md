@@ -1,3 +1,10 @@
+## [1.6.5](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.6.4...v1.6.5) (2026-07-21)
+
+
+### Bug Fixes
+
+* **agent:** add setup-node and GH_TOKEN to generated workflow template ([b1832d2](https://github.com/nx-solutions-ug/wiki-agent/commit/b1832d233a1ae97f01361828f6fde8a58cea9faf))
+
 ## [1.6.4](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.6.3...v1.6.4) (2026-07-21)
 
 
