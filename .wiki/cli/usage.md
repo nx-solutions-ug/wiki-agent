@@ -22,6 +22,7 @@ Exactly one of `--init` or `--update` is required. If neither is present, the he
 | `wiki --init` | Initialize wiki documentation. Drives the model with the "init" user message and writes `.github/workflows/update-wiki.yml`. |
 | `wiki --update` | Refresh an existing wiki. Drives the model with the "update" user message and recent git history. Produces `.wiki/.last-update-report.md` and `.wiki/.last-updated.json` when content changes. |
 | `wiki --help` / `-h` | Print the help text and exit. |
+| `wiki --version` | Print the installed version (`wiki-agent v<version>`) and exit. |
 
 ### Flags
 
@@ -32,6 +33,7 @@ Exactly one of `--init` or `--update` is required. If neither is present, the he
 | `--model <id>` | Override the model for this run. Higher priority than env vars and config files. |
 | `--verbose`, `-v` | Show tool call results in addition to assistant prose. Without this flag, tool events are suppressed in both headless and TUI output. |
 | `--help`, `-h` | Show help. |
+| `--version` | Show the installed version (`wiki-agent v<version>`) and exit. The version is read dynamically from `package.json` via `src/version.ts`. |
 
 Argument parsing is permissive: unknown flags are ignored. Combine freely, e.g. `wiki --update --print --model llama3.2` or `wiki --init --wiki`.
 
@@ -95,5 +97,5 @@ The GitHub Actions workflow created by `wiki --init --wiki` invokes `wiki-flatte
 
 ## Exit codes
 
-- `wiki`: `0` — normal completion (including `--help`); `1` — unhandled exception in `main`, or `WIKI_OLLAMA_API_KEY` missing when `config.mode === "cloud"`.
+- `wiki`: `0` — normal completion (including `--help` and `--version`); `1` — unhandled exception in `main`, or `WIKI_OLLAMA_API_KEY` missing when `config.mode === "cloud"`.
 - `wiki-flatten`: `0` — success; `1` — missing arguments or unexpected error.

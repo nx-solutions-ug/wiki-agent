@@ -25,15 +25,16 @@ cd wiki-agent
 bun install
 bun run build
 bun pm pack
-cd ~/.bun/install/global && bun add /path/to/wiki-agent/wiki-agent-1.6.3.tgz
+cd ~/.bun/install/global && bun add /path/to/wiki-agent/wiki-agent-1.7.1.tgz
 ```
 
 After install, the `wiki` command is on `PATH` (entrypoint: `dist/cli.js`, declared as the `bin` in `package.json`).
 
-Verify the install:
+Verify the install and check the version:
 
 ```bash
 wiki --help
+wiki --version
 ```
 
 ## 2. Choose an Ollama mode
