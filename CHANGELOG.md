@@ -1,3 +1,10 @@
+## [1.6.4](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.6.3...v1.6.4) (2026-07-21)
+
+
+### Bug Fixes
+
+* **ci:** bump node-version to 25 in update-wiki workflow ([3b329a8](https://github.com/nx-solutions-ug/wiki-agent/commit/3b329a8a048a998221078fb9ef954107058e2987))
+
 ## [1.6.3](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.6.2...v1.6.3) (2026-07-21)
 
 
