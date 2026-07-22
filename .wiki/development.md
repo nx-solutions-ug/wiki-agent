@@ -52,7 +52,7 @@ The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.H
 bun pm pack
 ```
 
-Produces `wiki-agent-1.8.1.tgz`. The tarball includes `dist/` and `README.md` only.
+Produces `wiki-agent-1.8.1.tgz`. The tarball includes `dist/`, `README.md`, and `LICENSE` per the `files` array in `package.json`.
 
 ## Project layout
 
@@ -78,6 +78,8 @@ test/                  Vitest suites
 .github/workflows/omp-ci.yml
 ```
 
+Two binaries are produced by the build: `wiki` (`dist/cli.js`) and `wiki-flatten` (`dist/flatten-wiki.js`), both declared in `package.json` `bin`.
+
 See [Architecture](./architecture/overview.md) for how these pieces fit together at runtime.
 
 ## Repository automation
@@ -89,7 +91,7 @@ The repo uses several GitHub Actions workflows beyond `update-wiki.yml`:
 - `.github/workflows/omp.yml` — invokes the OMP agent on comments containing `/omp` (or `/oc`) and routes command prompts from `.omp/commands/*.md` into OMP.
 - `.github/workflows/omp-ci.yml` — automated OMP triage, PR labeling, and PR review triggered by issues/PR events.
 
-`.releaserc.json` configures semantic-release for branches `main`, `beta`, and `alpha`, writes `CHANGELOG.md`, commits `package.json`/`CHANGELOG.md`, creates a GitHub release, and publishes via the `@semantic-release/npm` plugin. Renovate is configured with `config:recommended` in `renovate.json`. Because the project uses Bun, `package-lock.json` is not part of the git assets.
+`.releaserc.json` configures semantic-release for branches `main`, `beta`, and `alpha`, writes `CHANGELOG.md`, commits `package.json`/`CHANGELOG.md`, creates a GitHub release, and publishes via the `@semantic-release/npm` plugin. Renovate is configured with `config:recommended` in `renovate.json`. Because the project uses Bun, `package-lock.json` is not part of the git assets. The project is released under the ISC license (`LICENSE`); `package.json` sets `license: "ISC"`.
 
 ## Release checklist
 

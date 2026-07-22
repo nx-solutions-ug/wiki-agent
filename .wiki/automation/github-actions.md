@@ -29,11 +29,14 @@ The workflow:
    - A `_Sidebar.md` is generated from the page frontmatter.
    - Metadata files (`.git`, `config.json`, `.last-update-report.md`, `.last-updated.json`, `_plan.md`) are excluded.
 9. **Publish to wiki repo** (only when `has_changes=true` and `initialized=true`, and only when the workflow was created with `--wiki`): clones `<repo>.wiki.git` into `/tmp/wiki`, `rsync`s the flattened `/tmp/wiki-flat/` output over the clone excluding `.git`, commits, and **pushes directly to `master`** — the wiki goes live immediately with no PR or review gate. GitHub wiki repos are hidden Git remotes, not API-accessible repositories, so `gh pr create` cannot open a PR against them; direct push to `master` is the only programmatic publish path. If the push fails with 401/403, emits a `::error::` explaining that either the GitHub App needs `contents:write` (which covers the wiki repo) or a `WIKI_PUSH_TOKEN` secret must be set, then exits 1.
-10. **Create wiki staging snapshot pull request** (always when `has_changes=true`): `peter-evans/create-pull-request@v8` adds `.wiki/` on a `wiki/staging-<timestamp>` branch of the main repo and opens a `docs: wiki staging snapshot` PR. This keeps the staged content auditable in the main repo even though the live surface is the wiki tab.
+10. **Create wiki staging snapshot pull request** (only when `steps.report.outputs.has_changes == 'true'`): `peter-evans/create-pull-request@v8` adds `.wiki/` on a `wiki/staging-<timestamp>` branch of the main repo and opens a `docs: wiki staging snapshot` PR. This keeps the staged content auditable in the main repo even though the live surface is the wiki tab.
 
 Permissions are explicitly granted for `contents: write` and `pull-requests: write`. `contents: write` is required both for the wiki repo clone/push (the wiki repo shares the parent's installation) and for the staging PR. `pull-requests: write` is required to open the staging PR.
 
 The workflow relies on the `GH_TOKEN` environment variable for the read-only `gh` CLI staleness check performed by the agent. This is set to the generated GitHub App token or `secrets.GITHUB_TOKEN`.
+
+## Output
+The staging PR body is read from `.wiki/.last-update-report.md` after the run, so it reflects the pages that were actually changed and includes a per-file description of what changed and why. Because `generateUpdateReport` appends a trailing newline, the heredoc written to `$GITHUB_OUTPUT` is terminated correctly and GitHub Actions can parse it. The staging PR only includes files under `.wiki/` (via `add-paths: .wiki`), so source code is never touched. The publish to the wiki tab excludes metadata files (`config.json`, `.last-update-report.md`, `.last-updated.json`) via the flatten step, so only content pages reach the live wiki.
 
 ## Triggering
 
