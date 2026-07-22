@@ -12,9 +12,11 @@ Wiki Agent merges configuration from several sources. The exact precedence is fi
 - `mode`, `apiKey`, and `baseUrl`: environment variable → global config file (`~/.wiki/config.json`) → built-in default.
 - `model`: `--model` CLI flag → `.wiki/config.json` `modelOverride` → `WIKI_MODEL` environment variable → `~/.wiki/config.json` `defaultModel` → built-in `kimi-k2.7-code`.
 
+Note: `resolveConfig` reads env vars and the global config in the same pass — env wins over global for each field independently.
+
 ## Global config: `~/.wiki/config.json`
 
-Lives in the user's home directory. Created and updated by the TUI's credentials setup wizard (`src/tui/CredentialsSetup.tsx`). The file is written with mode `0o600` because it may contain an API key.
+Lives in the user's home directory. Created and updated by the TUI's credentials setup wizard (`src/tui/CredentialsSetup.tsx`). The file is written with mode `0o600` because it may contain an API key; the parent `~/.wiki/` directory is created with mode `0o700`.
 
 ```json
 {
@@ -33,7 +35,7 @@ For cloud mode:
 }
 ```
 
-The `defaultGlobalConfig()` helper returns `{ mode: "local", defaultModel: "kimi-k2.7-code" }` when the file is absent or unreadable. `loadGlobalConfig` swallows parse errors and falls back to the default.
+The `defaultGlobalConfig()` helper returns `{ mode: "local", defaultModel: "kimi-k2.7-code" }` when the file is absent or unreadable. `loadGlobalConfig` swallows parse/unreadable errors and falls back to the default.
 
 ## Project config: `.wiki/config.json`
 
@@ -58,7 +60,7 @@ Lives inside the wiki output directory. Currently only two fields are read:
 - `mode` — `WIKI_OLLAMA_MODE` if valid (`"local"` or `"cloud"`), otherwise the global config's `mode`.
 - `apiKey` — `WIKI_OLLAMA_API_KEY` if set, otherwise the global config's `apiKey`.
 - `baseUrl` — `WIKI_OLLAMA_BASE_URL` if set, otherwise the global config's `baseUrl`, otherwise the mode's default (`http://localhost:11434` for local, `https://ollama.com` for cloud).
-- `model` — `modelOverride` arg (the `--model` flag) → `projectConfig.modelOverride` → `WIKI_MODEL` → `globalConfig.defaultModel` → `"kimi-k2.7-code"`.
+- `model` — `modelOverride` arg (the `--model` flag) → `projectConfig.modelOverride` → `WIKI_MODEL` → `globalConfig.defaultModel` → `"kimi-k2.7-code"`. So the CLI `--model` flag beats the project config, which beats the env var, which beats the global default.
 
 ## Ollama client construction
 

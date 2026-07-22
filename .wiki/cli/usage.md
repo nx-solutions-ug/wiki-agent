@@ -7,7 +7,7 @@ tags: [cli, commands, flags, environment-variables]
 
 # CLI Usage
 
-The `wiki-agent` package installs two binaries: `wiki` (the main agent) and `wiki-flatten` (the wiki publish converter). Both are declared in `package.json` `bin` and resolve to compiled files in `dist/`.
+The `wiki-agent` package installs two binaries: `wiki` (the main agent) and `wiki-flatten` (the wiki publish converter). Both are declared in `package.json` `bin` and resolve to compiled files in `dist/`. The `files` field in `package.json` ships `dist/` and `README.md`; it currently also lists `.github/workflows/wiki-update.yml`, which is stale — the workflow template in `src/agent.ts:createWorkflowFile` writes `.github/workflows/update-wiki.yml` into target repos.
 
 ## `wiki` — agent runner
 
@@ -47,7 +47,7 @@ Environment variables are merged with config files by `resolveConfig` in `config
 | `WIKI_OLLAMA_BASE_URL` | Override the Ollama server URL | `http://localhost:11434` (local) or `https://ollama.com` (cloud) |
 | `WIKI_MODEL` | Override model ID | from `~/.wiki/config.json` |
 | `WIKI_RECURSION_LIMIT` | Max agent iterations | `200` |
-| `GH_TOKEN` | GitHub token for the read-only `gh` CLI tool (used in CI for the staging PR staleness check) | from environment |
+| `GH_TOKEN` | GitHub token for the `gh` CLI tool (read-only inspection plus `pr close`/`pr comment` on wiki staging PRs; used in CI for the staging PR staleness check) | from environment |
 
 In headless mode, the model ID is selected as: `--model` flag → `projectConfig.modelOverride` → `WIKI_MODEL` → `globalConfig.defaultModel` → `kimi-k2.7-code`.
 

@@ -25,7 +25,7 @@ cd wiki-agent
 bun install
 bun run build
 bun pm pack
-cd ~/.bun/install/global && bun add /path/to/wiki-agent/wiki-agent-1.8.0.tgz
+cd ~/.bun/install/global && bun add /path/to/wiki-agent/wiki-agent-1.8.1.tgz
 ```
 
 After install, the `wiki` command is on `PATH` (entrypoint: `dist/cli.js`, declared as the `bin` in `package.json`).
@@ -65,7 +65,7 @@ wiki --version
 wiki --init --print --model llama3.2
 ```
 
-The first run will create `.wiki/quickstart.md` plus a small set of section pages. After every run, `index.md` files are generated for each directory under `.wiki/` (see [Architecture](./architecture/overview.md)).
+The first run will create `.wiki/quickstart.md` plus a small set of section pages. After every run, `index.md` files are generated for each directory under `.wiki/`, and `.wiki/.last-update-report.md` is written when content actually changes (see [Architecture](./architecture/overview.md)).
 
 ## 4. Update from CI
 

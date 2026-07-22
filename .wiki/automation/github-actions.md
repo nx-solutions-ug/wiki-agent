@@ -15,7 +15,7 @@ The workflow:
 
 1. Optionally generates a GitHub App token with `actions/create-github-app-token@v3` if `APP_CLIENT_ID` and `APP_PRIVATE_KEY` secrets are present; otherwise it falls back to `secrets.GITHUB_TOKEN`.
 2. Checks out the repository with `actions/checkout@v7`.
-3. Sets up Bun with `oven-sh/setup-bun@v2` and Node.js 22 with `actions/setup-node@v7`.
+3. Sets up Bun with `oven-sh/setup-bun@v2` and Node.js 25 with `actions/setup-node@v7`.
 4. Installs Wiki Agent globally from npm with `bun add -g @chronova/wiki-agent`.
 5. Runs `wiki --update --print --verbose` (with `--wiki` if the flag was passed at `--init` time) in headless mode with `WIKI_OLLAMA_MODE=cloud`. The `--verbose` flag makes tool call results appear in the CI log alongside assistant prose.
    After the run the agent also updates `.wiki/.last-updated.json` and writes `.wiki/.last-update-report.md` (when there are changes).
@@ -61,7 +61,9 @@ The same commit that refreshes this wiki can also run the release pipeline. `.gi
 | `APP_CLIENT_ID` | Secret (optional) | GitHub App client ID for token generation; falls back to `secrets.GITHUB_TOKEN`. |
 | `APP_PRIVATE_KEY` | Secret (optional) | GitHub App private key for token generation. |
 | `WIKI_MODEL` | Variable (optional) | Model ID override. Defaults to `kimi-k2.7-code` if unset. |
-| `WIKI_PUSH_TOKEN` | Secret (optional) | PAT with `repo` scope used to push to the wiki repo and open the wiki PR. If unset, the GitHub App token or `GITHUB_TOKEN` is used. Set only if the default token cannot push to the wiki repo. |
+| `WIKI_PUSH_TOKEN` | Secret (optional) | PAT with `repo` scope used to push to the wiki repo and open the staging PR. If unset, the GitHub App token or `GITHUB_TOKEN` is used. Set only if the default token cannot push to the wiki repo. |
+
+The workflow permissions are `contents: write` and `pull-requests: write` in the update job. The release workflow (`release.yml`) uses `contents: read` at the workflow level and `contents: write`, `issues: write`, `pull-requests: write`, and `id-token: write` in the release job.
 
 The `WIKI_OLLAMA_BASE_URL` environment variable is not set; the agent uses the cloud default `https://ollama.com`. Override it by adding a step that exports the variable if you need a self-hosted endpoint.
 

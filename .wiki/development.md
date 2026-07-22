@@ -34,16 +34,17 @@ This runs the `prebuild` cleanup (`rm -rf dist`) and then `tsc -p tsconfig.json`
 bun run test
 ```
 
-Runs `vitest run` against the test files in `test/`. There are six suites:
+Runs `vitest run` against the test files in `test/`. There are seven suites:
 
 - `config.test.ts` — global/project config I/O and `resolveConfig` precedence.
-- `tools.test.ts` — path-safety checks, file read/write/edit, tool definition shape, `git` subcommand allowlist and metacharacter guard, and `ast_grep`/`ast_search` structural matching.
+- `tools.test.ts` — path-safety checks, file read/write/edit, tool definition shape, `git` subcommand allowlist and metacharacter guard, `ast_grep`/`ast_search` structural matching, and `gh` subcommand/action guard.
 - `index-middleware.test.ts` — `index.md` regeneration, exclusions, and idempotency.
 - `prompt.test.ts` — system prompt, user message templates, and help text contents.
 - `report.test.ts` — `generateUpdateReport`: no-op reports, created/edited listings, per-file description blockquotes, truncation, whitespace collapse, and summary counts.
 - `flatten-wiki.test.ts` — filename conversion, link rewriting, frontmatter stripping, sidebar generation, and metadata exclusions.
+- `version.test.ts` — `VERSION` read from `package.json` and not the stale `0.1.0`.
 
-The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.HOME` so the global config path can be redirected.
+The tests use `mkdtemp` for hermetic filesystem state. `config.test.ts` additionally backs up `process.env.HOME` so the global config path can be redirected.
 
 ## Pack
 
@@ -51,7 +52,7 @@ The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.H
 bun pm pack
 ```
 
-Produces `wiki-agent-1.6.3.tgz`. The tarball includes `dist/` and `README.md` only.
+Produces `wiki-agent-1.8.1.tgz`. The tarball includes `dist/` and `README.md` only.
 
 ## Project layout
 
