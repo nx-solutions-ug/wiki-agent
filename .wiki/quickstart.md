@@ -58,6 +58,9 @@ wiki --update
 # Headless / CI mode (prints events to stdout)
 wiki --update --print
 
+# Headless mode with full tool logs
+wiki --update --print --verbose
+
 # Show the installed version
 wiki --version
 
@@ -69,7 +72,7 @@ The first run will create `.wiki/quickstart.md` plus a small set of section page
 
 ## 4. Update from CI
 
-Running `wiki --init` writes `.github/workflows/update-wiki.yml` into your repo. Set `WIKI_OLLAMA_API_KEY` as a secret to enable the scheduled job, which runs `wiki --update --print --verbose` and, if you passed `--wiki` to `--init`, also publishes the generated pages to the repository's GitHub Wiki tab. A staging pull request with the `.wiki/` changes is opened in the main repo either way. See [GitHub Actions](./automation/github-actions.md).
+Every run creates or updates `.github/workflows/update-wiki.yml` in your repo. Set `WIKI_OLLAMA_API_KEY` as a secret to enable the scheduled job, which runs `wiki --update --print --verbose` and, if you passed `--wiki` to `--init` or `--update`, also publishes the generated pages to the repository's GitHub Wiki tab. A staging pull request with the `.wiki/` changes is opened in the main repo either way. See [GitHub Actions](./automation/github-actions.md).
 
 ## What gets generated
 

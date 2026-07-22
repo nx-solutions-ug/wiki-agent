@@ -19,7 +19,7 @@ Exactly one of `--init` or `--update` is required. If neither is present, the he
 
 | Command | Effect |
 |---------|--------|
-| `wiki --init` | Initialize wiki documentation. Drives the model with the "init" user message and writes `.github/workflows/update-wiki.yml`. |
+| `wiki --init` | Initialize wiki documentation. Drives the model with the "init" user message and creates or updates `.github/workflows/update-wiki.yml` (this happens on every run, not only on `--init`). |
 | `wiki --update` | Refresh an existing wiki. Drives the model with the "update" user message and recent git history. Produces `.wiki/.last-update-report.md` and `.wiki/.last-updated.json` when content changes. |
 | `wiki --version` | Print the current package version (read from `package.json`) and exit. |
 | `wiki --help` / `-h` | Print the help text and exit. |
@@ -28,7 +28,7 @@ Exactly one of `--init` or `--update` is required. If neither is present, the he
 
 | Flag | Effect |
 |------|--------|
-| `--wiki` | Meaningful with `--init`: the generated `.github/workflows/update-wiki.yml` will also publish to the repository's GitHub Wiki tab. Ignored by the CLI in other combinations; the workflow handles publishing. |
+| `--wiki` | The generated `.github/workflows/update-wiki.yml` will also publish to the repository's GitHub Wiki tab. Meaningful primarily with `--init` (when the workflow is first created); ignored by the CLI in other combinations, but stored as a flag in the workflow. |
 | `--print` | Run headless: write events to stdout/stderr instead of launching the TUI. Required for CI. |
 | `--model <id>` | Override the model for this run. Higher priority than env vars and config files. |
 | `--verbose`, `-v` | Show tool call results in addition to assistant prose. Without this flag, tool events are suppressed in both headless and TUI output. |
@@ -92,7 +92,7 @@ Conversion rules:
 - `_Sidebar.md` is generated from page frontmatter titles.
 - Metadata files (`.last-update-report.md`, `.last-updated.json`, `config.json`, `_plan.md`) are excluded.
 
-The GitHub Actions workflow created by `wiki --init --wiki` invokes `wiki-flatten` before pushing to `<repo>.wiki.git`.
+The GitHub Actions workflow created when `--wiki` is passed invokes `wiki-flatten` before pushing to `<repo>.wiki.git`.
 
 ## Exit codes
 

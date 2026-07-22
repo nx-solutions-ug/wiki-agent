@@ -7,7 +7,7 @@ tags: [github-actions, ci, automation, cron]
 
 # GitHub Actions
 
-Running `wiki --init` writes `.github/workflows/update-wiki.yml` (via `src/agent.ts:createWorkflowFile`). The workflow runs the agent on a cron schedule. When the `--wiki` flag is passed, the workflow also publishes the generated pages to the repository's **GitHub Wiki tab** (via the separate `<repo>.wiki.git` Git remote), pushing directly to `master`. Without `--wiki`, the workflow only stages `.wiki/` and opens a staging PR. It can also be triggered manually via `workflow_dispatch`.
+Every run creates or updates `.github/workflows/update-wiki.yml` (via `src/agent.ts:createWorkflowFile`), so the workflow is kept in sync even on `wiki --update`. The workflow runs the agent on a cron schedule. When the `--wiki` flag is passed, the workflow also publishes the generated pages to the repository's **GitHub Wiki tab** (via the separate `<repo>.wiki.git` Git remote), pushing directly to `master`. Without `--wiki`, the workflow only stages `.wiki/` and opens a staging PR. It can also be triggered manually via `workflow_dispatch`.
 
 ## What the workflow does
 
@@ -17,7 +17,7 @@ The workflow:
 2. Checks out the repository with `actions/checkout@v7`.
 3. Sets up Bun with `oven-sh/setup-bun@v2` and Node.js 25 with `actions/setup-node@v7` (the package still supports Node.js 22+ per `package.json`).
 4. Installs Wiki Agent globally from npm with `bun add -g @chronova/wiki-agent`.
-5. Runs `wiki --update --print --verbose` (with `--wiki` if the flag was passed at `--init` time) in headless mode with `WIKI_OLLAMA_MODE=cloud`. The `--verbose` flag makes tool call results appear in the CI log alongside assistant prose.
+5. Runs `wiki --update --print --verbose --wiki` in headless mode with `WIKI_OLLAMA_MODE=cloud` when `--wiki` was passed, or `wiki --update --print --verbose` otherwise. The `--verbose` flag makes tool call results appear in the CI log alongside assistant prose.
    After the run the agent also updates `.wiki/.last-updated.json` and writes `.wiki/.last-update-report.md` (when there are changes).
 6. Emits repository coordinates (`GITHUB_REPOSITORY` → `owner/repo`) and a timestamp into step outputs.
 7. Checks for content changes under `.wiki/` using `git status --porcelain .wiki`, stripping the status prefix and excluding the run metadata files `.wiki/.last-update-report.md` and `.wiki/.last-updated.json`. If real content files changed, sets `has_changes=true` and streams the report into a `body<<EOF` heredoc on `$GITHUB_OUTPUT` (with an empty `echo ""` before `EOF` so the delimiter sits on its own line).
