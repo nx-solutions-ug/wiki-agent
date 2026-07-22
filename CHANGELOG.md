@@ -1,3 +1,10 @@
+## [1.8.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.8.0...v1.8.1) (2026-07-22)
+
+
+### Bug Fixes
+
+* add omp configurations ([9c19ac8](https://github.com/nx-solutions-ug/wiki-agent/commit/9c19ac869d7d1a1262b47bf7a05eb34c21a9988e))
+
 # [1.8.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.7.1...v1.8.0) (2026-07-21)
 
 
