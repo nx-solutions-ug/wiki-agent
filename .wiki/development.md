@@ -11,7 +11,7 @@ This page covers the day-to-day commands for hacking on Wiki Agent itself, not o
 
 ## Prerequisites
 
-- Node.js 22+ (declared in `package.json` `engines.node`). Node runs the compiled CLI.
+- Node.js 22+ (declared in `package.json` `engines.node`). The CI workflows set `node-version: "25"` for the build/release jobs, while the package still supports Node.js 22 and later.
 - Bun — used as the package manager and packer. The `prebuild` script uses `bun run clean` and `bun pm pack` produces the tarball. If you do not have bun, run `tsc` directly and use `npm pack`.
 
 ## Install
@@ -42,6 +42,7 @@ Runs `vitest run` against the test files in `test/`. There are seven suites:
 - `prompt.test.ts` — system prompt, user message templates, and help text contents.
 - `report.test.ts` — `generateUpdateReport`: no-op reports, created/edited listings, per-file description blockquotes, truncation, whitespace collapse, and summary counts.
 - `flatten-wiki.test.ts` — filename conversion, link rewriting, frontmatter stripping, sidebar generation, and metadata exclusions.
+- `version.test.ts` — `VERSION` matches `package.json` and is not the stale `0.1.0` placeholder.
 
 The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.HOME` so the global config path can be redirected.
 
@@ -72,18 +73,23 @@ src/
 test/                  Vitest suites
 .github/workflows/update-wiki.yml
 .github/workflows/release.yml
+.github/workflows/auto-manage.yml
+.github/workflows/omp.yml
+.github/workflows/omp-ci.yml
 ```
 
 See [Architecture](./architecture/overview.md) for how these pieces fit together at runtime.
 
-## Release pipeline
+## Repository automation
 
-Commit `74f5621` added `.github/workflows/release.yml`, which runs on every push to `main`:
+The repo uses several GitHub Actions workflows beyond `update-wiki.yml`:
 
-1. **Test job** — `bun install`, `bun run build`, `bun run test`.
-2. **Release job** — if tests pass, generates a GitHub App token with `actions/create-github-app-token@v3` using `secrets.APP_CLIENT_ID` and `secrets.APP_PRIVATE_KEY`, runs `npx --yes semantic-release`, and publishes `@chronova/wiki-agent` to npm using the token in `secrets.NPM_TOKEN`.
+- `.github/workflows/release.yml` — runs on every push to `main`. After a passing test job it generates a GitHub App token and runs `npx --yes semantic-release` to bump `package.json`, write `CHANGELOG.md`, create a GitHub release, and publish `@chronova/wiki-agent` to npm with `secrets.NPM_TOKEN`.
+- `.github/workflows/auto-manage.yml` — tags new/reopened issues with `needs-triage` and auto-assigns new issues and PRs to `niklasschaeffer`.
+- `.github/workflows/omp.yml` — invokes the OMP agent on comments containing `/omp` (or `/oc`) and routes command prompts from `.omp/commands/*.md` into OMP.
+- `.github/workflows/omp-ci.yml` — automated OMP triage, PR labeling, and PR review triggered by issues/PR events.
 
-`.releaserc.json` configures semantic-release for branches `main`, `beta`, and `alpha`, writes `CHANGELOG.md`, commits `package.json`/`CHANGELOG.md`, creates a GitHub release, and publishes via the `@semantic-release/npm` plugin. Because the project uses Bun, `package-lock.json` is not part of the git assets.
+`.releaserc.json` configures semantic-release for branches `main`, `beta`, and `alpha`, writes `CHANGELOG.md`, commits `package.json`/`CHANGELOG.md`, creates a GitHub release, and publishes via the `@semantic-release/npm` plugin. Renovate is configured with `config:recommended` in `renovate.json`. Because the project uses Bun, `package-lock.json` is not part of the git assets.
 
 ## Release checklist
 

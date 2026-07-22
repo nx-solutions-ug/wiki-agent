@@ -15,7 +15,7 @@ The workflow:
 
 1. Optionally generates a GitHub App token with `actions/create-github-app-token@v3` if `APP_CLIENT_ID` and `APP_PRIVATE_KEY` secrets are present; otherwise it falls back to `secrets.GITHUB_TOKEN`.
 2. Checks out the repository with `actions/checkout@v7`.
-3. Sets up Bun with `oven-sh/setup-bun@v2` and Node.js 22 with `actions/setup-node@v7`.
+3. Sets up Bun with `oven-sh/setup-bun@v2` and Node.js 25 with `actions/setup-node@v7` (the package still supports Node.js 22+ per `package.json`).
 4. Installs Wiki Agent globally from npm with `bun add -g @chronova/wiki-agent`.
 5. Runs `wiki --update --print --verbose` (with `--wiki` if the flag was passed at `--init` time) in headless mode with `WIKI_OLLAMA_MODE=cloud`. The `--verbose` flag makes tool call results appear in the CI log alongside assistant prose.
    After the run the agent also updates `.wiki/.last-updated.json` and writes `.wiki/.last-update-report.md` (when there are changes).
@@ -48,6 +48,10 @@ Adjust the cron expression to taste; remember that GitHub Actions cron is UTC.
 ## Bootstrap the wiki first
 
 GitHub wikis must be initialized once through the UI before they can be pushed to programmatically. There is no API to initialize a wiki. Open the **Wiki** tab in your repository, create the first page (any content), then run the workflow. The `Detect wiki initialization` step probes the wiki remote with `git ls-remote --exit-code`; if it returns non-zero, the publish step is skipped with a `::warning::` and the staging PR still opens so you can inspect the generated content.
+
+## Other repository automation
+
+The repository also runs automated issue/PR management and OMP-driven workflows. See [OMP Automation Workflows](./omp.md) for details on `.github/workflows/auto-manage.yml`, `.github/workflows/omp.yml`, and `.github/workflows/omp-ci.yml`, plus the command prompts under `.omp/commands/`.
 
 ## Release pipeline
 
