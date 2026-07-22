@@ -140,7 +140,7 @@ Running `wiki --init` (or `wiki --update`) automatically creates `.github/workfl
 3. Runs `wiki --update --print --verbose --wiki` with `GH_TOKEN` set so the agent's `gh` tool can inspect open PRs, staging pages under `.wiki/`
 4. Probes the wiki remote (`<repo>.wiki.git`) with `git ls-remote` to detect whether the wiki has been initialized
 5. If there are content changes and the wiki is initialized: flattens the `.wiki/` tree (stripping frontmatter, converting to flat wiki filenames), clones `<repo>.wiki.git`, rsyncs the flattened output, commits, and **pushes directly to `master`** — the wiki goes live immediately (no PR, no review gate)
-6. Always opens a `docs: wiki staging snapshot` pull request against the main repo with the `.wiki/` changes, so the staged content stays auditable
+6. Opens a `docs: wiki staging snapshot` pull request against the main repo when there are content changes, so the staged content stays auditable
 
 ### Bootstrap the wiki first
 
