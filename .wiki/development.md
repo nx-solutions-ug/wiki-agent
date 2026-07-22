@@ -52,7 +52,7 @@ The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.H
 bun pm pack
 ```
 
-Produces `wiki-agent-1.8.0.tgz`. The tarball includes `dist/` and `README.md` only.
+Produces `wiki-agent-1.8.1.tgz`. The tarball includes `dist/` and `README.md` only.
 
 ## Project layout
 
@@ -65,7 +65,7 @@ src/
   tools.ts             read_file, write_file, edit_file, ls, grep, glob, git, ast_grep, ast_search, gh
   index-middleware.ts  Post-run index.md regeneration
   flatten-wiki.ts      Convert nested .wiki/ to flat GitHub Wiki format before publish
-  version.ts          Reads version from package.json for CLI/TUI
+  version.ts           Reads package.json version for CLI --version and TUI banner
   tui/
     App.tsx            Top-level TUI shell
     CredentialsSetup.tsx
