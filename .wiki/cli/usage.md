@@ -21,6 +21,7 @@ Exactly one of `--init` or `--update` is required. If neither is present, the he
 |---------|--------|
 | `wiki --init` | Initialize wiki documentation. Drives the model with the "init" user message and writes `.github/workflows/update-wiki.yml`. |
 | `wiki --update` | Refresh an existing wiki. Drives the model with the "update" user message and recent git history. Produces `.wiki/.last-update-report.md` and `.wiki/.last-updated.json` when content changes. |
+| `wiki --version` | Print the current package version (read from `package.json`) and exit. |
 | `wiki --help` / `-h` | Print the help text and exit. |
 
 ### Flags
