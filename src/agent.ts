@@ -136,16 +136,12 @@ export async function runAgent(
           }
 
           if (chunk.message?.tool_calls) {
-            for (const tc of chunk.message.tool_calls) {
-              if (tc.function?.name) {
-                toolCalls.push({
-                  function: {
-                    name: tc.function.name,
-                    arguments: normalizeToolCallArgs(tc.function.arguments),
-                  },
-                });
-              }
-            }
+            toolCalls.push(...chunk.message.tool_calls.flatMap(tc => tc.function?.name ? [{
+              function: {
+                name: tc.function.name,
+                arguments: normalizeToolCallArgs(tc.function.arguments),
+              },
+            }] : []));
           }
         }
       } else {
@@ -161,16 +157,12 @@ export async function runAgent(
         onEvent({ type: "assistant", content: assistantContent });
 
         if (result.message?.tool_calls) {
-          for (const tc of result.message.tool_calls) {
-            if (tc.function?.name) {
-              toolCalls.push({
-                function: {
-                  name: tc.function.name,
-                  arguments: normalizeToolCallArgs(tc.function.arguments),
-                },
-              });
-            }
-          }
+          toolCalls.push(...result.message.tool_calls.flatMap(tc => tc.function?.name ? [{
+            function: {
+              name: tc.function.name,
+              arguments: normalizeToolCallArgs(tc.function.arguments),
+            },
+          }] : []));
         }
       }
     } catch (error) {
