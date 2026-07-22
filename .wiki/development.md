@@ -34,7 +34,7 @@ This runs the `prebuild` cleanup (`rm -rf dist`) and then `tsc -p tsconfig.json`
 bun run test
 ```
 
-Runs `vitest run` against the test files in `test/`. There are six suites:
+Runs `vitest run` against the test files in `test/`. There are seven suites:
 
 - `config.test.ts` — global/project config I/O and `resolveConfig` precedence.
 - `tools.test.ts` — path-safety checks, file read/write/edit, tool definition shape, `git` subcommand allowlist and metacharacter guard, and `ast_grep`/`ast_search` structural matching.
@@ -51,7 +51,7 @@ The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.H
 bun pm pack
 ```
 
-Produces `wiki-agent-1.6.3.tgz`. The tarball includes `dist/` and `README.md` only.
+Produces `wiki-agent-1.8.1.tgz`. The tarball includes `dist/` and `README.md` only.
 
 ## Project layout
 
@@ -64,6 +64,7 @@ src/
   tools.ts             read_file, write_file, edit_file, ls, grep, glob, git, ast_grep, ast_search, gh
   index-middleware.ts  Post-run index.md regeneration
   flatten-wiki.ts      Convert nested .wiki/ to flat GitHub Wiki format before publish
+  version.ts           Reads package.json version for CLI --version and TUI banner
   tui/
     App.tsx            Top-level TUI shell
     CredentialsSetup.tsx
