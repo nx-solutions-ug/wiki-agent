@@ -9,13 +9,16 @@ export type WikiCommand = "init" | "update";
  * Returns the file content (first match wins: AGENTS.md, then CLAUDE.md).
  */
 async function loadRepoInstructions(projectRoot: string): Promise<string | null> {
-  for (const filename of ["AGENTS.md", "CLAUDE.md"]) {
-    try {
-      const content = await readFile(path.join(projectRoot, filename), "utf8");
-      return content.trim();
-    } catch {
- // File doesn't exist — try the next one
-    }
+  const [agents, claude] = await Promise.allSettled([
+    readFile(path.join(projectRoot, "AGENTS.md"), "utf8"),
+    readFile(path.join(projectRoot, "CLAUDE.md"), "utf8"),
+  ]);
+
+  if (agents.status === "fulfilled") {
+    return agents.value.trim();
+  }
+  if (claude.status === "fulfilled") {
+    return claude.value.trim();
   }
 
   return null;
