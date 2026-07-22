@@ -1,5 +1,3 @@
-# Wiki Agent
-
 ![wiki-agent banner](assets/banner-a.jpg)
 
 [![npm version](https://img.shields.io/npm/v/@chronova/wiki-agent.svg)](https://www.npmjs.com/package/@chronova/wiki-agent)
@@ -15,7 +13,7 @@ A standalone Ollama-only documentation agent. It inspects your source code and g
 - **Two commands** — `--init` to create docs from scratch, `--update` to refresh existing docs; `--version` to show the current version
 - **GitHub Wiki tab publishing** — `--wiki` flag generates a workflow that pushes generated pages directly to `<repo>.wiki.git`
 - **Configurable** — global config in `~/.wiki/`, project config in `.wiki/`
-- **GitHub Actions** — `--init` automatically creates a scheduled update workflow in your repo
+- **GitHub Actions** — every run creates (or updates) `.github/workflows/update-wiki.yml` for scheduled updates
 - **Repo instructions** — reads `AGENTS.md` or `CLAUDE.md` from the project root and follows all conventions documented there
 - **Change reports** — each run writes `.wiki/.last-update-report.md` with created/edited pages, used as the staging PR body in CI
 - **Restricted toolset** — the agent can only read files, write under `.wiki/`, run read-only git subcommands, and use a `gh` CLI tool for inspecting pull requests and closing stale wiki staging PRs; there is no shell tool
@@ -59,7 +57,7 @@ This launches the TUI where you select Ollama Local or Cloud and enter your API 
 ### 3. Use
 
 ```bash
-# Initialize documentation (also creates .github/workflows/update-wiki.yml)
+# Initialize documentation (creates .github/workflows/update-wiki.yml)
 wiki --init
 
 # Initialize and publish to the GitHub Wiki tab
@@ -70,6 +68,9 @@ wiki --update
 
 # Update and publish to the GitHub Wiki tab
 wiki --update --wiki
+
+# Headless mode with full tool logs (verbose)
+wiki --update --print --verbose
 
 # Headless mode (for CI)
 wiki --update --print
@@ -132,7 +133,7 @@ Environment variables take priority over config files.
 
 ## GitHub Actions
 
-Running `wiki --init --wiki` automatically creates `.github/workflows/update-wiki.yml` in your repo. With `--wiki`, the workflow publishes generated pages to your repository's **GitHub Wiki tab**; without `--wiki` it only stages `.wiki/` and opens a staging PR.
+Running `wiki --init` (or `wiki --update`) automatically creates `.github/workflows/update-wiki.yml` in your repo. With `--wiki`, the workflow publishes generated pages to your repository's **GitHub Wiki tab**; without `--wiki` it only stages `.wiki/` and opens a staging PR.
 
 1. Generates a GitHub App token if `APP_CLIENT_ID` and `APP_PRIVATE_KEY` secrets are set (falls back to `GITHUB_TOKEN`)
 2. Checks out your repo, sets up Bun and Node.js, and installs wiki-agent globally from npm
@@ -145,7 +146,7 @@ Running `wiki --init --wiki` automatically creates `.github/workflows/update-wik
 
 GitHub wikis must be initialized once through the UI before they can be pushed to programmatically. Open the **Wiki** tab in your repository, create the first page (any content), then run the workflow. Until then the publish step is skipped with a warning; the staging PR still opens so you can inspect the generated content.
 
-The full workflow is written to `.github/workflows/update-wiki.yml` by `wiki --init`. See that file (or the template in [`src/agent.ts`](src/agent.ts) `createWorkflowFile`) for the authoritative, current definition.
+The full workflow is written to `.github/workflows/update-wiki.yml` on every run. See that file (or the template in [`src/agent.ts`](src/agent.ts) `createWorkflowFile`) for the authoritative, current definition.
 
 ### Required secrets
 
@@ -202,7 +203,7 @@ bun pm pack
 4. It generates wiki pages under `.wiki/` with YAML frontmatter using `write_file` and `edit_file` (the only mutating tools, constrained to `.wiki/`)
 5. After the run, `index.md` files are synchronized for each directory
 6. `.last-updated.json` and `.last-update-report.md` are written
-7. On `--init`, a GitHub Actions workflow is created for scheduled updates
+7. A GitHub Actions workflow is created (or updated) for scheduled updates on every run
 8. In update mode, only pages affected by recent changes are refreshed
 9. With `--wiki`, the workflow flattens the `.wiki/` tree (stripping frontmatter, converting nested paths to flat dash-joined filenames, rewriting links) and publishes to the GitHub Wiki tab by pushing directly to `<repo>.wiki.git` `master`
 
