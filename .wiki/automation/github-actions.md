@@ -7,7 +7,7 @@ tags: [github-actions, ci, automation, cron]
 
 # GitHub Actions
 
-Running `wiki --init` writes `.github/workflows/update-wiki.yml` (via `src/agent.ts:createWorkflowFile`). The workflow runs the agent on a cron schedule and, by default, publishes the generated pages to the repository's **GitHub Wiki tab** (via the separate `<repo>.wiki.git` Git remote), pushing directly to `master`. It also opens a staging PR with the `.wiki/` changes in the main repo. The workflow can be triggered manually via `workflow_dispatch`, on every push to `main`, or daily at 08:00 UTC.
+Running `wiki --init` creates `.github/workflows/update-wiki.yml` (via `src/agent.ts:createWorkflowFile`). The workflow runs the agent on a cron schedule and, by default, publishes the generated pages to the repository's **GitHub Wiki tab** (via the separate `<repo>.wiki.git` Git remote), pushing directly to `master`. It also opens a staging PR with the `.wiki/` changes in the main repo. The workflow can be triggered manually via `workflow_dispatch`, on every push to `main`, or daily at 08:00 UTC.
 
 ## What the workflow does
 
@@ -35,6 +35,7 @@ Permissions are explicitly granted for `contents: write` and `pull-requests: wri
 The workflow relies on the `GH_TOKEN` environment variable for the read-only `gh` CLI staleness check performed by the agent. This is set to the generated GitHub App token or `secrets.GITHUB_TOKEN`.
 
 ## Output
+
 The staging PR body is read from `.wiki/.last-update-report.md` after the run, so it reflects the pages that were actually changed and includes a per-file description of what changed and why. Because `generateUpdateReport` appends a trailing newline, the heredoc written to `$GITHUB_OUTPUT` is terminated correctly and GitHub Actions can parse it. The staging PR only includes files under `.wiki/` (via `add-paths: .wiki`), so source code is never touched. The publish to the wiki tab excludes metadata files (`config.json`, `.last-update-report.md`, `.last-updated.json`) via the flatten step, so only content pages reach the live wiki.
 
 ## Triggering
@@ -71,12 +72,9 @@ The same commit that refreshes this wiki can also run the release pipeline. `.gi
 
 The `WIKI_OLLAMA_BASE_URL` environment variable is not set; the agent uses the cloud default `https://ollama.com`. Override it by adding a step that exports the variable if you need a self-hosted endpoint. Note that `GH_TOKEN` must be set for the agent's read-only `gh` tool to perform the staging PR staleness check; the workflow sets it to the generated GitHub App token or `secrets.GITHUB_TOKEN`.
 
-## Output
-The staging PR body is read from `.wiki/.last-update-report.md` after the run, so it reflects the pages that were actually changed and includes a per-file description of what changed and why. Because `generateUpdateReport` appends a trailing newline, the heredoc written to `$GITHUB_OUTPUT` is terminated correctly and GitHub Actions can parse it. The staging PR only includes files under `.wiki/` (via `add-paths: .wiki`), so source code is never touched. The publish to the wiki tab excludes metadata files (`config.json`, `.last-update-report.md`, `.last-updated.json`) via the flatten step, so only content pages reach the live wiki.
-
 ## Skipping metadata-only runs
 
-The workflow deliberately skips opening either PR when the only files that changed are `.wiki/.last-update-report.md` and `.wiki/.last-updated.json`. Those files are rewritten on every agent run, so without the filter the bot would open empty pull requests every day. The `git status --porcelain .wiki` filter catches both tracked and untracked changes, then strips the two metadata paths before deciding whether to publish. Additionally, if the wiki push produces no net content changes after the `rsync` (e.g. the wiki already matches), the publish step logs a `::warning::` and skips the wiki PR while the staging PR still opens.
+The workflow deliberately skips opening either PR when the only files that changed are `.wiki/.last-update-report.md` and `.wiki/.last-updated.json`. Those files are rewritten on every agent run, so without the filter the bot would open empty pull requests every day. The `git status --porcelain .wiki` filter catches both tracked and untracked changes, then strips the two metadata paths before deciding whether to publish. Additionally, if the wiki push produces no net content changes after the `rsync` (e.g. the wiki already matches), the publish step logs a `::warning::` and skips the wiki push while the staging PR still opens.
 
 ## Local dry run
 

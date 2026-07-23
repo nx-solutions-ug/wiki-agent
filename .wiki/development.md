@@ -37,12 +37,12 @@ bun run test
 Runs `vitest run` against the test files in `test/`. There are seven suites:
 
 - `config.test.ts` — global/project config I/O and `resolveConfig` precedence.
-- `tools.test.ts` — path-safety checks, file read/write/edit, tool definition shape, `git` subcommand allowlist and metacharacter guard, and `ast_grep`/`ast_search` structural matching.
+- `tools.test.ts` — path-safety checks, file read/write/edit, tool definition shape, `git` and `gh` subcommand allowlists, metacharacter guard, and `ast_grep`/`ast_search` structural matching.
 - `index-middleware.test.ts` — `index.md` regeneration, exclusions, and idempotency.
 - `prompt.test.ts` — system prompt, user message templates, and help text contents.
 - `report.test.ts` — `generateUpdateReport`: no-op reports, created/edited listings, per-file description blockquotes, truncation, whitespace collapse, and summary counts.
 - `flatten-wiki.test.ts` — filename conversion, link rewriting, frontmatter stripping, sidebar generation, and metadata exclusions.
-- `version.test.ts` — `VERSION` matches `package.json` and is not the stale `0.1.0` placeholder.
+- `version.test.ts` — `VERSION` matches `package.json` and is not a stale placeholder.
 
 The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.HOME` so the global config path can be redirected.
 
