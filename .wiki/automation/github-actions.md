@@ -7,28 +7,27 @@ tags: [github-actions, ci, automation, cron]
 
 # GitHub Actions
 
-Running `wiki --init` writes `.github/workflows/update-wiki.yml` (via `src/agent.ts:createWorkflowFile`). The workflow runs the agent on a cron schedule. When the `--wiki` flag is passed, the workflow also publishes the generated pages to the repository's **GitHub Wiki tab** (via the separate `<repo>.wiki.git` Git remote), pushing directly to `master`. Without `--wiki`, the workflow only stages `.wiki/` and opens a staging PR. It can also be triggered manually via `workflow_dispatch`.
+Running `wiki --init` writes `.github/workflows/update-wiki.yml` (via `src/agent.ts:createWorkflowFile`). The workflow runs the agent on a cron schedule and, by default, publishes the generated pages to the repository's **GitHub Wiki tab** (via the separate `<repo>.wiki.git` Git remote), pushing directly to `master`. It also opens a staging PR with the `.wiki/` changes in the main repo. The workflow can be triggered manually via `workflow_dispatch`, on every push to `main`, or daily at 08:00 UTC.
 
 ## What the workflow does
 
 The workflow:
 
-1. Optionally generates a GitHub App token with `actions/create-github-app-token@v3` if `APP_CLIENT_ID` and `APP_PRIVATE_KEY` secrets are present; otherwise it falls back to `secrets.GITHUB_TOKEN`.
+1. Generates a GitHub App token with `actions/create-github-app-token@v3` using `secrets.APP_CLIENT_ID` and `secrets.APP_PRIVATE_KEY` (no `WIKI_` prefix). If the GitHub App secrets are absent, it falls back to `secrets.GITHUB_TOKEN`.
 2. Checks out the repository with `actions/checkout@v7`.
 3. Sets up Bun with `oven-sh/setup-bun@v2` and Node.js 25 with `actions/setup-node@v7` (the package still supports Node.js 22+ per `package.json`).
 4. Installs Wiki Agent globally from npm with `bun add -g @chronova/wiki-agent`.
-5. Runs `wiki --update --print --verbose` (with `--wiki` if the flag was passed at `--init` time) in headless mode with `WIKI_OLLAMA_MODE=cloud`. The `--verbose` flag makes tool call results appear in the CI log alongside assistant prose.
-   After the run the agent also updates `.wiki/.last-updated.json` and writes `.wiki/.last-update-report.md` (when there are changes).
+5. Runs `wiki --update --print --verbose --wiki` (the `--wiki` flag is passed at runtime regardless of whether it was set at `--init` time, so the workflow is self-contained) in headless mode with `WIKI_OLLAMA_MODE=cloud`. The `--verbose` flag makes tool call results appear in the CI log alongside assistant prose. After the run the agent also updates `.wiki/.last-updated.json` and writes `.wiki/.last-update-report.md` (when there are changes).
 6. Emits repository coordinates (`GITHUB_REPOSITORY` → `owner/repo`) and a timestamp into step outputs.
 7. Checks for content changes under `.wiki/` using `git status --porcelain .wiki`, stripping the status prefix and excluding the run metadata files `.wiki/.last-update-report.md` and `.wiki/.last-updated.json`. If real content files changed, sets `has_changes=true` and streams the report into a `body<<EOF` heredoc on `$GITHUB_OUTPUT` (with an empty `echo ""` before `EOF` so the delimiter sits on its own line).
-8. **Flatten the wiki for GitHub** (only when the workflow was created with `--wiki`):
+8. **Flatten the wiki for GitHub**:
    - `wiki-flatten "$GITHUB_WORKSPACE/.wiki" /tmp/wiki-flat` converts the nested `.wiki/` tree into the flat format GitHub Wikis require.
    - Nested pages become dash-joined names (`architecture/overview.md` → `Architecture-Overview.md`, `cli/usage.md` → `CLI-Usage.md`); root `index.md` becomes `Home.md`; section index files become the section name (`architecture/index.md` → `Architecture.md`).
    - Internal relative links like `[Text](./cli/usage.md)` are rewritten to `[Text](CLI-Usage)`.
    - YAML frontmatter is stripped because GitHub Wiki renders it as literal text.
    - A `_Sidebar.md` is generated from the page frontmatter.
    - Metadata files (`.git`, `config.json`, `.last-update-report.md`, `.last-updated.json`, `_plan.md`) are excluded.
-9. **Publish to wiki repo** (only when `has_changes=true` and `initialized=true`, and only when the workflow was created with `--wiki`): clones `<repo>.wiki.git` into `/tmp/wiki`, `rsync`s the flattened `/tmp/wiki-flat/` output over the clone excluding `.git`, commits, and **pushes directly to `master`** — the wiki goes live immediately with no PR or review gate. GitHub wiki repos are hidden Git remotes, not API-accessible repositories, so `gh pr create` cannot open a PR against them; direct push to `master` is the only programmatic publish path. If the push fails with 401/403, emits a `::error::` explaining that either the GitHub App needs `contents:write` (which covers the wiki repo) or a `WIKI_PUSH_TOKEN` secret must be set, then exits 1.
+9. **Publish to wiki repo** (only when `has_changes=true` and `initialized=true`): clones `<repo>.wiki.git` into `/tmp/wiki`, `rsync`s the flattened `/tmp/wiki-flat/` output over the clone excluding `.git`, commits, and **pushes directly to `master`** — the wiki goes live immediately with no PR or review gate. GitHub wiki repos are hidden Git remotes, not API-accessible repositories, so `gh pr create` cannot open a PR against them; direct push to `master` is the only programmatic publish path. If the push fails with 401/403, emits a `::error::` explaining that either the GitHub App needs `contents:write` (which covers the wiki repo) or a `WIKI_PUSH_TOKEN` secret must be set, then exits 1.
 10. **Create wiki staging snapshot pull request** (only when `steps.report.outputs.has_changes == 'true'`): `peter-evans/create-pull-request@v8` adds `.wiki/` on a `wiki/staging-<timestamp>` branch of the main repo and opens a `docs: wiki staging snapshot` PR. This keeps the staged content auditable in the main repo even though the live surface is the wiki tab.
 
 Permissions are explicitly granted for `contents: write` and `pull-requests: write`. `contents: write` is required both for the wiki repo clone/push (the wiki repo shares the parent's installation) and for the staging PR. `pull-requests: write` is required to open the staging PR.
@@ -42,7 +41,7 @@ The staging PR body is read from `.wiki/.last-update-report.md` after the run, s
 
 The default triggers are:
 
-- `workflow_dispatch` — manual run from the Actions tab.
+- `workflow_dispatch` — manual run from the Actions tab. This is the recommended trigger for the first run after bootstrapping the wiki, because it lets you verify the workflow before the schedule fires.
 - `push` to the `main` branch.
 - `schedule: cron: "0 8 * * *"` — daily at 08:00 UTC.
 
@@ -58,19 +57,19 @@ The repository also runs automated issue/PR management and OMP-driven workflows.
 
 ## Release pipeline
 
-The same commit that refreshes this wiki can also run the release pipeline. `.github/workflows/release.yml` runs on every push to `main` and, after a passing test job, executes `semantic-release` to bump the version, write `CHANGELOG.md`, create a GitHub release, and publish `@chronova/wiki-agent` to npm. The release job generates a GitHub App token with `actions/create-github-app-token@v3` using `secrets.APP_CLIENT_ID` and `secrets.APP_PRIVATE_KEY`; it does not fall back to `secrets.GITHUB_TOKEN`. The `WIKI_OLLAMA_API_KEY` secret used by the wiki update job is unrelated to the `NPM_TOKEN` secret used by the release job. This is distinct from the wiki publish step above, which pushes to `<repo>.wiki.git`.
+The same commit that refreshes this wiki can also run the release pipeline. `.github/workflows/release.yml` runs on every push to `main` and, after a passing test job, executes `semantic-release` to bump the version, write `CHANGELOG.md`, create a GitHub release, and publish `@chronova/wiki-agent` to npm. The release job generates a GitHub App token with `actions/create-github-app-token@v3` using `secrets.APP_CLIENT_ID` and `secrets.APP_PRIVATE_KEY`; it does not fall back to `secrets.GITHUB_TOKEN`. After `semantic-release`, the workflow derives the latest tag from the local repo (avoiding API eventual-consistency races), builds a full commit list since the previous tag using `git log --pretty=format:"- %s (%h)" --no-merges`, and edits the release body via `gh release edit` with those notes. If the generated body exceeds 120 000 bytes it is truncated at the last complete line before that limit and a note pointing to `CHANGELOG.md` is appended. The `WIKI_OLLAMA_API_KEY` secret used by the wiki update job is unrelated to the `NPM_TOKEN` secret used by the release job. This is distinct from the wiki publish step above, which pushes to `<repo>.wiki.git`.
 
 ## Secrets and variables
 
 | Name | Type | Purpose |
 |------|------|---------|
-| `WIKI_OLLAMA_API_KEY` | Secret | Bearer token for Ollama Cloud. Required because the workflow forces cloud mode. |
+| `WIKI_OLLAMA_API_KEY` | Secret | Bearer token for Ollama Cloud. Required because the workflow forces cloud mode. This is a different secret from the `OLLAMA_API_KEY` used by the OMP workflows. |
 | `APP_CLIENT_ID` | Secret (optional) | GitHub App client ID for token generation; falls back to `secrets.GITHUB_TOKEN`. |
 | `APP_PRIVATE_KEY` | Secret (optional) | GitHub App private key for token generation. |
 | `WIKI_MODEL` | Variable (optional) | Model ID override. Defaults to `kimi-k2.7-code` if unset. |
 | `WIKI_PUSH_TOKEN` | Secret (optional) | PAT with `repo` scope used to push to the wiki repo and open the wiki PR. If unset, the GitHub App token or `GITHUB_TOKEN` is used. Set only if the default token cannot push to the wiki repo. |
 
-The `WIKI_OLLAMA_BASE_URL` environment variable is not set; the agent uses the cloud default `https://ollama.com`. Override it by adding a step that exports the variable if you need a self-hosted endpoint.
+The `WIKI_OLLAMA_BASE_URL` environment variable is not set; the agent uses the cloud default `https://ollama.com`. Override it by adding a step that exports the variable if you need a self-hosted endpoint. Note that `GH_TOKEN` must be set for the agent's read-only `gh` tool to perform the staging PR staleness check; the workflow sets it to the generated GitHub App token or `secrets.GITHUB_TOKEN`.
 
 ## Output
 The staging PR body is read from `.wiki/.last-update-report.md` after the run, so it reflects the pages that were actually changed and includes a per-file description of what changed and why. Because `generateUpdateReport` appends a trailing newline, the heredoc written to `$GITHUB_OUTPUT` is terminated correctly and GitHub Actions can parse it. The staging PR only includes files under `.wiki/` (via `add-paths: .wiki`), so source code is never touched. The publish to the wiki tab excludes metadata files (`config.json`, `.last-update-report.md`, `.last-updated.json`) via the flatten step, so only content pages reach the live wiki.

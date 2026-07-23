@@ -86,12 +86,12 @@ See [Architecture](./architecture/overview.md) for how these pieces fit together
 
 The repo uses several GitHub Actions workflows beyond `update-wiki.yml`:
 
-- `.github/workflows/release.yml` — runs on every push to `main`. After a passing test job it generates a GitHub App token and runs `npx --yes semantic-release` to bump `package.json`, write `CHANGELOG.md`, create a GitHub release, and publish `@chronova/wiki-agent` to npm with `secrets.NPM_TOKEN`.
+- `.github/workflows/release.yml` — runs on every push to `main`. After a passing test job it generates a GitHub App token and runs `npx --yes semantic-release` to bump `package.json`, write `CHANGELOG.md`, create a GitHub release, and publish `@chronova/wiki-agent` to npm with `secrets.NPM_TOKEN`. It then edits the release body with a full commit-level changelog built from `git log` and uploaded via `gh release edit`.
 - `.github/workflows/auto-manage.yml` — tags new/reopened issues with `needs-triage` and auto-assigns new issues and PRs to `niklasschaeffer`.
 - `.github/workflows/omp.yml` — invokes the OMP agent on comments containing `/omp` (or `/oc`) and routes command prompts from `.omp/commands/*.md` into OMP.
 - `.github/workflows/omp-ci.yml` — automated OMP triage, PR labeling, and PR review triggered by issues/PR events.
 
-`.releaserc.json` configures semantic-release for branches `main`, `beta`, and `alpha`, writes `CHANGELOG.md`, commits `package.json`/`CHANGELOG.md`, creates a GitHub release, and publishes via the `@semantic-release/npm` plugin. Renovate is configured with `config:recommended` in `renovate.json`. Because the project uses Bun, `package-lock.json` is not part of the git assets. The project is released under the ISC license (`LICENSE`); `package.json` sets `license: "ISC"`.
+`.releaserc.json` configures semantic-release for branches `main`, `beta`, and `alpha`, writes `CHANGELOG.md`, commits `package.json`/`CHANGELOG.md`, creates a GitHub release, and publishes via the `@semantic-release/npm` plugin. The release job also edits the newly created release body with a full commit-level "What's Changed" section generated locally from `git log`, replacing the default notes with the complete changelog; if the notes exceed 120 000 bytes they are truncated at a safe line boundary with a pointer back to `CHANGELOG.md`. Renovate is configured with `config:recommended` in `renovate.json`. Because the project uses Bun, `package-lock.json` is not part of the git assets. Likewise, `.omp/ssh.json` is tracked but only contains a Chronova deployment host entry used by OMP; it is unrelated to the wiki-agent package itself. The project is released under the ISC license (`LICENSE`); `package.json` sets `license: "ISC"`.
 
 ## Release checklist
 
