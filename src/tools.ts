@@ -317,7 +317,8 @@ export function createTools(projectRoot: string): Tool[] {
 
       const findPattern = pattern
         .replace(/\*\*/g, "")
-        .replace(/\*/g, "");
+        .replace(/\*/g, "")
+        .replace(/'/g, "'\\''");
 
       const cmd = [
         "find",

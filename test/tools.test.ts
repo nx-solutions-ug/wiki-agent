@@ -345,6 +345,17 @@ describe("tools", () => {
     });
   });
 
+  describe("glob tool", () => {
+    test("prevents command injection", async () => {
+      const result = await executeTool(
+        "glob",
+        { pattern: "'; echo 'vulnerable" },
+        projectRoot,
+      );
+      expect(result).not.toContain("vulnerable");
+    });
+  });
+
   describe("tool definitions", () => {
     test("all tools have valid definitions", () => {
       const tools = createTools(projectRoot);
