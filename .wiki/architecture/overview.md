@@ -56,7 +56,7 @@ type AgentEvent =
 
 ## Tool sandboxing
 
-All write operations are constrained to `.wiki/`. `resolveWikiPath` in `tools.ts` rejects any path whose absolute resolution escapes the `.wiki/` directory. Read-only tools (`read_file`, `ls`, `grep`, `glob`, `git`, `ast_grep`, `ast_search`) are constrained to the project root. The `git` tool is further limited to a read-only subcommand allowlist and rejects shell metacharacters; there is no general shell tool.
+All write operations are constrained to `.wiki/`. `resolveWikiPath` in `tools.ts` rejects any path whose absolute resolution escapes the `.wiki/` directory. Read-only tools (`read_file`, `ls`, `grep`, `glob`, `git`, `ast_grep`, `ast_search`, `gh`) are constrained to the project root. The `git` tool is limited to a read-only subcommand allowlist and rejects shell metacharacters, and the `gh` tool is limited to read-only inspection plus `pr close`/`pr comment` only on `wiki/staging-*` PRs; there is no general shell tool.
 
 Tool results are truncated at `MAX_TOOL_RESULT_LENGTH` (10 000 characters) before being returned to the model; `read_file` additionally slices by line offset and limit.
 
@@ -89,4 +89,4 @@ This step is invoked by `.github/workflows/update-wiki.yml` (when `--wiki` was p
 
 ## Build and test
 
-`tsconfig.json` targets `ES2022` with `nodenext` modules and `react-jsx`. `bun run build` cleans `dist/` and runs `tsc`; `bun run test` runs `vitest` over the test suite in `test/`. `bun pm pack` produces the npm tarball. See [Development](../development.md).
+`tsconfig.json` targets `ES2022` with `nodenext` modules and `react-jsx`. `bun run build` cleans `dist/` and runs `tsc`; `bun run test` runs `vitest` over the test suite in `test/`. `bun pm pack` produces the npm tarball. See [Development](../development.md) for the full command reference, test matrix, and release workflow details.

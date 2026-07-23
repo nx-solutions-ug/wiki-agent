@@ -69,7 +69,7 @@ The first run will create `.wiki/quickstart.md` plus a small set of section page
 
 ## 4. Update from CI
 
-Running `wiki --init` writes `.github/workflows/update-wiki.yml` into your repo. Set `WIKI_OLLAMA_API_KEY` as a secret to enable the scheduled job, which runs `wiki --update --print --verbose --wiki` and publishes the generated pages to the repository's GitHub Wiki tab. A staging pull request with the `.wiki/` changes is also opened in the main repo. See [GitHub Actions](./automation/github-actions.md).
+Running `wiki --init` writes `.github/workflows/update-wiki.yml` into your repo. Set `WIKI_OLLAMA_API_KEY` as a secret to enable the scheduled job. By default the generated workflow runs `wiki --update --print --verbose --wiki` and pushes the flattened pages directly to the repository's **GitHub Wiki tab**; it also opens a staging pull request with the `.wiki/` changes in the main repo. If you do not want the workflow to publish to the wiki tab, run `wiki --init` without `--wiki` (the CLI ignores `--wiki` on `--update`). See [GitHub Actions](./automation/github-actions.md).
 
 ## What gets generated
 
