@@ -36,7 +36,7 @@ Automated OMP jobs triggered by repository events:
 
 - **`triage-issue`** — runs when an issue is opened or when manually dispatched with an issue number. Reacts with 👀, installs OMP, authenticates to Ollama Cloud, expands `.omp/commands/triage-issue.md`, runs OMP, and dispatches a follow-up `issue-triaged` event.
 - **`label-pr`** — runs when a PR is opened, synchronized, or marked ready for review. Skips if the PR already has both a type label (`bug`, `feature`, `enhancement`, `docs`, `chore`) and a priority label (`priority: critical`, `priority: high`, `priority: medium`, `priority: low`). Otherwise, expands `.omp/commands/label-pr.md` and runs OMP.
-- **`review-pr`** — runs on PR open/update or manual dispatch. Skips `synchronize` events when the head commit is not from a known agent/bot author, classifies the PR as dependency / bot / human based on the author, posts an `eyes` reaction, and expands `.omp/commands/review-pr.md` for OMP review.
+- **`review-pr`** — runs on PR open/update or manual dispatch. On `synchronize`, it first checks whether the head commit author/committer looks like an agent/bot (names containing `opencode-agent`, `opencode`, `github-actions`, `omp-agent`, or `chronova-agent`). If the commit is from such an author, the re-review is skipped. It then classifies the PR as dependency / bot / human based on the PR author (`renovate`, `dependabot`, `[bot]`, or `opencode-agent` get special prefixes), posts an `eyes` reaction, and expands `.omp/commands/review-pr.md` for OMP review.
 
 ## Command prompts
 
@@ -47,7 +47,7 @@ The `.omp/commands/*.md` files contain parameterized prompts used by the OMP wor
 - `.omp/commands/review-pr.md` — instructions for reviewing pull requests.
 - `.omp/commands/fix-issue.md` — instructions for generating fixes from triaged issues.
 
-These prompts reference `$ARGUMENTS`, which the workflow replaces with the issue or PR number at runtime. The `.omp/rules/` directory contains shared guard rules (for example, making `gh label create` idempotent and ensuring tool `paths` parameters are passed as arrays) that OMP applies when running the expanded prompts.
+These prompts reference `$ARGUMENTS`, which the workflow replaces with the issue or PR number at runtime. The `.omp/rules/` directory contains shared guard rules that OMP applies when running the expanded prompts.
 
 ## Secrets used by OMP workflows
 

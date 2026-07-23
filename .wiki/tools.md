@@ -131,11 +131,11 @@ Runs a GitHub CLI (`gh`) subcommand with `cwd` set to the project root, a 1 MB o
 The tool is constrained the same way as the `git` tool:
 
 - **Subcommand allowlist**: only `pr`, `issue`, `repo`, `run`, `api`, `search`, `release`, `label`, and `workflow` are permitted.
-- **Blocked actions**: mutating action tokens are rejected even under an allowed top-level command. Blocked actions include `create`, `edit`, `close`, `reopen`, `merge`, `delete`, `ready`, `review`, `comment`, `lock`, `unlock`, `assign`, `unassign`, `label`, `unlabel`, `transfer`, `archive`, `unarchive`, `deploy`, `rerun`, `cancel`, `publish`, `set`, `add`, and `remove`.
+- **Blocked actions**: mutating action tokens are rejected even under an allowed top-level command. Blocked actions include `create`, `edit`, `reopen`, `merge`, `delete`, `ready`, `review`, `lock`, `unlock`, `assign`, `unassign`, `label`, `unlabel`, `transfer`, `archive`, `unarchive`, `deploy`, `rerun`, `cancel`, `publish`, `set`, `add`, and `remove`. So `gh pr list` and `gh pr view` are allowed, but `gh pr create`, `gh pr merge`, and `gh issue close` are rejected.
 - **Staging-only exceptions**: `pr close` and `pr comment` are allowed, but only when the target PR's `headRefName` starts with `wiki/staging-`. The handler verifies this by calling `gh pr view <number> --json headRefName` before executing the action.
 - **Metacharacter guard**: the argument string is rejected if it contains shell-control or redirection metacharacters (`[;&|\`$()<>]`).
 
-Read-only inspection (`pr list`, `pr view`, `repo view`, `issue list`, etc.) is always allowed. The update-mode staging PR staleness check uses this tool to list open `wiki/staging-*` PRs and compare branch timestamps against the latest commit timestamp. See [CLI Usage](../cli/usage.md) for the `GH_TOKEN` environment variable used by the workflow.
+Read-only inspection (`pr list`, `pr view`, `repo view`, `issue list`, etc.) is always allowed. The update-mode staging PR staleness check uses this tool to list open `wiki/staging-*` PRs and compare branch timestamps against the latest commit timestamp, then close any stale ones with a comment before proceeding. See [CLI Usage](../cli/usage.md) for the `GH_TOKEN` environment variable used by the workflow.
 
 ## `ast_grep`
 
@@ -173,29 +173,10 @@ Searches code using an inline ast-grep YAML rule (`ast-grep scan --json=compact 
 
 Output and error handling match `ast_grep`.
 
-## `gh`
-
-```json
-{
-  "args": "pr list --state open --json number,headRefName,title"
-}
-```
-
-Runs a GitHub CLI (`gh`) subcommand with `cwd` set to the project root, a 1 MB output buffer, and a 30-second timeout. Stdout is returned; stderr is appended on a new line. Errors are caught and returned as `Error: <message>` strings.
-
-The tool is constrained the same way as the `git` tool:
-
-- **Subcommand allowlist**: only `pr`, `issue`, `repo`, `run`, `api`, `search`, `release`, `label`, and `workflow` are permitted.
-- **Blocked actions**: mutating action tokens are rejected even under an allowed top-level command. Blocked actions include `create`, `edit`, `close`, `reopen`, `merge`, `delete`, `ready`, `review`, `comment`, `lock`, `unlock`, `assign`, `unassign`, `label`, `unlabel`, `transfer`, `archive`, `unarchive`, `deploy`, `rerun`, `cancel`, `publish`, `set`, `add`, and `remove`. So `gh pr list` and `gh pr view` are allowed, but `gh pr create`, `gh pr merge`, and `gh issue close` are rejected.
-- **Staging-only exceptions**: `pr close` and `pr comment` are allowed, but only when the target PR's `headRefName` starts with `wiki/staging-`. The handler verifies this by calling `gh pr view <number> --json headRefName` before executing the action.
-- **Metacharacter guard**: the argument string is rejected if it contains shell-control or redirection metacharacters (`[;&|\`$()<>]`).
-
-Read-only inspection (`pr list`, `pr view`, `repo view`, `issue list`, etc.) is always allowed. The update-mode staging PR staleness check uses this tool to list open `wiki/staging-*` PRs and compare branch timestamps against the latest commit timestamp. See [CLI Usage](../cli/usage.md) for the `GH_TOKEN` environment variable used by the workflow.
-
 ## Sandboxing summary
 
 - `read_file`, `ls`, `grep`, `glob`, `git`, `ast_grep`, `ast_search`, `gh` — must stay within the project root.
 - `write_file`, `edit_file` — must stay within `.wiki/`.
 - `gh` — read-only inspection is allowed; `pr close` and `pr comment` are permitted only on wiki staging PRs (branches matching `wiki/staging-*`).
 
-Both checks use `path.resolve` and a `startsWith` comparison against the appropriate root plus the platform separator. The tests in `test/tools.test.ts` cover both the in-bounds and out-of-bounds cases, plus the `git` and `gh` subcommand allowlists, the metacharacter guard, and `ast_grep`/`ast_search` structural matching.
+Both checks use `path.resolve` and a `startsWith` comparison against the appropriate root plus the platform separator. The tests in `test/tools.test.ts` cover both the in-bounds and out-of-bounds cases, the `git` and `gh` subcommand allowlists and metacharacter guard, `ast_grep`/`ast_search` structural matching, and the absence of the old general-purpose `execute` shell tool.

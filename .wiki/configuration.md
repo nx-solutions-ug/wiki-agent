@@ -9,7 +9,9 @@ tags: [config, environment-variables, ollama, resolution-order]
 
 Wiki Agent merges configuration from several sources. The exact precedence is field-specific and is implemented in `resolveConfig(projectRoot, modelOverride?)` in `src/config.ts`:
 
-- `mode`, `apiKey`, and `baseUrl`: environment variable → global config file (`~/.wiki/config.json`) → built-in default.
+- `mode`: `WIKI_OLLAMA_MODE` if valid (`"local"` or `"cloud"`) → global config `mode` → built-in `"local"`.
+- `apiKey`: `WIKI_OLLAMA_API_KEY` → global config `apiKey` → unset.
+- `baseUrl`: `WIKI_OLLAMA_BASE_URL` → global config `baseUrl` → mode default (`http://localhost:11434` for local, `https://ollama.com` for cloud).
 - `model`: `--model` CLI flag → `.wiki/config.json` `modelOverride` → `WIKI_MODEL` environment variable → `~/.wiki/config.json` `defaultModel` → built-in `kimi-k2.7-code`.
 
 ## Global config: `~/.wiki/config.json`
@@ -57,7 +59,7 @@ Lives inside the wiki output directory. Currently only two fields are read:
 
 - `mode` — `WIKI_OLLAMA_MODE` if valid (`"local"` or `"cloud"`), otherwise the global config's `mode`.
 - `apiKey` — `WIKI_OLLAMA_API_KEY` if set, otherwise the global config's `apiKey`.
-- `baseUrl` — `WIKI_OLLAMA_BASE_URL` if set, otherwise the global config's `baseUrl`, otherwise the mode's default (`http://localhost:11434` for local, `https://ollama.com` for cloud).
+- `baseUrl` — `WIKI_OLLAMA_BASE_URL` if set, otherwise the global config's `baseUrl`, otherwise the mode's default.
 - `model` — `modelOverride` arg (the `--model` flag) → `projectConfig.modelOverride` → `WIKI_MODEL` → `globalConfig.defaultModel` → `"kimi-k2.7-code"`.
 
 ## Ollama client construction

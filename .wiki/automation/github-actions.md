@@ -7,7 +7,7 @@ tags: [github-actions, ci, automation, cron]
 
 # GitHub Actions
 
-Running `wiki --init` creates `.github/workflows/update-wiki.yml` (via `src/agent.ts:createWorkflowFile`). The workflow runs the agent on a cron schedule and, by default, publishes the generated pages to the repository's **GitHub Wiki tab** (via the separate `<repo>.wiki.git` Git remote), pushing directly to `master`. It also opens a staging PR with the `.wiki/` changes in the main repo. The workflow can be triggered manually via `workflow_dispatch`, on every push to `main`, or daily at 08:00 UTC.
+Running `wiki --init` creates `.github/workflows/update-wiki.yml` (via `src/agent.ts:createWorkflowFile`). When `--wiki` is passed to `--init`, the workflow also publishes the generated pages to the repository's **GitHub Wiki tab** (via the separate `<repo>.wiki.git` Git remote), pushing directly to `master`. In all cases it opens a staging PR with the `.wiki/` changes in the main repo. The workflow can be triggered manually via `workflow_dispatch`, on every push to `main`, or daily at 08:00 UTC.
 
 ## What the workflow does
 
@@ -17,7 +17,7 @@ The workflow:
 2. Checks out the repository with `actions/checkout@v7`.
 3. Sets up Bun with `oven-sh/setup-bun@v2` and Node.js 25 with `actions/setup-node@v7` (the package still supports Node.js 22+ per `package.json`).
 4. Installs Wiki Agent globally from npm with `bun add -g @chronova/wiki-agent`.
-5. Runs `wiki --update --print --verbose --wiki` (the `--wiki` flag is passed at runtime regardless of whether it was set at `--init` time, so the workflow is self-contained) in headless mode with `WIKI_OLLAMA_MODE=cloud`. The `--verbose` flag makes tool call results appear in the CI log alongside assistant prose. After the run the agent also updates `.wiki/.last-updated.json` and writes `.wiki/.last-update-report.md` (when there are changes).
+5. Runs `wiki --update --print --verbose --wiki` in headless mode with `WIKI_OLLAMA_MODE=cloud`. The `--verbose` flag makes tool call results appear in the CI log alongside assistant prose. After the run the agent also updates `.wiki/.last-updated.json` and writes `.wiki/.last-update-report.md` (when there are changes). Note that the workflow hardcodes `--wiki` at runtime, so the CI job always attempts to flatten and publish to the wiki tab even if `--wiki` was not used during the local `--init` run.
 6. Emits repository coordinates (`GITHUB_REPOSITORY` → `owner/repo`) and a timestamp into step outputs.
 7. Checks for content changes under `.wiki/` using `git status --porcelain .wiki`, stripping the status prefix and excluding the run metadata files `.wiki/.last-update-report.md` and `.wiki/.last-updated.json`. If real content files changed, sets `has_changes=true` and streams the report into a `body<<EOF` heredoc on `$GITHUB_OUTPUT` (with an empty `echo ""` before `EOF` so the delimiter sits on its own line).
 8. **Flatten the wiki for GitHub**:
