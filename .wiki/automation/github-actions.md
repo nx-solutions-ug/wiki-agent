@@ -30,6 +30,8 @@ The workflow:
 9. **Publish to wiki repo** (only when `has_changes=true` and `initialized=true`): clones `<repo>.wiki.git` into `/tmp/wiki`, `rsync`s the flattened `/tmp/wiki-flat/` output over the clone excluding `.git`, commits, and **pushes directly to `master`** — the wiki goes live immediately with no PR or review gate. GitHub wiki repos are hidden Git remotes, not API-accessible repositories, so `gh pr create` cannot open a PR against them; direct push to `master` is the only programmatic publish path. If the push fails with 401/403, emits a `::error::` explaining that either the GitHub App needs `contents:write` (which covers the wiki repo) or a `WIKI_PUSH_TOKEN` secret must be set, then exits 1.
 10. **Create wiki staging snapshot pull request** (only when `steps.report.outputs.has_changes == 'true'`): `peter-evans/create-pull-request@v8` adds `.wiki/` on a `wiki/staging-<timestamp>` branch of the main repo and opens a `docs: wiki staging snapshot` PR. This keeps the staged content auditable in the main repo even though the live surface is the wiki tab.
 
+The agent's own update runs perform a pre-write staleness check: they list open `wiki/staging-*` PRs, compare the branch timestamp in the PR's `headRefName` with the latest commit timestamp, abandon the update if a newer staging PR already exists, and close older stale ones with a comment before proceeding. This keeps the queue from accumulating conflicting snapshots.
+
 Permissions are explicitly granted for `contents: write` and `pull-requests: write`. `contents: write` is required both for the wiki repo clone/push (the wiki repo shares the parent's installation) and for the staging PR. `pull-requests: write` is required to open the staging PR.
 
 The workflow relies on the `GH_TOKEN` environment variable for the read-only `gh` CLI staleness check performed by the agent. This is set to the generated GitHub App token or `secrets.GITHUB_TOKEN`.
@@ -87,4 +89,4 @@ WIKI_MODEL=kimi-k2.7-code \
 wiki --update --print --verbose
 ```
 
-If the wiki is already current, the agent emits no edits and the index synchronizer leaves `index.md` files untouched. See [Architecture](./../architecture/overview.md) for how that is detected.
+If the wiki is already current, the agent emits no edits and the index synchronizer leaves `index.md` files untouched. See [Architecture](./../architecture/overview.md) for how that is detected, and [Tools](../tools.md) for the `gh` tool constraints used by the pre-write staleness check.

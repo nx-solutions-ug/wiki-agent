@@ -179,4 +179,4 @@ Output and error handling match `ast_grep`.
 - `write_file`, `edit_file` — must stay within `.wiki/`.
 - `gh` — read-only inspection is allowed; `pr close` and `pr comment` are permitted only on wiki staging PRs (branches matching `wiki/staging-*`).
 
-Both checks use `path.resolve` and a `startsWith` comparison against the appropriate root plus the platform separator. The tests in `test/tools.test.ts` cover both the in-bounds and out-of-bounds cases, the `git` and `gh` subcommand allowlists and metacharacter guard, `ast_grep`/`ast_search` structural matching, and the absence of the old general-purpose `execute` shell tool.
+Both checks use `path.resolve` and a `startsWith` comparison against the appropriate root plus the platform separator. The tests in `test/tools.test.ts` cover both the in-bounds and out-of-bounds cases, the `git` and `gh` subcommand allowlists and metacharacter guard, `ast_grep`/`ast_search` structural matching, and the absence of any general-purpose shell tool.

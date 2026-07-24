@@ -52,7 +52,7 @@ The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.H
 bun pm pack
 ```
 
-Produces `wiki-agent-1.8.1.tgz`. The tarball includes `dist/`, `README.md`, and `LICENSE` per the `files` array in `package.json`.
+Produces `wiki-agent-1.9.0.tgz`. The tarball includes `dist/`, `README.md`, and `LICENSE` per the `files` array in `package.json`.
 
 ## Project layout
 
@@ -80,6 +80,8 @@ assets/                Generated README banner images (FLUX 2 Max)
 ```
 
 Two binaries are produced by the build: `wiki` (`dist/cli.js`) and `wiki-flatten` (`dist/flatten-wiki.js`), both declared in `package.json` `bin`.
+
+The package is `@chronova/wiki-agent` version `1.9.0`.
 
 See [Architecture](./architecture/overview.md) for how these pieces fit together at runtime.
 
