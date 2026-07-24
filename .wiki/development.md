@@ -71,6 +71,7 @@ src/
     CredentialsSetup.tsx
     RunView.tsx
 test/                  Vitest suites
+assets/                Generated README banner images (FLUX 2 Max)
 .github/workflows/update-wiki.yml
 .github/workflows/release.yml
 .github/workflows/auto-manage.yml
@@ -96,7 +97,6 @@ The repo uses several GitHub Actions workflows beyond `update-wiki.yml`:
 ## Known source inconsistencies
 
 - **Workflow filename mismatch**: `package.json` `files` lists `.github/workflows/wiki-update.yml`, but `src/agent.ts:createWorkflowFile` writes `.github/workflows/update-wiki.yml`. The `package.json` entry is stale because the build never ships that file; it only ships `dist/`, `README.md`, and `LICENSE`.
-- **Stale model hint in TUI (fixed)**: `src/tui/CredentialsSetup.tsx` previously rendered "Press Enter to use the default (qwen3-coder)" while the actual initial state and `config.ts:DEFAULT_MODEL` were both `kimi-k2.7-code`. The hint has been reconciled to match the default.
 
 ## Release checklist
 

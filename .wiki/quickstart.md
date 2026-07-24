@@ -37,6 +37,8 @@ wiki --version
 wiki --help
 ```
 
+The project assets include a generated banner image at `assets/banner-flux.png` used by the README.
+
 ## 2. Choose an Ollama mode
 
 Wiki Agent speaks to Ollama in one of two modes:
