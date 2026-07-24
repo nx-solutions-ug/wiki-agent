@@ -1,3 +1,10 @@
+## [1.9.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.9.0...v1.9.1) (2026-07-24)
+
+
+### Bug Fixes
+
+* crop banner to 3:1 ratio for better README display ([1a7b2f0](https://github.com/nx-solutions-ug/wiki-agent/commit/1a7b2f0c1c27e77b5cc3b1ebf8dc9636ba778ec2))
+
 # [1.9.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.8.1...v1.9.0) (2026-07-24)
 
 
