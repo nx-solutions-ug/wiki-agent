@@ -1,4 +1,4 @@
-![wiki-agent banner](assets/banner-a.jpg)
+![wiki-agent banner](assets/banner-flux.png)
 
 [![npm version](https://img.shields.io/npm/v/@chronova/wiki-agent.svg)](https://www.npmjs.com/package/@chronova/wiki-agent)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
