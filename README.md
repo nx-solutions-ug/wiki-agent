@@ -1,4 +1,8 @@
-![wiki-agent banner](assets/banner-flux.png)
+<p align="center">
+  <img src="public/banner.png" alt="Wiki Agent — Standalone Ollama Documentation Generator" width="850" />
+</p>
+
+# Wiki Agent
 
 [![npm version](https://img.shields.io/npm/v/@chronova/wiki-agent.svg)](https://www.npmjs.com/package/@chronova/wiki-agent)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)

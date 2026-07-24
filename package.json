@@ -56,5 +56,8 @@
   "author": "nx-solutions-ug",
   "publishConfig": {
     "access": "public"
-  }
+  },
+  "trustedDependencies": [
+    "@ast-grep/cli"
+  ]
 }
