@@ -25,7 +25,7 @@ cd wiki-agent
 bun install
 bun run build
 bun pm pack
-cd ~/.bun/install/global && bun add /path/to/wiki-agent/wiki-agent-1.8.1.tgz
+cd ~/.bun/install/global && bun add /path/to/wiki-agent/wiki-agent-1.9.1.tgz
 ```
 
 After install, the `wiki` command is on `PATH` (entrypoint: `dist/cli.js`, declared as the `bin` in `package.json`).
@@ -37,7 +37,7 @@ wiki --version
 wiki --help
 ```
 
-The project assets include a generated banner image at `assets/banner-flux.png` used by the README.
+The README uses a hero banner at `public/banner.png`.
 
 ## 2. Choose an Ollama mode
 
