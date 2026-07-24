@@ -1,3 +1,10 @@
+# [1.9.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.8.1...v1.9.0) (2026-07-24)
+
+
+### Features
+
+* add FLUX 2 Max generated README banner ([4895dc1](https://github.com/nx-solutions-ug/wiki-agent/commit/4895dc16b84a286f7bd2a5bb1cc24ca86d8b4ade))
+
 ## [1.8.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.8.0...v1.8.1) (2026-07-22)
 
 
