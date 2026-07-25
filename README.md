@@ -5,6 +5,7 @@
 # Wiki Agent
 
 [![npm version](https://img.shields.io/npm/v/@chronova/wiki-agent.svg)](https://www.npmjs.com/package/@chronova/wiki-agent)
+[![Release](https://github.com/nx-solutions-ug/wiki-agent/actions/workflows/release.yml/badge.svg)](https://github.com/nx-solutions-ug/wiki-agent/actions/workflows/release.yml)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
 
 A standalone Ollama-only documentation agent. It inspects your source code and generates a wiki under `.wiki/` in your project root, with optional publishing to the GitHub Wiki tab.
