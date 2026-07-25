@@ -1,10 +1,10 @@
-import { describe, expect, test, beforeEach, afterEach } from "vitest";
+import { describe, expect, test, beforeEach, afterEach, beforeAll } from "vitest";
 import { mkdtemp, rm, writeFile, readFile, mkdir } from "node:fs/promises";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import os from "node:os";
 import path from "node:path";
-import { createTools, executeTool } from "../src/tools.ts";
+import { createTools, executeTool, parseArgsStringToArgv } from "../src/tools.ts";
 
 const execAsync = promisify(exec);
 
@@ -160,6 +160,10 @@ describe("tools", () => {
   });
 
   describe("git tool", () => {
+    beforeEach(async () => {
+      await execAsync("git init && git -c user.email=t@t -c user.name=t commit --allow-empty -m first", { cwd: projectRoot });
+    });
+
     test("rejects non-git subcommands", async () => {
       const result = await executeTool(
         "git",
@@ -178,9 +182,7 @@ describe("tools", () => {
       expect(result).toContain("not permitted");
     });
 
-
-    test("prevents git options bypass via command injection", async () => {
-      await execAsync("git init && git -c user.email=t@t -c user.name=t commit --allow-empty -m first", { cwd: projectRoot });
+    test("rejects git config injection via shell evaluation", async () => {
       const result = await executeTool(
         "git",
         { args: "-c core.pager=!echo\\ vulnerable log -1" },
@@ -198,15 +200,7 @@ describe("tools", () => {
       expect(result).toContain("metacharacters");
     });
 
-
-
     test("allows read-only log in a git repo", async () => {
-      // init a tiny git repo so log has something to show
-      await execAsync("git init", { cwd: projectRoot });
-      await execAsync(
-        'git -c user.email=t@t -c user.name=t commit --allow-empty -m first',
-        { cwd: projectRoot },
-      );
 
       const result = await executeTool(
         "git",
@@ -330,10 +324,10 @@ describe("tools", () => {
       expect(result).toContain("Error");
     });
 
-    test("prevents gh options bypass via command injection", async () => {
+    test("rejects command injection via shell evaluation in gh tool", async () => {
       const result = await executeTool(
         "gh",
-        { args: "pr list --browser=!echo\\ vulnerable" },
+        { args: "pr list --search \"`echo vulnerable`\"" },
         projectRoot,
       );
       expect(result).not.toContain("vulnerable");
@@ -411,5 +405,35 @@ describe("tools", () => {
       const names = tools.map((t) => t.definition.function.name);
       expect(names).not.toContain("execute");
     });
+  });
+});
+
+describe("parseArgsStringToArgv", () => {
+  test("handles empty string", () => {
+    expect(parseArgsStringToArgv("")).toEqual([]);
+  });
+
+  test("handles simple spaces", () => {
+    expect(parseArgsStringToArgv("foo bar baz")).toEqual(["foo", "bar", "baz"]);
+  });
+
+  test("handles multiple spaces", () => {
+    expect(parseArgsStringToArgv("  foo   bar  ")).toEqual(["foo", "bar"]);
+  });
+
+  test("handles single quotes", () => {
+    expect(parseArgsStringToArgv("foo 'bar baz' qux")).toEqual(["foo", "bar baz", "qux"]);
+  });
+
+  test("handles double quotes", () => {
+    expect(parseArgsStringToArgv('foo "bar baz" qux')).toEqual(["foo", "bar baz", "qux"]);
+  });
+
+  test("handles escaped characters", () => {
+    expect(parseArgsStringToArgv("foo \\bar baz")).toEqual(["foo", "bar", "baz"]);
+  });
+
+  test("handles quotes inside quotes", () => {
+    expect(parseArgsStringToArgv("foo '\"bar\"' \"'baz'\"")).toEqual(["foo", "\"bar\"", "'baz'"]);
   });
 });

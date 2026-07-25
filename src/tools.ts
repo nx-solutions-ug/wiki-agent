@@ -6,7 +6,7 @@ import { promisify } from "node:util";
 const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
 
-function parseArgsStringToArgv(value: string): string[] {
+export function parseArgsStringToArgv(value: string): string[] {
   const tokens: string[] = [];
   let currentToken = '';
   let inSingleQuote = false;
@@ -31,14 +31,14 @@ function parseArgsStringToArgv(value: string): string[] {
       inDoubleQuote = !inDoubleQuote;
       continue;
     }
-    if (/\s/.test(char!) && !inSingleQuote && !inDoubleQuote) {
+    if (/\s/.test(char) && !inSingleQuote && !inDoubleQuote) {
       if (currentToken.length > 0) {
         tokens.push(currentToken);
         currentToken = '';
       }
       continue;
     }
-    currentToken += char!;
+    currentToken += char;
   }
   if (currentToken.length > 0) {
     tokens.push(currentToken);
@@ -432,26 +432,14 @@ export function createTools(projectRoot: string): Tool[] {
         return `Error: git subcommand '${subcommand}' is not permitted. Only read-only inspection subcommands are allowed (log, diff, show, ls-files, blame, status, remote, describe, rev-parse, shortlog, name-rev, ls-tree, cat-file, reflog).`;
       }
 
-      // Reject shell metacharacters that could chain commands or inject
-      // flags. Git flags begin with '-', which we permit, so the guard
-      // focuses on shell-control and redirection metacharacters.
+      // Reject shell metacharacters as defense-in-depth, although execFile
+      // prevents command chaining or shell evaluation.
       if (/[;&|`$()<>]/.test(argString)) {
         return "Error: shell metacharacters are not permitted in git arguments.";
       }
 
       try {
-        // Use execFile to bypass the shell entirely and avoid option injection via shell evaluation.
-        // We split the arguments considering potential quotes, but fundamentally rely on execFile.
-        // However, a simple regex split is enough since this is a read-only API and users shouldn't
-        // need complex quoting for basic git inspection.
-        // Also note that child_process.execFile does not execute a shell, so things like `> file` or `; rm -rf .`
-        // or git config injections that depend on shell evaluation won't work in the same way.
-
-        // Split arguments safely. In a real shell this is complex, but here a simple split
-        // by spaces, respecting quotes is ideal, or just passing `tokens` that we already split.
-        // However, we used `trim().split(/\s+/)` to get tokens.
-        // Parse arguments safely avoiding simple split by space issues for quotes, but since we rely on execFile,
-        // any quote will be treated literally. In a more complex scenario we might use shell-quote, but here we can just pass tokens
+        // execFile bypasses the shell, so flag values cannot trigger shell evaluation.
         const { stdout, stderr } = await execFileAsync("git", tokens, {
           cwd: projectRoot,
           maxBuffer: 1024 * 1024,
@@ -666,9 +654,9 @@ export function createTools(projectRoot: string): Tool[] {
 
         // Fetch the PR's headRefName to verify it's a wiki staging branch.
         try {
-          const { stdout } = await execAsync(
-            `gh pr view ${prNumber} --json headRefName`,
-            { cwd: projectRoot, maxBuffer: 1024 * 1024, timeout: 30_000 },
+          const { stdout } = await execFileAsync(
+            "gh", ["pr", "view", prNumber, "--json", "headRefName"],
+            { cwd: projectRoot, maxBuffer: 1024 * 1024, timeout: 30_000 }
           );
           const parsed = JSON.parse(stdout) as { headRefName?: string };
           if (!parsed.headRefName?.startsWith("wiki/staging-")) {
@@ -682,8 +670,8 @@ export function createTools(projectRoot: string): Tool[] {
         return `Error: gh ${subcommand} ${action} is not supported. Only gh pr ${action} is permitted, and only on wiki staging PRs.`;
       }
 
-      // Reject shell metacharacters that could chain commands or inject
-      // flags, same guard as the git tool.
+      // Reject shell metacharacters as defense-in-depth, although execFile
+      // prevents command chaining or shell evaluation.
       if (/[;&|`$()<>]/.test(argString)) {
         return "Error: shell metacharacters are not permitted in gh arguments.";
       }
