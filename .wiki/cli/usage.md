@@ -21,7 +21,7 @@ Exactly one of `--init` or `--update` is required. If neither is present, the he
 |---------|--------|
 | `wiki --init` | Initialize wiki documentation. Drives the model with the "init" user message and writes `.github/workflows/update-wiki.yml`. |
 | `wiki --update` | Refresh an existing wiki. Drives the model with the "update" user message and recent git history. Produces `.wiki/.last-update-report.md` and `.wiki/.last-updated.json` when content changes. |
-| `wiki --version` | Print the current package version (read from `package.json`) and exit. |
+| `wiki --version` | Print the current package version (`wiki-agent v${VERSION}`, read from `package.json`) and exit. |
 | `wiki --help` / `-h` | Print the help text and exit. |
 
 ### Flags
@@ -68,7 +68,7 @@ Without `--print`, `cli.tsx` mounts the Ink app defined in `src/tui/`. See [TUI]
 
 ## `wiki-flatten` — publish converter
 
-The `wiki-flatten` binary is a standalone CLI exported from `src/flatten-wiki.ts`. It converts the nested `.wiki/` directory into the flat file layout required by GitHub Wikis.
+The `wiki-flatten` binary is a standalone CLI exported from `src/flatten-wiki.ts`. It converts the nested `.wiki/` directory into the flat file layout required by GitHub Wikis. The entrypoint matches both `flatten-wiki.js` (direct node invocation) and `wiki-flatten` (the bin symlink installed by Bun/npm).
 
 ```bash
 wiki-flatten <wiki-root> <output-dir>

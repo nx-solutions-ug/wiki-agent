@@ -69,7 +69,7 @@ Tool results are truncated at `MAX_TOOL_RESULT_LENGTH` (10 000 characters) befor
 
 ## Post-run: index synchronization
 
-`index-middleware.ts` walks the `.wiki/` tree and writes an `index.md` for every directory. For each subdirectory it recurses; for each `*.md` file it parses the YAML frontmatter, extracts `title` and `description`, and emits a sorted bulleted list grouped into "Files" and "Directories". `index.md` and `_plan.md` are excluded from listings. If a generated index matches the existing one byte-for-byte, the file is not rewritten.
+`index-middleware.ts` walks the `.wiki/` tree and writes an `index.md` for every directory. For each subdirectory it recurses; for each `*.md` file it parses the YAML frontmatter, extracts `title` and `description`, and emits a sorted bulleted list grouped into "Files" and "Directories". `index.md` and `_plan.md` are excluded from listings; directory names and file links are percent-encoded. If a generated index matches the existing one byte-for-byte, the file is not rewritten.
 
 This step is invoked once at the end of `runAgent` — it does not run on every tool call.
 

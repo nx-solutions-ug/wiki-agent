@@ -35,7 +35,7 @@ The workflow:
 
 Permissions are explicitly granted for `contents: write` and `pull-requests: write`. `contents: write` is required both for the wiki repo clone/push (the wiki repo shares the parent's installation) and for the staging PR. `pull-requests: write` is required to open the staging PR.
 
-The workflow relies on the `GH_TOKEN` environment variable for the read-only `gh` CLI staleness check performed by the agent. This is set to the generated GitHub App token or `secrets.GITHUB_TOKEN`.
+The workflow sets the `GH_TOKEN` environment variable to the generated GitHub App token or `secrets.GITHUB_TOKEN` so the agent's read-only `gh` CLI staleness check can authenticate.
 
 ## Output
 
