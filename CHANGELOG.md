@@ -1,3 +1,10 @@
+# [1.10.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.9.1...v1.10.0) (2026-07-25)
+
+
+### Features
+
+* add concurrency control to wiki update workflow ([afc5f89](https://github.com/nx-solutions-ug/wiki-agent/commit/afc5f89bcd73b52ba448bbf89bc5aa5652384174))
+
 ## [1.9.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.9.0...v1.9.1) (2026-07-24)
 
 
