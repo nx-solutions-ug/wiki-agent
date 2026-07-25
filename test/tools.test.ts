@@ -178,6 +178,17 @@ describe("tools", () => {
       expect(result).toContain("not permitted");
     });
 
+
+    test("prevents git options bypass via command injection", async () => {
+      await execAsync("git init && git -c user.email=t@t -c user.name=t commit --allow-empty -m first", { cwd: projectRoot });
+      const result = await executeTool(
+        "git",
+        { args: "-c core.pager=!echo\\ vulnerable log -1" },
+        projectRoot,
+      );
+      expect(result).not.toContain("vulnerable");
+    });
+
     test("rejects shell metacharacters", async () => {
       const result = await executeTool(
         "git",
@@ -186,6 +197,8 @@ describe("tools", () => {
       );
       expect(result).toContain("metacharacters");
     });
+
+
 
     test("allows read-only log in a git repo", async () => {
       // init a tiny git repo so log has something to show
@@ -315,6 +328,15 @@ describe("tools", () => {
         projectRoot,
       );
       expect(result).toContain("Error");
+    });
+
+    test("prevents gh options bypass via command injection", async () => {
+      const result = await executeTool(
+        "gh",
+        { args: "pr list --browser=!echo\\ vulnerable" },
+        projectRoot,
+      );
+      expect(result).not.toContain("vulnerable");
     });
 
     test("rejects shell metacharacters", async () => {

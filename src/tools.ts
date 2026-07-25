@@ -1,9 +1,51 @@
 import { readFile, writeFile, readdir, stat, mkdir } from "node:fs/promises";
-import { exec } from "node:child_process";
+import { exec, execFile } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
 
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
+
+function parseArgsStringToArgv(value: string): string[] {
+  const tokens: string[] = [];
+  let currentToken = '';
+  let inSingleQuote = false;
+  let inDoubleQuote = false;
+  let escaped = false;
+  for (let i = 0; i < value.length; i++) {
+    const char = value[i];
+    if (escaped) {
+      currentToken += char;
+      escaped = false;
+      continue;
+    }
+    if (char === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (char === "'" && !inDoubleQuote) {
+      inSingleQuote = !inSingleQuote;
+      continue;
+    }
+    if (char === '"' && !inSingleQuote) {
+      inDoubleQuote = !inDoubleQuote;
+      continue;
+    }
+    if (/\s/.test(char!) && !inSingleQuote && !inDoubleQuote) {
+      if (currentToken.length > 0) {
+        tokens.push(currentToken);
+        currentToken = '';
+      }
+      continue;
+    }
+    currentToken += char!;
+  }
+  if (currentToken.length > 0) {
+    tokens.push(currentToken);
+  }
+  return tokens;
+}
+
 
 const MAX_READ_LENGTH = 50_000;
 const MAX_TOOL_RESULT_LENGTH = 10_000;
@@ -384,7 +426,7 @@ export function createTools(projectRoot: string): Tool[] {
         reflog: true,
       };
 
-      const tokens = argString.trim().split(/\s+/);
+      const tokens = parseArgsStringToArgv(argString);
       const subcommand = tokens[0] ?? "";
       if (!ALLOWED_GIT_SUBCOMMANDS[subcommand]) {
         return `Error: git subcommand '${subcommand}' is not permitted. Only read-only inspection subcommands are allowed (log, diff, show, ls-files, blame, status, remote, describe, rev-parse, shortlog, name-rev, ls-tree, cat-file, reflog).`;
@@ -398,7 +440,19 @@ export function createTools(projectRoot: string): Tool[] {
       }
 
       try {
-        const { stdout, stderr } = await execAsync(`git ${argString}`, {
+        // Use execFile to bypass the shell entirely and avoid option injection via shell evaluation.
+        // We split the arguments considering potential quotes, but fundamentally rely on execFile.
+        // However, a simple regex split is enough since this is a read-only API and users shouldn't
+        // need complex quoting for basic git inspection.
+        // Also note that child_process.execFile does not execute a shell, so things like `> file` or `; rm -rf .`
+        // or git config injections that depend on shell evaluation won't work in the same way.
+
+        // Split arguments safely. In a real shell this is complex, but here a simple split
+        // by spaces, respecting quotes is ideal, or just passing `tokens` that we already split.
+        // However, we used `trim().split(/\s+/)` to get tokens.
+        // Parse arguments safely avoiding simple split by space issues for quotes, but since we rely on execFile,
+        // any quote will be treated literally. In a more complex scenario we might use shell-quote, but here we can just pass tokens
+        const { stdout, stderr } = await execFileAsync("git", tokens, {
           cwd: projectRoot,
           maxBuffer: 1024 * 1024,
           timeout: 30_000,
@@ -589,7 +643,7 @@ export function createTools(projectRoot: string): Tool[] {
         close: true, comment: true,
       };
 
-      const tokens = argString.trim().split(/\s+/);
+      const tokens = parseArgsStringToArgv(argString);
       const subcommand = tokens[0] ?? "";
       if (!ALLOWED_GH_SUBCOMMANDS[subcommand]) {
         return `Error: gh subcommand '${subcommand}' is not permitted. Only inspection subcommands and pr close/comment on wiki staging PRs are allowed (pr, issue, repo, run, api, search, release, label, workflow).`;
@@ -635,7 +689,9 @@ export function createTools(projectRoot: string): Tool[] {
       }
 
       try {
-        const { stdout, stderr } = await execAsync(`gh ${argString}`, {
+
+
+        const { stdout, stderr } = await execFileAsync("gh", tokens, {
           cwd: projectRoot,
           maxBuffer: 1024 * 1024,
           timeout: 30_000,
