@@ -1,9 +1,51 @@
 import { readFile, writeFile, readdir, stat, mkdir } from "node:fs/promises";
-import { exec } from "node:child_process";
+import { exec, execFile } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
 
 const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
+
+export function parseArgsStringToArgv(value: string): string[] {
+  const tokens: string[] = [];
+  let currentToken = '';
+  let inSingleQuote = false;
+  let inDoubleQuote = false;
+  let escaped = false;
+  for (let i = 0; i < value.length; i++) {
+    const char = value[i];
+    if (escaped) {
+      currentToken += char;
+      escaped = false;
+      continue;
+    }
+    if (char === '\\') {
+      escaped = true;
+      continue;
+    }
+    if (char === "'" && !inDoubleQuote) {
+      inSingleQuote = !inSingleQuote;
+      continue;
+    }
+    if (char === '"' && !inSingleQuote) {
+      inDoubleQuote = !inDoubleQuote;
+      continue;
+    }
+    if (/\s/.test(char) && !inSingleQuote && !inDoubleQuote) {
+      if (currentToken.length > 0) {
+        tokens.push(currentToken);
+        currentToken = '';
+      }
+      continue;
+    }
+    currentToken += char;
+  }
+  if (currentToken.length > 0) {
+    tokens.push(currentToken);
+  }
+  return tokens;
+}
+
 
 const MAX_READ_LENGTH = 50_000;
 const MAX_TOOL_RESULT_LENGTH = 10_000;
@@ -384,21 +426,21 @@ export function createTools(projectRoot: string): Tool[] {
         reflog: true,
       };
 
-      const tokens = argString.trim().split(/\s+/);
+      const tokens = parseArgsStringToArgv(argString);
       const subcommand = tokens[0] ?? "";
       if (!ALLOWED_GIT_SUBCOMMANDS[subcommand]) {
         return `Error: git subcommand '${subcommand}' is not permitted. Only read-only inspection subcommands are allowed (log, diff, show, ls-files, blame, status, remote, describe, rev-parse, shortlog, name-rev, ls-tree, cat-file, reflog).`;
       }
 
-      // Reject shell metacharacters that could chain commands or inject
-      // flags. Git flags begin with '-', which we permit, so the guard
-      // focuses on shell-control and redirection metacharacters.
+      // Reject shell metacharacters as defense-in-depth, although execFile
+      // prevents command chaining or shell evaluation.
       if (/[;&|`$()<>]/.test(argString)) {
         return "Error: shell metacharacters are not permitted in git arguments.";
       }
 
       try {
-        const { stdout, stderr } = await execAsync(`git ${argString}`, {
+        // execFile bypasses the shell, so flag values cannot trigger shell evaluation.
+        const { stdout, stderr } = await execFileAsync("git", tokens, {
           cwd: projectRoot,
           maxBuffer: 1024 * 1024,
           timeout: 30_000,
@@ -589,7 +631,7 @@ export function createTools(projectRoot: string): Tool[] {
         close: true, comment: true,
       };
 
-      const tokens = argString.trim().split(/\s+/);
+      const tokens = parseArgsStringToArgv(argString);
       const subcommand = tokens[0] ?? "";
       if (!ALLOWED_GH_SUBCOMMANDS[subcommand]) {
         return `Error: gh subcommand '${subcommand}' is not permitted. Only inspection subcommands and pr close/comment on wiki staging PRs are allowed (pr, issue, repo, run, api, search, release, label, workflow).`;
@@ -612,9 +654,9 @@ export function createTools(projectRoot: string): Tool[] {
 
         // Fetch the PR's headRefName to verify it's a wiki staging branch.
         try {
-          const { stdout } = await execAsync(
-            `gh pr view ${prNumber} --json headRefName`,
-            { cwd: projectRoot, maxBuffer: 1024 * 1024, timeout: 30_000 },
+          const { stdout } = await execFileAsync(
+            "gh", ["pr", "view", prNumber, "--json", "headRefName"],
+            { cwd: projectRoot, maxBuffer: 1024 * 1024, timeout: 30_000 }
           );
           const parsed = JSON.parse(stdout) as { headRefName?: string };
           if (!parsed.headRefName?.startsWith("wiki/staging-")) {
@@ -628,14 +670,16 @@ export function createTools(projectRoot: string): Tool[] {
         return `Error: gh ${subcommand} ${action} is not supported. Only gh pr ${action} is permitted, and only on wiki staging PRs.`;
       }
 
-      // Reject shell metacharacters that could chain commands or inject
-      // flags, same guard as the git tool.
+      // Reject shell metacharacters as defense-in-depth, although execFile
+      // prevents command chaining or shell evaluation.
       if (/[;&|`$()<>]/.test(argString)) {
         return "Error: shell metacharacters are not permitted in gh arguments.";
       }
 
       try {
-        const { stdout, stderr } = await execAsync(`gh ${argString}`, {
+
+
+        const { stdout, stderr } = await execFileAsync("gh", tokens, {
           cwd: projectRoot,
           maxBuffer: 1024 * 1024,
           timeout: 30_000,
