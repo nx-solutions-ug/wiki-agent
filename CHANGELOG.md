@@ -1,3 +1,10 @@
+## [1.11.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.11.0...v1.11.1) (2026-07-26)
+
+
+### Bug Fixes
+
+* **issue-76:** prevent stream-log.py from crashing on non-dict args or non-string text ([f2e7293](https://github.com/nx-solutions-ug/wiki-agent/commit/f2e72937fd175bd51fad4f2ea156bf0cbaa31464))
+
 # [1.11.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.10.0...v1.11.0) (2026-07-26)
 
 
