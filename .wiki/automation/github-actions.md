@@ -17,12 +17,11 @@ The workflow:
 2. Checks out the repository with `actions/checkout@v7`.
 3. Sets up Bun with `oven-sh/setup-bun@v2` and Node.js 25 with `actions/setup-node@v7` (the package still supports Node.js 22+ per `package.json`).
 4. Installs Wiki Agent globally from npm with `bun add -g @chronova/wiki-agent`.
-5. Runs `wiki --update --print --verbose --wiki` in headless mode with `WIKI_OLLAMA_MODE=cloud`. The `--verbose` flag makes tool call results appear in the CI log alongside assistant prose. After the run the agent also updates `.wiki/.last-updated.json` and writes `.wiki/.last-update-report.md` (when there are changes). Note that the workflow hardcodes `--wiki` at runtime, so the CI job always attempts to flatten and publish to the wiki tab even if `--wiki` was not used during the local `--init` run.
+5. Runs `wiki --update --print --verbose --wiki` in headless mode with `WIKI_OLLAMA_MODE=cloud`. The `--verbose` flag makes tool call results appear in the CI log alongside assistant prose. After the run the agent also updates `.wiki/.last-updated.json`, writes `.wiki/.last-update-report.md`, and writes `.wiki/.last-update-title.txt` (when there are changes). Note that the workflow hardcodes `--wiki` at runtime, so the CI job always attempts to flatten and publish to the wiki tab regardless of whether `--wiki` was used during the local `--init` run.
 6. Emits repository coordinates (`GITHUB_REPOSITORY` → `owner/repo`) and a timestamp into step outputs.
-7. Checks for content changes under `.wiki/` using `git status --porcelain .wiki`, stripping the status prefix and excluding the run metadata files `.wiki/.last-update-report.md` and `.wiki/.last-updated.json`. If real content files changed, sets `has_changes=true` and streams the report into a `body<<EOF` heredoc on `$GITHUB_OUTPUT` (with an empty `echo ""` before `EOF` so the delimiter sits on its own line).
+7. Checks for content changes under `.wiki/` using `git status --porcelain .wiki`, stripping the status prefix and excluding the run metadata files `.wiki/.last-update-report.md`, `.wiki/.last-update-title.txt`, and `.wiki/.last-updated.json`. If real content files changed, sets `has_changes=true` and streams the report into a `body<<EOF` heredoc on `$GITHUB_OUTPUT` (with an empty `echo ""` before `EOF` so the delimiter sits on its own line). The workflow also emits a `title<<EOF` heredoc read from `.wiki/.last-update-title.txt`, so the staging PR title and commit message reflect the actual run.
 8. **Prevent concurrent wiki update jobs**:
-   - `concurrency: group: wiki-update-${{ github.ref }}, cancel-in-progress: true` ensures only one wiki update runs at a time for a given ref.
-   - This guards against overlapping scheduled and push-triggered runs, and prevents duplicate staging PRs and wiki publishes when events arrive close together.
+   - `concurrency: group: wiki-update-${{ github.ref }}, cancel-in-progress: true` ensures only one wiki update runs at a time for a given ref and prevents duplicate staging PRs and wiki publishes when events arrive close together.
 9. **Flatten the wiki for GitHub**:
    - `wiki-flatten "$GITHUB_WORKSPACE/.wiki" /tmp/wiki-flat` converts the nested `.wiki/` tree into the flat format GitHub Wikis require.
    - Nested pages become dash-joined names (`architecture/overview.md` → `Architecture-Overview.md`, `cli/usage.md` → `CLI-Usage.md`); root `index.md` becomes `Home.md`; section index files become the section name (`architecture/index.md` → `Architecture.md`).
@@ -30,7 +29,7 @@ The workflow:
    - YAML frontmatter is stripped because GitHub Wiki renders it as literal text.
    - A `_Sidebar.md` is generated from the page frontmatter.
    - Metadata files (`.git`, `config.json`, `.last-update-report.md`, `.last-updated.json`, `_plan.md`) are excluded.
-10. **Publish to wiki repo** (only when `has_changes=true` and `initialized=true`): clones `<repo>.wiki.git` into `/tmp/wiki`, `rsync`s the flattened `/tmp/wiki-flat/` output over the clone excluding `.git`, commits, and **pushes directly to `master`** — the wiki goes live immediately with no PR or review gate. GitHub wiki repos are hidden Git remotes, not API-accessible repositories, so `gh pr create` cannot open a PR against them; direct push to `master` is the only programmatic publish path. If the push fails with 401/403, emits a `::error::` explaining that either the GitHub App needs `contents:write` (which covers the wiki repo) or a `WIKI_PUSH_TOKEN` secret must be set, then exits 1.
+10. **Publish to wiki repo** (only when content changed and the wiki is initialized): clones `<repo>.wiki.git` into `/tmp/wiki`, `rsync`s the flattened `/tmp/wiki-flat/` output over the clone excluding `.git`, commits, and **pushes directly to `master`** — the wiki goes live immediately. GitHub wiki repos are hidden Git remotes, not API-accessible repositories, so `gh pr create` cannot open a PR against them; direct push to `master` is the only programmatic publish path. If the push fails, the workflow exits with a `::error::` explaining that the GitHub App needs `contents:write` (which covers the wiki repo) or a `WIKI_PUSH_TOKEN` secret must be set.
 11. **Create wiki staging snapshot pull request** (only when `steps.report.outputs.has_changes == 'true'`): `peter-evans/create-pull-request@v8` adds `.wiki/` on a `wiki/staging-<timestamp>` branch of the main repo and opens a `docs: wiki staging snapshot` PR. This keeps the staged content auditable in the main repo even though the live surface is the wiki tab.
 
 Permissions are explicitly granted for `contents: write` and `pull-requests: write`. `contents: write` is required both for the wiki repo clone/push (the wiki repo shares the parent's installation) and for the staging PR. `pull-requests: write` is required to open the staging PR.
@@ -39,7 +38,7 @@ The workflow relies on the `GH_TOKEN` environment variable for the read-only `gh
 
 ## Output
 
-The staging PR body is read from `.wiki/.last-update-report.md` after the run, so it reflects the pages that were actually changed and includes a per-file description of what changed and why. Because `generateUpdateReport` appends a trailing newline, the heredoc written to `$GITHUB_OUTPUT` is terminated correctly and GitHub Actions can parse it. The staging PR only includes files under `.wiki/` (via `add-paths: .wiki`), so source code is never touched. The publish to the wiki tab excludes metadata files (`config.json`, `.last-update-report.md`, `.last-updated.json`) via the flatten step, so only content pages reach the live wiki.
+The staging PR body is read from `.wiki/.last-update-report.md` after the run, so it reflects the pages that were actually changed and includes a per-file description of what changed and why. The PR title and commit message are read from `.wiki/.last-update-title.txt` (falling back to `docs: wiki staging snapshot`). Because `generateUpdateReport` appends a trailing newline, the heredoc written to `$GITHUB_OUTPUT` is terminated correctly and GitHub Actions can parse it. The staging PR only includes files under `.wiki/` (via `add-paths: .wiki`), so source code is never touched. The publish to the wiki tab excludes metadata files (`config.json`, `.last-update-report.md`, `.last-updated.json`, `.last-update-title.txt`) via the flatten step, so only content pages reach the live wiki.
 
 ## Triggering
 
@@ -57,7 +56,7 @@ GitHub wikis must be initialized once through the UI before they can be pushed t
 
 ## Other repository automation
 
-The repository also runs automated issue/PR management and OMP-driven workflows. See [OMP Automation Workflows](./omp.md) for details on `.github/workflows/auto-manage.yml`, `.github/workflows/omp.yml`, and `.github/workflows/omp-ci.yml`, plus the command prompts under `.omp/commands/`.
+The repository also runs automated issue/PR management and OMP-driven workflows. See [OMP Automation Workflows](./omp.md) for details on `.github/workflows/auto-manage.yml`, `.github/workflows/omp.yml`, `.github/workflows/omp-ci.yml`, and `.github/workflows/omp-fix-issue.yml`, plus the command prompts under `.omp/commands/`.
 
 The repository also gates external pull requests via the **vouch** system. Maintainers vouch users by commenting on Discussions, and a PR gate workflow auto-closes PRs from unvouched users. See [Vouch Access Control](./vouch.md) for the `.github/workflows/vouch-manage.yml` and `.github/workflows/vouch-pr.yml` workflows and the `.github/VOUCHED.td` list.
 
@@ -79,7 +78,7 @@ The `WIKI_OLLAMA_BASE_URL` environment variable is not set; the agent uses the c
 
 ## Skipping metadata-only runs
 
-The workflow deliberately skips opening either PR when the only files that changed are `.wiki/.last-update-report.md` and `.wiki/.last-updated.json`. Those files are rewritten on every agent run, so without the filter the bot would open empty pull requests every day. The `git status --porcelain .wiki` filter catches both tracked and untracked changes, then strips the two metadata paths before deciding whether to publish. Additionally, if the wiki push produces no net content changes after the `rsync` (e.g. the wiki already matches), the publish step logs a `::warning::` and skips the wiki push while the staging PR still opens.
+The workflow deliberately skips opening either PR when the only files that changed are `.wiki/.last-update-report.md`, `.wiki/.last-update-title.txt`, and `.wiki/.last-updated.json`. Those files are rewritten on every agent run, so without the filter the bot would open empty pull requests every day. The `git status --porcelain .wiki` filter catches both tracked and untracked changes, then strips the metadata paths before deciding whether to publish. Additionally, if the wiki push produces no net content changes after the `rsync` (e.g. the wiki already matches), the publish step logs a `::warning::` and skips the wiki push while the staging PR still opens.
 
 ## Local dry run
 

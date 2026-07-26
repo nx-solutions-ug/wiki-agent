@@ -17,6 +17,7 @@ The canonical list is stored in `.github/VOUCHED.td`:
 - Lines are sorted alphabetically.
 - To denounce a user, prefix the handle with `-`.
 - Optional details can follow the handle after a space.
+- The file header explains how to request a vouch and documents the syntax.
 
 Bots (handles ending with `[bot]`) and collaborators with `admin`, `maintain`, or `write` access are automatically allowed, regardless of the list.
 

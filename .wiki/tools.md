@@ -9,7 +9,7 @@ tags: [tools, filesystem, sandbox]
 
 The agent in `src/agent.ts` does not speak to the filesystem directly. It receives a list of tool definitions built by `createTools(projectRoot)` in `src/tools.ts` and forwards them as the `tools` field of every Ollama `chat` request. The model returns `tool_calls`, the runtime normalizes the arguments (`normalizeToolCallArgs`) and dispatches them through `executeTool`.
 
-All tools are local to the runtime; no network calls are made by the tools themselves. The agent loop in `src/agent.ts` tracks successful `write_file` and `edit_file` calls, captures the assistant's preceding prose as a per-file change description, and feeds them to `generateUpdateReport` for the PR body.
+All tools are local to the runtime; no network calls are made by the tools themselves. The agent loop in `src/agent.ts` tracks successful `write_file` and `edit_file` calls, captures the assistant's preceding prose as a per-file change description, and feeds them to `generateUpdateReport` for the PR body. The same loop also writes `.wiki/.last-update-title.txt` with a generated title for the staging PR.
 
 ## Tool catalog
 
@@ -136,6 +136,10 @@ The tool is constrained the same way as the `git` tool:
 - **Metacharacter guard**: the argument string is rejected if it contains shell-control or redirection metacharacters (`[;&|\`$()<>]`).
 
 Read-only inspection (`pr list`, `pr view`, `repo view`, `issue list`, etc.) is always allowed. The update-mode staging PR staleness check uses this tool to list open `wiki/staging-*` PRs and compare branch timestamps against the latest commit timestamp, then close any stale ones with a comment before proceeding. See [CLI Usage](../cli/usage.md) for the `GH_TOKEN` environment variable used by the workflow.
+
+## Argument parsing helper
+
+`tools.ts` also exports `parseArgsStringToArgv` for safely splitting an argument string into an argv array (handling quotes, escapes, and whitespace). It is covered by `test/tools.test.ts` and is used internally by the `git`/`gh` command runners.
 
 ## `ast_grep`
 

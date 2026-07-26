@@ -16,7 +16,7 @@ When the CLI is launched without `--print`, `cli.tsx` mounts an [Ink](https://gi
 - If `config.mode === "cloud"` and no API key is set, it renders `CredentialsSetup`.
 - Otherwise it renders the run view inside a rounded header box that shows the agent version, the Ollama mode, the model, and the project root.
 
-A `useInput` hook listens for `q` or `Ctrl+C` at the top level and calls `useApp().exit()` to leave Ink cleanly. `q` and `Ctrl+C` work the same way in every screen.
+A `useInput` hook listens for `q` or `Ctrl+C` at the top level and calls `useApp().exit()` to leave Ink cleanly. The same key handling is duplicated in each screen so `q` and `Ctrl+C` work everywhere.
 
 ## Credentials setup: `CredentialsSetup.tsx`
 
@@ -31,7 +31,7 @@ Errors from `saveGlobalConfig` are caught and rendered in red; the wizard drops 
 
 ## Run view: `RunView.tsx`
 
-`RunView` creates the Ollama client via `createOllamaClient(config)` and calls `runAgent` with `stream: true`. Each `AgentEvent` is translated into a `DisplayEvent` and appended to a ref-backed state list, which Ink re-renders.
+`RunView` creates the Ollama client via `createOllamaClient(config)` and calls `runAgent` with `stream: true` and the `wiki` flag propagated from the CLI. Each `AgentEvent` is translated into a `DisplayEvent` and appended to a ref-backed state list, which Ink re-renders.
 
 Consecutive `assistant` chunks are merged into a single `DisplayEvent` so streaming does not fragment prose into one line per token. The mapping is:
 
