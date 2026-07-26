@@ -241,9 +241,15 @@ export async function runAgent(
   );
 
   const report = generateUpdateReport(command, changedFiles);
+  const title = generateUpdateTitle(command, changedFiles);
   await writeFile(
     path.join(projectRoot, ".wiki", ".last-update-report.md"),
     report,
+    "utf8",
+  );
+  await writeFile(
+    path.join(projectRoot, ".wiki", ".last-update-title.txt"),
+    title + "\n",
     "utf8",
   );
 
@@ -326,12 +332,19 @@ async function createWorkflowFile(projectRoot: string, wikiPublish: boolean): Pr
     "        run: |",
     "          # Collect changes under .wiki (tracked + untracked), excluding",
     "          # the run metadata files. Only content changes open a PR.",
-    "          changes=$(git status --porcelain .wiki | sed 's/^...//' | grep -vE '^\\.wiki/\\.(last-update-report\\.md|last-updated\\.json)$' | sed '/^[[:space:]]*$/d')",
+    "          changes=$(git status --porcelain .wiki | sed 's/^...//' | grep -vE '^\\.wiki/\\.(last-update-report\\.md|last-update-title\\.txt|last-updated\\.json)$' | sed '/^[[:space:]]*$/d')",
     "          if [ -n \"$changes\" ]; then",
     "            echo \"has_changes=true\" >> $GITHUB_OUTPUT",
     "            echo \"body<<EOF\" >> $GITHUB_OUTPUT",
     "            cat .wiki/.last-update-report.md >> $GITHUB_OUTPUT",
     "            echo \"\" >> $GITHUB_OUTPUT",
+    "            echo \"EOF\" >> $GITHUB_OUTPUT",
+    "            # PR title + commit message reflecting the actual run. Falls back",
+    "            # to a generic label if the agent did not write the title file.",
+    "            echo \"title<<EOF\" >> $GITHUB_OUTPUT",
+    "            {",
+    "              if [ -f .wiki/.last-update-title.txt ]; then cat .wiki/.last-update-title.txt; else echo \"docs: wiki staging snapshot\"; fi",
+    "            } >> $GITHUB_OUTPUT",
     "            echo \"EOF\" >> $GITHUB_OUTPUT",
     "          else",
     "            echo \"has_changes=false\" >> $GITHUB_OUTPUT",
@@ -398,7 +411,8 @@ async function createWorkflowFile(projectRoot: string, wikiPublish: boolean): Pr
     "          token: ${{ secrets.WIKI_PUSH_TOKEN || steps.token.outputs.token || secrets.GITHUB_TOKEN }}",
     "          branch: wiki/staging-${{ steps.timestamp.outputs.timestamp }}",
     "          add-paths: .wiki",
-    '          title: "docs: wiki staging snapshot"',
+    "          title: ${{ steps.report.outputs.title }}",
+    "          commit-message: ${{ steps.report.outputs.title }}",
     '          body: ${{ steps.report.outputs.body }}',
   );
 
@@ -463,6 +477,34 @@ export function generateUpdateReport(
   );
 
   return lines.join("\n") + "\n";
+}
+
+/**
+ * Generates a concise pull-request title summarizing what this run changed.
+ * Written to .wiki/.last-update-title.txt and used as the PR title by the
+ * update-wiki workflow so the staging snapshot PR reflects its actual content
+ * instead of a generic "wiki staging snapshot" label.
+ */
+export function generateUpdateTitle(
+  command: WikiCommand,
+  changedFiles: { action: string; path: string; description?: string }[],
+): string {
+  const created = changedFiles.filter((f) => f.action === "created").length;
+  const edited = changedFiles.filter((f) => f.action === "edited").length;
+  const action = command === "init" ? "initialize wiki" : "update wiki";
+
+  if (created === 0 && edited === 0) {
+    return `docs: ${action}`;
+  }
+
+  const parts: string[] = [];
+  if (created > 0) {
+    parts.push(`${created} new page${created > 1 ? "s" : ""}`);
+  }
+  if (edited > 0) {
+    parts.push(`${edited} updated page${edited > 1 ? "s" : ""}`);
+  }
+  return `docs: ${action} (${parts.join(", ")})`;
 }
 
 /**
