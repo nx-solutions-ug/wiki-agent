@@ -9,6 +9,17 @@ tags: [github-actions, ci, automation, omp]
 
 In addition to the [Wiki update workflow](github-actions.md), the repository runs a set of GitHub Actions workflows that invoke **OMP** (`omp.sh`) for automated issue/PR management and on-demand chat-driven commands. These workflows are distinct from wiki-agent itself — they are part of the project's own CI automation.
 
+## Stream logging
+
+The OMP workflows pipe JSONL output from `omp -p --mode json ...` through `.omp/stream-log.py` to produce human-readable CI log lines. The script handles the full OMP event stream (`agent_start`, `turn_start`, `tool_execution_start`, `tool_execution_end`, `message_end`, `agent_end`) and is intentionally defensive:
+
+- `_as_str()` coerces non-string `text` values — `None`, ints, lists, dicts — into strings before they are concatenated, so malformed tool results never raise `TypeError` and break the pipe.
+- `_path_from_args()` extracts a display path from read/write/edit tool events even when `args` is not a dict or nests the path under an `input` sub-object, falling back to `brief_args()` for unknown shapes.
+- `brief_args()` tolerates non-dict inputs for all other tools.
+- Malformed JSON lines are skipped without aborting the stream.
+
+These guards were added to fix the crash reported in issue #76, where non-dict `args` or non-string `text` content terminated the formatter with a non-zero exit code and broke the upstream `omp` pipe.
+
 ## Workflows
 
 ### `.github/workflows/auto-manage.yml`

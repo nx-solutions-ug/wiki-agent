@@ -42,6 +42,7 @@ Runs `vitest run` against the test files in `test/`. There are seven suites:
 - `prompt.test.ts` — system prompt, user message templates, and help text contents.
 - `report.test.ts` — `generateUpdateReport`: no-op reports, created/edited listings, per-file description blockquotes, truncation, whitespace collapse, and summary counts.
 - `flatten-wiki.test.ts` — filename conversion, link rewriting, frontmatter stripping, sidebar generation, and metadata exclusions.
+- `stream-log.test.ts` — drives `.omp/stream-log.py` as a subprocess and asserts it tolerates non-dict `args`, non-string `text` values (`null`, int, list, dict), and malformed JSON lines without crashing (regression coverage for issue #76).
 - `version.test.ts` — `VERSION` matches `package.json` and is not a stale placeholder.
 
 The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.HOME` so the global config path can be redirected.
