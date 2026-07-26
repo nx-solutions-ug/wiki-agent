@@ -77,6 +77,9 @@ assets/                Generated README banner images (FLUX 2 Max)
 .github/workflows/auto-manage.yml
 .github/workflows/omp.yml
 .github/workflows/omp-ci.yml
+.github/workflows/vouch-manage.yml
+.github/workflows/vouch-pr.yml
+.github/VOUCHED.td
 ```
 
 Two binaries are produced by the build: `wiki` (`dist/cli.js`) and `wiki-flatten` (`dist/flatten-wiki.js`), both declared in `package.json` `bin`.
@@ -91,6 +94,10 @@ The repo uses several GitHub Actions workflows beyond `update-wiki.yml`:
 - `.github/workflows/auto-manage.yml` — tags new/reopened issues with `needs-triage` and auto-assigns new issues and PRs to `niklasschaeffer`.
 - `.github/workflows/omp.yml` — invokes the OMP agent on comments containing `/omp` (or `/oc`) and routes command prompts from `.omp/commands/*.md` into OMP.
 - `.github/workflows/omp-ci.yml` — automated OMP triage, PR labeling, and PR review triggered by issues/PR events.
+- `.github/workflows/vouch-manage.yml` — lets maintainers vouch or denounce users via Discussion comments (`!vouch`, `!denounce`, `!unvouch`).
+- `.github/workflows/vouch-pr.yml` — auto-closes PRs from unvouched users and labels vouched/allowed PRs with `vouched`.
+
+Vouched users are tracked in `.github/VOUCHED.td`. Bots and collaborators with write access are automatically allowed. See [Vouch Access Control](../automation/vouch.md) for details.
 
 `.releaserc.json` configures semantic-release for branches `main`, `beta`, and `alpha`, writes `CHANGELOG.md`, commits `package.json`/`CHANGELOG.md`, creates a GitHub release, and publishes via the `@semantic-release/npm` plugin. The `releaseBodyTemplate` in `.releaserc.json` also truncates the release notes at 120 000 bytes with a pointer back to `CHANGELOG.md` as a fallback. The release job additionally edits the newly created release body with a full commit-level "What's Changed" section generated locally from `git log`, replacing the default notes; if those generated notes exceed 120 000 bytes they are truncated at a safe line boundary with a pointer back to `CHANGELOG.md`. Renovate is configured with `config:recommended` in `renovate.json`. Because the project uses Bun, `package-lock.json` is not part of the git assets. The project is released under the ISC license (`LICENSE`); `package.json` sets `license: "ISC"`.
 
