@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { generateUpdateReport } from "../src/agent.ts";
+import { generateUpdateReport, generateUpdateTitle } from "../src/agent.ts";
 
 describe("generateUpdateReport", () => {
   test("empty changedFiles produces no-op report", () => {
@@ -86,5 +86,67 @@ describe("generateUpdateReport", () => {
     ]);
     expect(report).toContain("created 2 pages");
     expect(report).toContain("edited 1 page");
+  });
+});
+
+describe("generateUpdateTitle", () => {
+  test("no changes produces a generic docs title", () => {
+    expect(generateUpdateTitle("update", [])).toBe("docs: update wiki");
+  });
+
+  test("init command uses initialize label", () => {
+    expect(generateUpdateTitle("init", [])).toBe("docs: initialize wiki");
+  });
+
+  test("only created pages are reflected", () => {
+    expect(
+      generateUpdateTitle("update", [
+        { action: "created", path: ".wiki/a.md", description: "" },
+      ]),
+    ).toBe("docs: update wiki (1 new page)");
+  });
+
+  test("created pages pluralize", () => {
+    expect(
+      generateUpdateTitle("update", [
+        { action: "created", path: ".wiki/a.md", description: "" },
+        { action: "created", path: ".wiki/b.md", description: "" },
+      ]),
+    ).toBe("docs: update wiki (2 new pages)");
+  });
+
+  test("only edited pages are reflected", () => {
+    expect(
+      generateUpdateTitle("update", [
+        { action: "edited", path: ".wiki/a.md", description: "" },
+      ]),
+    ).toBe("docs: update wiki (1 updated page)");
+  });
+
+  test("edited pages pluralize", () => {
+    expect(
+      generateUpdateTitle("update", [
+        { action: "edited", path: ".wiki/a.md", description: "" },
+        { action: "edited", path: ".wiki/b.md", description: "" },
+      ]),
+    ).toBe("docs: update wiki (2 updated pages)");
+  });
+
+  test("both created and edited are combined", () => {
+    expect(
+      generateUpdateTitle("update", [
+        { action: "created", path: ".wiki/a.md", description: "" },
+        { action: "created", path: ".wiki/b.md", description: "" },
+        { action: "edited", path: ".wiki/c.md", description: "" },
+      ]),
+    ).toBe("docs: update wiki (2 new pages, 1 updated page)");
+  });
+
+  test("init with changes uses initialize label", () => {
+    expect(
+      generateUpdateTitle("init", [
+        { action: "created", path: ".wiki/a.md", description: "" },
+      ]),
+    ).toBe("docs: initialize wiki (1 new page)");
   });
 });
