@@ -1,3 +1,10 @@
+## [1.12.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.12.0...v1.12.1) (2026-07-26)
+
+
+### Bug Fixes
+
+* update actions/checkout to v7 in vouch-manage workflow ([b5c41cf](https://github.com/nx-solutions-ug/wiki-agent/commit/b5c41cf630146497dda44d994f0f202b6ca0fba1))
+
 # [1.12.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.11.1...v1.12.0) (2026-07-26)
 
 
