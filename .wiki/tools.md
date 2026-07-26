@@ -24,7 +24,7 @@ All tools are local to the runtime; no network calls are made by the tools thems
 | `git` | Run a read-only git subcommand in the project root. | No (whitelisted subcommands only) |
 | `ast_grep` | Search code by AST pattern using `ast-grep`. | No |
 | `ast_search` | Search code using an inline `ast-grep` YAML rule. | No |
-| `gh` | Run a GitHub CLI (`gh`) subcommand. Read-only inspection by default; `pr close`/`pr comment` allowed only on wiki staging PRs. | No |
+| `gh` | Run a GitHub CLI (`gh`) subcommand. Read-only inspection by default; `pr close`/`pr comment` allowed only on wiki staging PRs (branches matching `wiki/staging-*`). | No |
 
 ## `read_file`
 
@@ -179,4 +179,4 @@ Output and error handling match `ast_grep`.
 - `write_file`, `edit_file` — must stay within `.wiki/`.
 - `gh` — read-only inspection is allowed; `pr close` and `pr comment` are permitted only on wiki staging PRs (branches matching `wiki/staging-*`).
 
-Both checks use `path.resolve` and a `startsWith` comparison against the appropriate root plus the platform separator. The tests in `test/tools.test.ts` cover both the in-bounds and out-of-bounds cases, the `git` and `gh` subcommand allowlists and metacharacter guard, `ast_grep`/`ast_search` structural matching, and the absence of the old general-purpose `execute` shell tool.
+Both checks use `path.resolve` and a `startsWith` comparison against the appropriate root plus the platform separator. The tests in `test/tools.test.ts` cover both the in-bounds and out-of-bounds cases, the `git` and `gh` subcommand allowlists and metacharacter guard, `ast_grep`/`ast_search` structural matching, the absence of the old general-purpose `execute` shell tool, and the staging-only `pr close`/`pr comment` guard.

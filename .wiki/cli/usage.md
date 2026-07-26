@@ -20,8 +20,8 @@ Exactly one of `--init` or `--update` is required. If neither is present, the he
 | Command | Effect |
 |---------|--------|
 | `wiki --init` | Initialize wiki documentation. Drives the model with the "init" user message and writes `.github/workflows/update-wiki.yml`. |
-| `wiki --update` | Refresh an existing wiki. Drives the model with the "update" user message and recent git history. Produces `.wiki/.last-update-report.md` and `.wiki/.last-updated.json` when content changes. |
-| `wiki --version` | Print the current package version (read from `package.json`) and exit. |
+| `wiki --update` | Refresh an existing wiki. Drives the model with the "update" user message and recent git history. Produces `.wiki/.last-update-report.md`, `.wiki/.last-update-title.txt`, and `.wiki/.last-updated.json` when content changes. |
+| `wiki --version` | Print the current package version (read from `package.json` via `src/version.ts`) and exit. |
 | `wiki --help` / `-h` | Print the help text and exit. |
 
 ### Flags
@@ -49,7 +49,7 @@ Environment variables are merged with config files by `resolveConfig` in `config
 | `WIKI_RECURSION_LIMIT` | Max agent iterations | `200` |
 | `GH_TOKEN` | GitHub token for the read-only `gh` CLI tool (used in CI for the staging PR staleness check) | from environment |
 
-In headless mode, the model ID is selected as: `--model` flag → `projectConfig.modelOverride` → `WIKI_MODEL` → `globalConfig.defaultModel` → `kimi-k2.7-code`.
+In headless mode, the model ID is selected as: `--model` flag → `projectConfig.modelOverride` → `WIKI_MODEL` → `globalConfig.defaultModel` → `kimi-k2.7-code`. Note that the `--model` flag wins over `WIKI_MODEL`; if the workflow sets `WIKI_MODEL`, a local `--model` still takes precedence.
 
 ## Headless event format
 
@@ -90,7 +90,7 @@ Conversion rules:
 - Internal relative markdown links are rewritten to flat wiki page names, e.g. `[Text](./cli/usage.md)` → `[Text](CLI-Usage)`.
 - YAML frontmatter is stripped because GitHub Wiki renders it as literal text.
 - `_Sidebar.md` is generated from page frontmatter titles.
-- Metadata files (`.last-update-report.md`, `.last-updated.json`, `config.json`, `_plan.md`) are excluded.
+- Metadata files (`.last-update-report.md`, `.last-update-title.txt`, `.last-updated.json`, `config.json`, `_plan.md`) are excluded.
 
 The GitHub Actions workflow created by `wiki --init --wiki` invokes `wiki-flatten` before pushing to `<repo>.wiki.git`.
 

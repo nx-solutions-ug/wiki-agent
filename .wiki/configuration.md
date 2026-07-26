@@ -35,7 +35,7 @@ For cloud mode:
 }
 ```
 
-The `defaultGlobalConfig()` helper returns `{ mode: "local", defaultModel: "kimi-k2.7-code" }` when the file is absent or unreadable. `loadGlobalConfig` swallows parse errors and falls back to the default.
+The `defaultGlobalConfig()` helper returns `{ mode: "local", defaultModel: "kimi-k2.7-code" }` when the file is absent or unreadable. `loadGlobalConfig` swallows parse errors and falls back to the default. `saveGlobalConfig` creates `~/.wiki/` with mode `0o700` and writes `config.json` with mode `0o600`.
 
 ## Project config: `.wiki/config.json`
 
@@ -61,6 +61,8 @@ Lives inside the wiki output directory. Currently only two fields are read:
 - `apiKey` — `WIKI_OLLAMA_API_KEY` if set, otherwise the global config's `apiKey`.
 - `baseUrl` — `WIKI_OLLAMA_BASE_URL` if set, otherwise the global config's `baseUrl`, otherwise the mode's default.
 - `model` — `modelOverride` arg (the `--model` flag) → `projectConfig.modelOverride` → `WIKI_MODEL` → `globalConfig.defaultModel` → `"kimi-k2.7-code"`.
+
+Note: the AGENTS.md/CLAUDE.md precedence note that put env vars and the global config in the same pass is only a wording convention — `resolveConfig` reads env vars and the global config sequentially; for each field the environment variable wins if it is set.
 
 ## Ollama client construction
 

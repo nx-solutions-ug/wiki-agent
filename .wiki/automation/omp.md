@@ -34,9 +34,18 @@ On-demand OMP invocation triggered by comments:
 
 Automated OMP jobs triggered by repository events:
 
-- **`triage-issue`** — runs when an issue is opened or when manually dispatched with an issue number. Reacts with 👀, installs OMP, authenticates to Ollama Cloud, expands `.omp/commands/triage-issue.md`, runs OMP, and dispatches a follow-up `issue-triaged` event.
+- **`triage-issue`** — runs when an issue is opened or when manually dispatched with an issue number. Reacts with 👀, installs OMP, authenticates to Ollama Cloud, expands `.omp/commands/triage-issue.md`, runs OMP, and dispatches a follow-up `repository_dispatch` `issue-triaged` event.
 - **`label-pr`** — runs when a PR is opened, synchronized, or marked ready for review. Skips if the PR already has both a type label (`bug`, `feature`, `enhancement`, `docs`, `chore`) and a priority label (`priority: critical`, `priority: high`, `priority: medium`, `priority: low`). Otherwise, expands `.omp/commands/label-pr.md` and runs OMP.
 - **`review-pr`** — runs on PR open/update or manual dispatch. On `synchronize`, it first checks whether the head commit author/committer looks like an agent/bot (names containing `opencode-agent`, `opencode`, `github-actions`, `omp-agent`, or `chronova-agent`). If the commit is from such an author, the re-review is skipped. It then classifies the PR as dependency / bot / human based on the PR author (`renovate`, `dependabot`, `[bot]`, or `opencode-agent` get special prefixes), posts an `eyes` reaction, and expands `.omp/commands/review-pr.md` for OMP review.
+
+### `.github/workflows/omp-fix-issue.yml`
+
+Follow-up fix workflow triggered by the `issue-triaged` repository dispatch event emitted by `omp-ci.yml`:
+
+- Determines the issue number from the dispatch payload (or from a `workflow_dispatch` input).
+- Installs and authenticates OMP to Ollama Cloud.
+- Expands `.omp/commands/fix-issue.md` with the issue number and runs OMP in JSON mode to generate a fix.
+- This workflow is part of the OMP automation suite and is separate from the wiki-agent release/update pipeline.
 
 ## Command prompts
 
@@ -48,6 +57,10 @@ The `.omp/commands/*.md` files contain parameterized prompts used by the OMP wor
 - `.omp/commands/fix-issue.md` — instructions for generating fixes from triaged issues.
 
 These prompts reference `$ARGUMENTS`, which the workflow replaces with the issue or PR number at runtime. The `.omp/rules/` directory contains shared guard rules that OMP applies when running the expanded prompts.
+
+## Vouch-based PR gating
+
+The repository also uses a lightweight vouch system that runs alongside the OMP automation. This is documented on the [Development](../development.md) page because it is project-specific governance rather than a generic wiki-agent feature. In short: only vouched contributors (or bots/write-collaborators) can open PRs; maintainers manage vouches via discussion comments using `.github/workflows/vouch-manage.yml`; and `.github/workflows/vouch-pr.yml` enforces the gate.
 
 ## Secrets used by OMP workflows
 
