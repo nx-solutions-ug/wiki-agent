@@ -33,7 +33,7 @@ See [Configuration](../configuration.md) for the data model and [Tools](../tools
 4. Normalize tool call arguments. Ollama models return arguments as either an object or a JSON string depending on the backend; `normalizeToolCallArgs` handles both and falls back to `{}` on malformed JSON.
 5. Append the assistant message to the history. If there are tool calls, append a `tool` message per call (Ollama associates the result with `tool_name`, not a `tool_call_id`). Successful `write_file`/`edit_file` calls also record a per-file description from the assistant's preceding prose (falling back to the tool result) for the update report.
 6. Loop up to `WIKI_RECURSION_LIMIT` iterations (default `200`). A response with no tool calls ends the loop.
-7. After the loop, call `createWorkflowFile`, `synchronizeWikiIndexes(.wiki)`, write `.wiki/.last-updated.json`, and write `.wiki/.last-update-report.md` (via `generateUpdateReport`), then emit a `done` event.
+7. After the loop, call `createWorkflowFile`, `synchronizeWikiIndexes(.wiki)`, write `.wiki/.last-updated.json`, write `.wiki/.last-update-report.md` (via `generateUpdateReport`), and write `.wiki/.last-update-title.txt` (via `generateUpdateTitle`), then emit a `done` event.
 
 Errors from the Ollama SDK are surfaced through the `error` event stream. If the model had already produced content, the loop exits with a `done` summary that includes the error message; otherwise it emits `error` and stops.
 
@@ -83,7 +83,7 @@ The agent keeps its nested `.wiki/` directory structure, but GitHub Wikis requir
 - `.wiki/cli/usage.md` → `CLI-Usage.md`
 - Internal links are rewritten from relative `.md` paths to flat wiki page names, e.g. `[Text](./cli/usage.md)` → `[Text](CLI-Usage)`.
 - `_Sidebar.md` is generated automatically from the page structure.
-- Metadata files (`.last-update-report.md`, `.last-updated.json`, `config.json`, `_plan.md`) are excluded from the flatten.
+- Metadata files (`.last-update-report.md`, `.last-update-title.txt`, `.last-updated.json`, `config.json`, `_plan.md`) are excluded from the flatten.
 
 This step is invoked by `.github/workflows/update-wiki.yml` (when `--wiki` was passed to `--init`) immediately before the wiki repo is cloned and rsynced. See [GitHub Actions](../automation/github-actions.md).
 

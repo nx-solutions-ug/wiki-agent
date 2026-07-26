@@ -52,7 +52,7 @@ The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.H
 bun pm pack
 ```
 
-Produces `wiki-agent-1.9.1.tgz`. The tarball includes `dist/`, `README.md`, and `LICENSE` per the `files` array in `package.json`.
+Produces `@chronova/wiki-agent-<version>.tgz` matching the current `package.json` version (currently `1.10.0`). The tarball includes `dist/`, `README.md`, and `LICENSE` per the `files` array in `package.json`.
 
 ## Project layout
 
@@ -93,10 +93,6 @@ The repo uses several GitHub Actions workflows beyond `update-wiki.yml`:
 - `.github/workflows/omp-ci.yml` — automated OMP triage, PR labeling, and PR review triggered by issues/PR events.
 
 `.releaserc.json` configures semantic-release for branches `main`, `beta`, and `alpha`, writes `CHANGELOG.md`, commits `package.json`/`CHANGELOG.md`, creates a GitHub release, and publishes via the `@semantic-release/npm` plugin. The `releaseBodyTemplate` in `.releaserc.json` also truncates the release notes at 120 000 bytes with a pointer back to `CHANGELOG.md` as a fallback. The release job additionally edits the newly created release body with a full commit-level "What's Changed" section generated locally from `git log`, replacing the default notes; if those generated notes exceed 120 000 bytes they are truncated at a safe line boundary with a pointer back to `CHANGELOG.md`. Renovate is configured with `config:recommended` in `renovate.json`. Because the project uses Bun, `package-lock.json` is not part of the git assets. The project is released under the ISC license (`LICENSE`); `package.json` sets `license: "ISC"`.
-
-## Known source inconsistencies
-
-- **Workflow filename mismatch**: `package.json` `files` lists `.github/workflows/wiki-update.yml`, but `src/agent.ts:createWorkflowFile` writes `.github/workflows/update-wiki.yml`. The `package.json` entry is stale because the build never ships that file; it only ships `dist/`, `README.md`, and `LICENSE`.
 
 ## Release checklist
 
