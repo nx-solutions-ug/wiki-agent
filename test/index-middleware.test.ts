@@ -125,4 +125,31 @@ describe("index-middleware", () => {
     await synchronizeWikiIndexes(nonExistent);
     // Should not throw
   });
+
+  test("index entries are deterministically sorted regardless of concurrent completion order", async () => {
+    for (let i = 0; i < 20; i++) {
+      const alpha = String.fromCharCode(122 - i);
+      await writeWikiFile(
+        wikiRoot,
+        alpha + "-file.md",
+        "---\ntitle: " + alpha.toUpperCase() + " Title\n---\n# Content\n"
+      );
+    }
+
+    await synchronizeWikiIndexes(wikiRoot);
+
+    const index = await readFile(path.join(wikiRoot, "index.md"), "utf8");
+
+    const lines = index.split("\n");
+    let linkOrder: string[] = [];
+    for (const line of lines) {
+      const match = line.match(/- \[(.*?)\]\((.*?)\)/);
+      if (match) {
+        linkOrder.push(match[2]);
+      }
+    }
+
+    const sortedLinkOrder = [...linkOrder].sort((a, b) => a.localeCompare(b));
+    expect(linkOrder).toEqual(sortedLinkOrder);
+  });
 });

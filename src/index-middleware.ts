@@ -42,27 +42,34 @@ async function synchronizeDirectory(
   const directories: Link[] = [];
 
   const promises = entries.map(async (entry) => {
-    if (!entry.name || entry.name.startsWith(".")) return;
+    try {
+      if (!entry.name || entry.name.startsWith(".")) return;
 
-    if (entry.isDir) {
-      directories.push({ href: `${encodeURIComponent(entry.name)}/`, label: entry.name });
-      await synchronizeDirectory(path.join(dirPath, entry.name), root);
-      return;
+      if (entry.isDir) {
+        directories.push({ href: `${encodeURIComponent(entry.name)}/`, label: entry.name });
+        await synchronizeDirectory(path.join(dirPath, entry.name), root);
+        return;
+      }
+
+      if (path.extname(entry.name).toLowerCase() !== ".md") return;
+      if (EXCLUDED_FILES.has(entry.name)) return;
+
+      const filePath = path.join(dirPath, entry.name);
+      const metadata = await parseFrontmatter(filePath);
+      files.push({
+        description: metadata.description,
+        href: encodeURIComponent(entry.name),
+        label: metadata.title ?? path.basename(entry.name, ".md"),
+      });
+    } catch (error) {
+      console.error(`Error processing ${entry.name} in ${dirPath}:`, error);
     }
-
-    if (path.extname(entry.name).toLowerCase() !== ".md") return;
-    if (EXCLUDED_FILES.has(entry.name)) return;
-
-    const filePath = path.join(dirPath, entry.name);
-    const metadata = await parseFrontmatter(filePath);
-    files.push({
-      description: metadata.description,
-      href: encodeURIComponent(entry.name),
-      label: metadata.title ?? path.basename(entry.name, ".md"),
-    });
   });
 
-  await Promise.all(promises);
+  // Simple chunking (16 concurrent ops)
+  for (let i = 0; i < promises.length; i += 16) {
+    await Promise.all(promises.slice(i, i + 16));
+  }
 
   const indexPath = path.join(dirPath, INDEX_FILE);
   const title =
