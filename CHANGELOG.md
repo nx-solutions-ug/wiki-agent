@@ -1,3 +1,10 @@
+# [1.12.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.11.1...v1.12.0) (2026-07-26)
+
+
+### Features
+
+* add lightweight vouch system for PR gating via discussions ([d9f582d](https://github.com/nx-solutions-ug/wiki-agent/commit/d9f582dddff7daf29677f07f3b80000bbc1a5878))
+
 ## [1.11.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.11.0...v1.11.1) (2026-07-26)
 
 
