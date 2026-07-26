@@ -250,8 +250,8 @@ export async function flattenWiki(
   const pageInfos = await Promise.all(
     files.map(async (file) => {
       const content = await readFile(file.absPath, "utf8");
-      const flatFile = flatWikiFilename(file.relPath);
-      const wikiName = flatFile.replace(/\.md$/, "");
+      const wikiName = pathMap.get(file.relPath)!;
+      const flatFile = wikiName + ".md";
 
       // Determine the source file's directory relative to .wiki/
       const sourceRelDir = path.dirname(file.relPath) === "." ? "" : path.dirname(file.relPath);
