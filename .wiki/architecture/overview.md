@@ -16,12 +16,13 @@ The compiled entrypoint is `dist/cli.js` (declared as the `wiki` binary in `pack
 - `cli.tsx` — argument parsing, TUI vs. headless dispatch
 - `agent.ts` — the agent loop, Ollama tool calling, event stream
 - `config.ts` — global/project config, Ollama client construction
-- `prompt.ts` — system prompt, user message templates, help text
+- `prompt.ts` — system prompt, user message templates, help text; reads `AGENTS.md`/`CLAUDE.md` with `Promise.allSettled`
 - `tools.ts` — file and discovery tools exposed to the model
 - `index-middleware.ts` — post-run regeneration of `index.md`
+- `flatten-wiki.ts` — converts nested `.wiki/` to flat GitHub Wiki format before publish
 - `tui/` — Ink-based terminal UI (`App`, `CredentialsSetup`, `RunView`)
 
-See [Configuration](../configuration.md) for the data model and [Tools](../tools.md) for the agent's toolbelt.
+See [Configuration](../configuration.md) for the data model, [Tools](../tools.md) for the agent's toolbelt, and [CLI Usage](../cli/usage.md) for how the `--wiki` and `--print` flags reach the loop.
 
 ## The agent loop
 
@@ -33,13 +34,13 @@ See [Configuration](../configuration.md) for the data model and [Tools](../tools
 4. Normalize tool call arguments. Ollama models return arguments as either an object or a JSON string depending on the backend; `normalizeToolCallArgs` handles both and falls back to `{}` on malformed JSON.
 5. Append the assistant message to the history. If there are tool calls, append a `tool` message per call (Ollama associates the result with `tool_name`, not a `tool_call_id`). Successful `write_file`/`edit_file` calls also record a per-file description from the assistant's preceding prose (falling back to the tool result) for the update report.
 6. Loop up to `WIKI_RECURSION_LIMIT` iterations (default `200`). A response with no tool calls ends the loop.
-7. After the loop, call `createWorkflowFile`, `synchronizeWikiIndexes(.wiki)`, write `.wiki/.last-updated.json`, and write `.wiki/.last-update-report.md` (via `generateUpdateReport`), then emit a `done` event.
+7. After the loop, call `createWorkflowFile`, `synchronizeWikiIndexes(.wiki)`, write `.wiki/.last-updated.json`, `.wiki/.last-update-report.md` (via `generateUpdateReport`), and `.wiki/.last-update-title.txt` (via `generateUpdateTitle`), then emit a `done` event.
 
 Errors from the Ollama SDK are surfaced through the `error` event stream. If the model had already produced content, the loop exits with a `done` summary that includes the error message; otherwise it emits `error` and stops.
 
 ## Streaming and headless
 
-`runAgent` accepts a `stream` option:
+`runAgent` accepts a `stream` option and a `wikiPublish` flag:
 
 - TUI sets `stream: true` and the `RunView` component renders events incrementally. Consecutive assistant chunks are merged into one paragraph; tool calls are suppressed by default and shown only as one-line markers when `--verbose` is set.
 - Headless mode (`--print`) sets `stream: false` and writes assistant content (wrapped in blank lines), tool results (only with `--verbose`), and the final summary to stdout/stderr.
@@ -56,7 +57,7 @@ type AgentEvent =
 
 ## Tool sandboxing
 
-All write operations are constrained to `.wiki/`. `resolveWikiPath` in `tools.ts` rejects any path whose absolute resolution escapes the `.wiki/` directory. Read-only tools (`read_file`, `ls`, `grep`, `glob`, `git`, `ast_grep`, `ast_search`, `gh`) are constrained to the project root. The `git` tool is limited to a read-only subcommand allowlist and rejects shell metacharacters, and the `gh` tool is limited to read-only inspection plus `pr close`/`pr comment` only on `wiki/staging-*` PRs; there is no general shell tool.
+All write operations are constrained to `.wiki/`. `resolveWikiPath` in `tools.ts` rejects any path whose absolute resolution escapes the `.wiki/` directory. Read-only tools (`read_file`, `ls`, `grep`, `glob`, `git`, `ast_grep`, `ast_search`, `gh`) are constrained to the project root. The `git` tool is limited to a read-only subcommand allowlist and rejects shell metacharacters, and the `gh` tool is limited to read-only inspection plus `pr close`/`pr comment` only on `wiki/staging-*` PRs; there is no general shell tool. The old `execute` shell tool has been removed.
 
 Tool results are truncated at `MAX_TOOL_RESULT_LENGTH` (10 000 characters) before being returned to the model; `read_file` additionally slices by line offset and limit.
 
@@ -83,7 +84,7 @@ The agent keeps its nested `.wiki/` directory structure, but GitHub Wikis requir
 - `.wiki/cli/usage.md` → `CLI-Usage.md`
 - Internal links are rewritten from relative `.md` paths to flat wiki page names, e.g. `[Text](./cli/usage.md)` → `[Text](CLI-Usage)`.
 - `_Sidebar.md` is generated automatically from the page structure.
-- Metadata files (`.last-update-report.md`, `.last-updated.json`, `config.json`, `_plan.md`) are excluded from the flatten.
+- Metadata files (`.last-update-report.md`, `.last-updated.json`, `.last-update-title.txt`, `config.json`, `_plan.md`) are excluded from the flatten.
 
 This step is invoked by `.github/workflows/update-wiki.yml` (when `--wiki` was passed to `--init`) immediately before the wiki repo is cloned and rsynced. See [GitHub Actions](../automation/github-actions.md).
 

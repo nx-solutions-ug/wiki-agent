@@ -28,7 +28,7 @@ Exactly one of `--init` or `--update` is required. If neither is present, the he
 
 | Flag | Effect |
 |------|--------|
-| `--wiki` | Meaningful with `--init`: the generated `.github/workflows/update-wiki.yml` will also publish to the repository's GitHub Wiki tab. Ignored by the CLI in other combinations; the workflow handles publishing. |
+| `--wiki` | Meaningful with `--init`: the generated `.github/workflows/update-wiki.yml` will also publish to the repository's GitHub Wiki tab. Note that the generated workflow itself hardcodes `--wiki` in its `wiki --update --print --verbose --wiki` step, so the CI job always attempts wiki publishing regardless of whether `--wiki` was passed locally. |
 | `--print` | Run headless: write events to stdout/stderr instead of launching the TUI. Required for CI. |
 | `--model <id>` | Override the model for this run. Higher priority than env vars and config files. |
 | `--verbose`, `-v` | Show tool call results in addition to assistant prose. Without this flag, tool events are suppressed in both headless and TUI output. |
@@ -49,7 +49,7 @@ Environment variables are merged with config files by `resolveConfig` in `config
 | `WIKI_RECURSION_LIMIT` | Max agent iterations | `200` |
 | `GH_TOKEN` | GitHub token for the read-only `gh` CLI tool (used in CI for the staging PR staleness check) | from environment |
 
-In headless mode, the model ID is selected as: `--model` flag → `projectConfig.modelOverride` → `WIKI_MODEL` → `globalConfig.defaultModel` → `kimi-k2.7-code`.
+In headless mode, the model ID is selected as: `--model` flag → `.wiki/config.json` `modelOverride` → `WIKI_MODEL` → `~/.wiki/config.json` `defaultModel` → `kimi-k2.7-code`.
 
 ## Headless event format
 
@@ -90,11 +90,11 @@ Conversion rules:
 - Internal relative markdown links are rewritten to flat wiki page names, e.g. `[Text](./cli/usage.md)` → `[Text](CLI-Usage)`.
 - YAML frontmatter is stripped because GitHub Wiki renders it as literal text.
 - `_Sidebar.md` is generated from page frontmatter titles.
-- Metadata files (`.last-update-report.md`, `.last-updated.json`, `config.json`, `_plan.md`) are excluded.
+- Metadata files (`.last-update-report.md`, `.last-updated.json`, `.last-update-title.txt`, `config.json`, `_plan.md`) are excluded.
 
 The GitHub Actions workflow created by `wiki --init --wiki` invokes `wiki-flatten` before pushing to `<repo>.wiki.git`.
 
 ## Exit codes
 
-- `wiki`: `0` — normal completion (including `--help`); `1` — unhandled exception in `main`, or `WIKI_OLLAMA_API_KEY` missing when `config.mode === "cloud"`.
+- `wiki`: `0` — normal completion (including `--help`); `1` — unhandled exception in `main`, or `WIKI_OLLAMA_API_KEY` missing when the resolved config is cloud mode.
 - `wiki-flatten`: `0` — success; `1` — missing arguments or unexpected error.

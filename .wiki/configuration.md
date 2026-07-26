@@ -79,3 +79,7 @@ Two constants live in `config.ts` and are re-exported for tools:
 - `MAX_TOOL_RESULT_LENGTH = 10_000` — truncation ceiling for any tool result string.
 
 A separate `MAX_READ_LENGTH = 50_000` lives in `tools.ts` and bounds `read_file` returns before the global tool-result truncation step.
+
+## Project config loading
+
+`loadProjectConfig` reads `.wiki/config.json` and swallows parse errors (returning `{}` on failure). `saveProjectConfig` creates the `.wiki/` directory if needed and writes the JSON file. Only `modelOverride` is currently consumed by `resolveConfig`; `lastUpdate` is reserved.
