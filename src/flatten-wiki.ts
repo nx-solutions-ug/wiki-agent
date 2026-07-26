@@ -251,8 +251,8 @@ export async function flattenWiki(
 
   for (const file of files) {
     const content = await readFile(file.absPath, "utf8");
-    const flatFile = flatWikiFilename(file.relPath);
-    const wikiName = flatFile.replace(/\.md$/, "");
+    const wikiName = pathMap.get(file.relPath)!;
+    const flatFile = wikiName + ".md";
 
     // Determine the source file's directory relative to .wiki/
     const sourceRelDir = path.dirname(file.relPath) === "." ? "" : path.dirname(file.relPath);
