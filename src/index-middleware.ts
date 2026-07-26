@@ -41,17 +41,17 @@ async function synchronizeDirectory(
   const files: Link[] = [];
   const directories: Link[] = [];
 
-  for (const entry of entries) {
-    if (!entry.name || entry.name.startsWith(".")) continue;
+  const promises = entries.map(async (entry) => {
+    if (!entry.name || entry.name.startsWith(".")) return;
 
     if (entry.isDir) {
       directories.push({ href: `${encodeURIComponent(entry.name)}/`, label: entry.name });
       await synchronizeDirectory(path.join(dirPath, entry.name), root);
-      continue;
+      return;
     }
 
-    if (path.extname(entry.name).toLowerCase() !== ".md") continue;
-    if (EXCLUDED_FILES.has(entry.name)) continue;
+    if (path.extname(entry.name).toLowerCase() !== ".md") return;
+    if (EXCLUDED_FILES.has(entry.name)) return;
 
     const filePath = path.join(dirPath, entry.name);
     const metadata = await parseFrontmatter(filePath);
@@ -60,7 +60,9 @@ async function synchronizeDirectory(
       href: encodeURIComponent(entry.name),
       label: metadata.title ?? path.basename(entry.name, ".md"),
     });
-  }
+  });
+
+  await Promise.all(promises);
 
   const indexPath = path.join(dirPath, INDEX_FILE);
   const title =
