@@ -17,11 +17,11 @@ The workflow:
 2. Checks out the repository with `actions/checkout@v7`.
 3. Sets up Bun with `oven-sh/setup-bun@v2` and Node.js 25 with `actions/setup-node@v7` (the package still supports Node.js 22+ per `package.json`).
 4. Installs Wiki Agent globally from npm with `bun add -g @chronova/wiki-agent`.
-5. Runs `wiki --update --print --verbose --wiki` in headless mode with `WIKI_OLLAMA_MODE=cloud`. The `--verbose` flag makes tool call results appear in the CI log alongside assistant prose. After the run the agent also updates `.wiki/.last-updated.json` and writes `.wiki/.last-update-report.md` (when there are changes). Note that the workflow hardcodes `--wiki` at runtime, so the CI job always attempts to flatten and publish to the wiki tab even if `--wiki` was not used during the local `--init` run.
+5. Runs `wiki --update --print --verbose --wiki` in headless mode with `WIKI_OLLAMA_MODE=cloud`. The `--verbose` flag makes tool call results appear in the CI log alongside assistant prose. After the run the agent also updates `.wiki/.last-updated.json` and writes `.wiki/.last-update-report.md` (when there are changes). The `--wiki` flag is hardcoded here because the workflow template is emitted only when `wiki --init --wiki` is used locally; a plain `wiki --init` emits a template that runs `wiki --update --print --verbose` without `--wiki` and therefore does not publish to the wiki tab.
 6. Emits repository coordinates (`GITHUB_REPOSITORY` → `owner/repo`) and a timestamp into step outputs.
 7. Checks for content changes under `.wiki/` using `git status --porcelain .wiki`, stripping the status prefix and excluding the run metadata files `.wiki/.last-update-report.md` and `.wiki/.last-updated.json`. If real content files changed, sets `has_changes=true` and streams the report into a `body<<EOF` heredoc on `$GITHUB_OUTPUT` (with an empty `echo ""` before `EOF` so the delimiter sits on its own line).
 8. **Prevent concurrent wiki update jobs**:
-   - `concurrency: group: wiki-update-${{ github.ref }}, cancel-in-progress: true` ensures only one wiki update runs at a time for a given ref.
+   - `concurrency: group: wiki-update-${{ github.ref }}, cancel-in-progress: true` is declared at the top of the workflow YAML, ensuring only one wiki update runs at a time for a given ref.
    - This guards against overlapping scheduled and push-triggered runs, and prevents duplicate staging PRs and wiki publishes when events arrive close together.
 9. **Flatten the wiki for GitHub**:
    - `wiki-flatten "$GITHUB_WORKSPACE/.wiki" /tmp/wiki-flat` converts the nested `.wiki/` tree into the flat format GitHub Wikis require.
@@ -57,7 +57,7 @@ GitHub wikis must be initialized once through the UI before they can be pushed t
 
 ## Other repository automation
 
-The repository also runs automated issue/PR management and OMP-driven workflows. See [OMP Automation Workflows](./omp.md) for details on `.github/workflows/auto-manage.yml`, `.github/workflows/omp.yml`, and `.github/workflows/omp-ci.yml`, plus the command prompts under `.omp/commands/`.
+The repository also runs automated issue/PR management and OMP-driven workflows. See [OMP Automation Workflows](./omp.md) for details on `.github/workflows/auto-manage.yml`, `.github/workflows/omp.yml`, `.github/workflows/omp-ci.yml`, and `.github/workflows/omp-fix-issue.yml`, plus the command prompts under `.omp/commands/`.
 
 ## Release pipeline
 

@@ -25,7 +25,7 @@ cd wiki-agent
 bun install
 bun run build
 bun pm pack
-cd ~/.bun/install/global && bun add /path/to/wiki-agent/wiki-agent-1.9.1.tgz
+cd ~/.bun/install/global && bun add /path/to/wiki-agent/wiki-agent-<version>.tgz
 ```
 
 After install, the `wiki` command is on `PATH` (entrypoint: `dist/cli.js`, declared as the `bin` in `package.json`).
@@ -71,7 +71,7 @@ The first run will create `.wiki/quickstart.md` plus a small set of section page
 
 ## 4. Update from CI
 
-Running `wiki --init` writes `.github/workflows/update-wiki.yml` into your repo. Set `WIKI_OLLAMA_API_KEY` as a secret to enable the scheduled job. By default the generated workflow runs `wiki --update --print --verbose --wiki` and pushes the flattened pages directly to the repository's **GitHub Wiki tab**; it also opens a staging pull request with the `.wiki/` changes in the main repo. If you do not want the workflow to publish to the wiki tab, run `wiki --init` without `--wiki` (the CLI ignores `--wiki` on `--update`). See [GitHub Actions](./automation/github-actions.md).
+Running `wiki --init` writes `.github/workflows/update-wiki.yml` into your repo. Set `WIKI_OLLAMA_API_KEY` as a secret to enable the scheduled job. By default the generated workflow runs `wiki --update --print --verbose --wiki` and pushes the flattened pages directly to the repository's **GitHub Wiki tab**; it also opens a staging pull request with the `.wiki/` changes in the main repo. If you do not want the workflow to publish to the wiki tab, run `wiki --init` without `--wiki` (the CLI ignores `--wiki` on `--update` and the workflow hardcodes `--wiki` only when `--init --wiki` was used). See [GitHub Actions](./automation/github-actions.md).
 
 ## What gets generated
 

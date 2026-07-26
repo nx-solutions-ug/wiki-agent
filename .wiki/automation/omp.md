@@ -38,6 +38,10 @@ Automated OMP jobs triggered by repository events:
 - **`label-pr`** — runs when a PR is opened, synchronized, or marked ready for review. Skips if the PR already has both a type label (`bug`, `feature`, `enhancement`, `docs`, `chore`) and a priority label (`priority: critical`, `priority: high`, `priority: medium`, `priority: low`). Otherwise, expands `.omp/commands/label-pr.md` and runs OMP.
 - **`review-pr`** — runs on PR open/update or manual dispatch. On `synchronize`, it first checks whether the head commit author/committer looks like an agent/bot (names containing `opencode-agent`, `opencode`, `github-actions`, `omp-agent`, or `chronova-agent`). If the commit is from such an author, the re-review is skipped. It then classifies the PR as dependency / bot / human based on the PR author (`renovate`, `dependabot`, `[bot]`, or `opencode-agent` get special prefixes), posts an `eyes` reaction, and expands `.omp/commands/review-pr.md` for OMP review.
 
+### `.github/workflows/omp-fix-issue.yml`
+
+Triggered by the `issue-triaged` `repository_dispatch` event or manually via `workflow_dispatch` with an issue number. It generates a GitHub App token, installs and authenticates OMP against Ollama Cloud, expands `.omp/commands/fix-issue.md` with the issue number, and runs OMP in JSON mode to generate a fix. It uses concurrency keyed on the issue number so overlapping runs for the same issue do not clobber each other.
+
 ## Command prompts
 
 The `.omp/commands/*.md` files contain parameterized prompts used by the OMP workflows:
