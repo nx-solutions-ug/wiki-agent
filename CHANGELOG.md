@@ -1,3 +1,10 @@
+# [1.11.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.10.0...v1.11.0) (2026-07-26)
+
+
+### Features
+
+* reflect actual wiki changes in staging PR title and commit message ([1cd3393](https://github.com/nx-solutions-ug/wiki-agent/commit/1cd33934c5de8761766485060f54a16d32c34eab))
+
 # [1.10.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.9.1...v1.10.0) (2026-07-25)
 
 
