@@ -1,3 +1,10 @@
+# [1.13.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.12.4...v1.13.0) (2026-07-27)
+
+
+### Features
+
+* append wiki-agent section to AGENTS.md/CLAUDE.md on --init ([f0c5d6a](https://github.com/nx-solutions-ug/wiki-agent/commit/f0c5d6a0c0545a5ef917bf07e91d8a5f46f8926b))
+
 ## [1.12.4](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.12.3...v1.12.4) (2026-07-27)
 
 
