@@ -247,28 +247,29 @@ export async function flattenWiki(
     pathMap.set(file.relPath, flatName);
   }
 
-  const pageInfos: { relPath: string; wikiName: string; title: string }[] = [];
+  const pageInfos = await Promise.all(
+    files.map(async (file) => {
+      const content = await readFile(file.absPath, "utf8");
+      const wikiName = pathMap.get(file.relPath)!;
+      const flatFile = wikiName + ".md";
 
-  for (const file of files) {
-    const content = await readFile(file.absPath, "utf8");
-    const wikiName = pathMap.get(file.relPath)!;
-    const flatFile = wikiName + ".md";
+      // Determine the source file's directory relative to .wiki/
+      const sourceRelDir = path.dirname(file.relPath) === "." ? "" : path.dirname(file.relPath);
 
-    // Determine the source file's directory relative to .wiki/
-    const sourceRelDir = path.dirname(file.relPath) === "." ? "" : path.dirname(file.relPath);
+      // Rewrite links on the frontmatter-stripped body. GitHub Wiki renders
+      // frontmatter as literal text, so strip it before publishing.
+      const body = stripFrontmatter(content);
+      const rewritten = rewriteLinks(body, sourceRelDir, pathMap);
 
-    // Rewrite links on the frontmatter-stripped body. GitHub Wiki renders
-    // frontmatter as literal text, so strip it before publishing.
-    const body = stripFrontmatter(content);
-    const rewritten = rewriteLinks(body, sourceRelDir, pathMap);
+      // Extract title for sidebar (uses the original content with frontmatter)
+      const title = extractTitle(content, wikiName);
 
-    // Extract title for sidebar (uses the original content with frontmatter)
-    const title = extractTitle(content, wikiName);
-    pageInfos.push({ relPath: file.relPath, wikiName, title });
+      // Write the file
+      await writeFile(path.join(outputDir, flatFile), rewritten, "utf8");
 
-    // Write the file
-    await writeFile(path.join(outputDir, flatFile), rewritten, "utf8");
-  }
+      return { relPath: file.relPath, wikiName, title };
+    })
+  );
 
   // Generate _Sidebar.md
   const sidebar = generateSidebar(pageInfos);
