@@ -1,3 +1,10 @@
+## [1.12.4](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.12.3...v1.12.4) (2026-07-27)
+
+
+### Bug Fixes
+
+* stop leaking agent planning prose into reports; untrack run metadata files ([2e45dd6](https://github.com/nx-solutions-ug/wiki-agent/commit/2e45dd65e92ef4654b800ff43d5ecf292f70f822)), closes [#94](https://github.com/nx-solutions-ug/wiki-agent/issues/94)
+
 ## [1.12.3](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.12.2...v1.12.3) (2026-07-27)
 
 
