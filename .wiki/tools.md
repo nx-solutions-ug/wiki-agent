@@ -183,4 +183,16 @@ Output and error handling match `ast_grep`.
 - `write_file`, `edit_file` — must stay within `.wiki/`.
 - `gh` — read-only inspection is allowed; `pr close` and `pr comment` are permitted only on wiki staging PRs (branches matching `wiki/staging-*`).
 
-Both checks use `path.resolve` and a `startsWith` comparison against the appropriate root plus the platform separator. The tests in `test/tools.test.ts` cover both the in-bounds and out-of-bounds cases, the `git` and `gh` subcommand allowlists and metacharacter guard, `ast_grep`/`ast_search` structural matching, and the absence of the old general-purpose `execute` shell tool.
+Both checks use `path.resolve` and a `startsWith` comparison against the appropriate root plus the platform separator. The tests in `test/tools.test.ts` cover both the in-bounds and out-of-bounds cases, the `git` and `gh` subcommand allowlists and metacharacter guard, `ast_grep`/`ast_search` structural matching, the absence of the old general-purpose `execute` shell tool, and reasoning-tag stripping (see below).
+
+## Reasoning-tag stripping
+
+Models that expose chain-of-thought output sometimes wrap reasoning in XML-like tags. Before any content is persisted to `.wiki/`, `src/tools.ts:stripThinkingTags` removes blocks wrapped in `<think>`, `<thinking>`, `<reasoning>`, or `<reflection>` tags, plus any orphaned leftovers. It strips matched open/close pairs by name, then trims leading whitespace left behind by a removed leading block.
+
+This sanitization runs automatically in the two write tools:
+
+- `write_file` strips tags from `args.content` before writing.
+- `edit_file` strips tags from `args.new_string` before replacing `old_string`.
+
+`src/agent.ts` also runs `stripThinkingTags` on the assistant prose used for per-file change descriptions and on the generated `.last-update-report.md`, so reasoning blocks do not leak into PR bodies. Content without any thinking tags is returned unchanged.
+
