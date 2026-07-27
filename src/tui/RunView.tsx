@@ -48,10 +48,14 @@ export function RunView({
         // does not fragment prose into separate display rows.
         if (event.type === "assistant") {
           if (event.content) {
-            const last = eventsRef.current[eventsRef.current.length - 1];
+            const lastIndex = eventsRef.current.length - 1;
+            const last = eventsRef.current[lastIndex];
             if (last && last.type === "assistant") {
-              last.text += event.content;
-              setEvents([...eventsRef.current]);
+              eventsRef.current = [
+                ...eventsRef.current.slice(0, -1),
+                { ...last, text: last.text + event.content },
+              ];
+              setEvents(eventsRef.current);
               return;
             }
             eventsRef.current = [
@@ -90,7 +94,7 @@ export function RunView({
 
         if (display) {
           eventsRef.current = [...eventsRef.current, display];
-          setEvents([...eventsRef.current]);
+          setEvents(eventsRef.current);
         }
       },
     }).catch((err) => {
@@ -112,7 +116,7 @@ export function RunView({
   );
 }
 
-function EventLine({
+const EventLine = React.memo(function EventLine({
   event,
 }: {
   event: DisplayEvent;
@@ -149,4 +153,4 @@ function EventLine({
     case "done":
       return React.createElement(Text, { color: "green", bold: true }, event.text);
   }
-}
+});
