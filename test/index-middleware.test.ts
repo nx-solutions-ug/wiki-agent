@@ -125,4 +125,58 @@ describe("index-middleware", () => {
     await synchronizeWikiIndexes(nonExistent);
     // Should not throw
   });
+
+  test("index entries are deterministically sorted and complete across chunk boundaries", async () => {
+    // More than CHUNK_SIZE (16) files so the parallel sync spans multiple
+    // chunks. Names are reverse-sorted relative to filesystem insertion order,
+    // so a non-sorting implementation would emit them out of order.
+    const FILE_COUNT = 24;
+    const makeName = (i: number) => String.fromCharCode(122 - i) + "-file.md";
+    const makeContent = (name: string) =>
+      "---\ntitle: " + name[0].toUpperCase() + " Title\n---\n# Content\n";
+    const expectedNames = Array.from({ length: FILE_COUNT }, (_, i) =>
+      makeName(i)
+    ).sort((a, b) => a.localeCompare(b));
+
+
+    // Run repeatedly — concurrency scheduling is non-deterministic, so a
+    // shared-array ordering bug could pass once but not reliably.
+    for (let run = 0; run < 5; run++) {
+      const dir = await tempDir();
+      for (let i = 0; i < FILE_COUNT; i++) {
+        const name = makeName(i);
+        await writeFile(path.join(dir, name), makeContent(name), "utf8");
+      }
+
+      await synchronizeWikiIndexes(dir);
+
+      const index = await readFile(path.join(dir, "index.md"), "utf8");
+      const linkOrder: string[] = [];
+      for (const line of index.split("\n")) {
+        const match = line.match(/- \[(.*?)\]\((.*?)\)/);
+        if (match) linkOrder.push(match[2]);
+      }
+
+      // Output must be fully sorted and contain every file — no drops.
+      expect(linkOrder).toEqual(expectedNames);
+      expect(linkOrder.length).toBe(FILE_COUNT);
+
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  test("rejects when a file has invalid frontmatter instead of silently dropping it", async () => {
+    await writeWikiFile(
+      wikiRoot,
+      "good.md",
+      "---\ntitle: Good\n---\n# Good\n"
+    );
+    await writeWikiFile(
+      wikiRoot,
+      "bad.md",
+      "---\ntitle: [this is not, a valid scalar\n---\n# Bad\n"
+    );
+
+    await expect(synchronizeWikiIndexes(wikiRoot)).rejects.toThrow(/invalid YAML front matter/);
+  });
 });
