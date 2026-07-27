@@ -87,7 +87,6 @@ You can reproduce the same event stream locally without opening a PR:
 ```bash
 WIKI_OLLAMA_MODE=cloud \
 WIKI_OLLAMA_API_KEY="$WIKI_OLLAMA_API_KEY" \
-WIKI_MODEL=kimi-k2.7-code \
 wiki --update --print --verbose
 ```
 
