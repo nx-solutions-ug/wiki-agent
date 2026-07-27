@@ -41,34 +41,40 @@ async function synchronizeDirectory(
   const files: Link[] = [];
   const directories: Link[] = [];
 
-  const promises = entries.map(async (entry) => {
-    try {
-      if (!entry.name || entry.name.startsWith(".")) return;
+  // Process entries concurrently in bounded chunks. The cap is per-level:
+  // each recursive synchronizeDirectory call manages its own chunk, so live
+  // concurrency scales with directory depth (16 × max_depth at most). Errors
+  // propagate — a failing entry rejects its chunk and aborts the sync, mirroring
+  // the original sequential behavior where the first parseFrontmatter error
+  // surfaced up to synchronizeWikiIndexes' caller. The shared `files`/
+  // `directories` arrays are safe to mutate across concurrent callbacks: JS is
+  // single-threaded, so each push runs in its own synchronous segment, and
+  // renderLinks sorts by href before emitting, making the output
+  // order-independent.
+  const CHUNK_SIZE = 16;
+  for (let i = 0; i < entries.length; i += CHUNK_SIZE) {
+    await Promise.all(
+      entries.slice(i, i + CHUNK_SIZE).map(async (entry) => {
+        if (!entry.name || entry.name.startsWith(".")) return;
 
-      if (entry.isDir) {
-        directories.push({ href: `${encodeURIComponent(entry.name)}/`, label: entry.name });
-        await synchronizeDirectory(path.join(dirPath, entry.name), root);
-        return;
-      }
+        if (entry.isDir) {
+          directories.push({ href: `${encodeURIComponent(entry.name)}/`, label: entry.name });
+          await synchronizeDirectory(path.join(dirPath, entry.name), root);
+          return;
+        }
 
-      if (path.extname(entry.name).toLowerCase() !== ".md") return;
-      if (EXCLUDED_FILES.has(entry.name)) return;
+        if (path.extname(entry.name).toLowerCase() !== ".md") return;
+        if (EXCLUDED_FILES.has(entry.name)) return;
 
-      const filePath = path.join(dirPath, entry.name);
-      const metadata = await parseFrontmatter(filePath);
-      files.push({
-        description: metadata.description,
-        href: encodeURIComponent(entry.name),
-        label: metadata.title ?? path.basename(entry.name, ".md"),
-      });
-    } catch (error) {
-      console.error(`Error processing ${entry.name} in ${dirPath}:`, error);
-    }
-  });
-
-  // Simple chunking (16 concurrent ops)
-  for (let i = 0; i < promises.length; i += 16) {
-    await Promise.all(promises.slice(i, i + 16));
+        const filePath = path.join(dirPath, entry.name);
+        const metadata = await parseFrontmatter(filePath);
+        files.push({
+          description: metadata.description,
+          href: encodeURIComponent(entry.name),
+          label: metadata.title ?? path.basename(entry.name, ".md"),
+        });
+      }),
+    );
   }
 
   const indexPath = path.join(dirPath, INDEX_FILE);
