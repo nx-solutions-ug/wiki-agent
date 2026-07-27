@@ -101,8 +101,8 @@ The repo uses several GitHub Actions workflows beyond `update-wiki.yml`:
 - `.github/workflows/omp.yml` — invokes the OMP agent on comments containing `/omp` (or `/oc`) and routes command prompts from `.omp/commands/*.md` into OMP.
 - `.github/workflows/omp-ci.yml` — automated OMP triage, PR labeling, and PR review triggered by issues/PR events. It dispatches `.github/workflows/omp-fix-issue.yml` after each triage run.
 - `.github/workflows/omp-fix-issue.yml` — triggered by `repository_dispatch` of type `issue-triaged` or manually with an issue number. Expands `.omp/commands/fix-issue.md` and runs OMP to propose a fix. It requires `id-token: write`, `contents: write`, `issues: write`, and `pull-requests: write`.
-- `.github/workflows/vouch-manage.yml` — lets maintainers vouch or denounce users via Discussion comments (`!vouch`, `!denounce`, `!unvouch`).
-- `.github/workflows/vouch-pr.yml` — auto-closes PRs from unvouched users and labels vouched/allowed PRs with `vouched`.
+- `.github/workflows/vouch-manage.yml` — lets maintainers vouch or denounce users via Discussion comments (`!vouch`, `!denounce`, `!unvouch`). It generates a GitHub App token via `actions/create-github-app-token@v3` and needs `id-token: write`.
+- `.github/workflows/vouch-pr.yml` — auto-closes PRs from unvouched users and labels vouched/allowed PRs with `vouched`. It also generates a GitHub App token and needs `id-token: write`.
 
 Vouched users are tracked in `.github/VOUCHED.td`. Bots and collaborators with write access are automatically allowed. See [Vouch Access Control](../automation/vouch.md) for details.
 

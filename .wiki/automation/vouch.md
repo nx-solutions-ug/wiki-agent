@@ -48,10 +48,10 @@ The workflow runs under `pull_request_target` so it can act on pull requests fro
 
 ## Permissions
 
-- `vouch-manage.yml` needs `contents: write` and `discussions: write`.
-- `vouch-pr.yml` needs `contents: read`, `pull-requests: write`, and `issues: write`.
+- `vouch-manage.yml` needs `contents: write`, `discussions: write`, and `id-token: write` (required by `create-github-app-token`).
+- `vouch-pr.yml` needs `contents: read`, `pull-requests: write`, `issues: write`, and `id-token: write`.
 
-Both workflows use `secrets.GITHUB_TOKEN` directly for the vouch action; the PR gate also uses it for the `gh label` / `gh pr edit` commands.
+Both workflows generate a GitHub App token with `actions/create-github-app-token@v3` using `secrets.APP_CLIENT_ID` and `secrets.APP_PRIVATE_KEY`, then pass that token to the vouch action and `gh` commands via `GITHUB_TOKEN` / `GH_TOKEN`. They no longer use `secrets.GITHUB_TOKEN` directly.
 
 ## Requesting a vouch
 
