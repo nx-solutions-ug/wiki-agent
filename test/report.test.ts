@@ -1,5 +1,18 @@
-import { describe, expect, test } from "vitest";
-import { generateUpdateReport, generateUpdateTitle } from "../src/agent.ts";
+import { describe, expect, test, beforeEach, afterEach } from "vitest";
+import { mkdtemp, rm, writeFile, mkdir } from "node:fs/promises";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+import os from "node:os";
+import path from "node:path";
+import {
+  generateUpdateReport,
+  generateUpdateTitle,
+  filterReportFiles,
+  WIKI_GITIGNORE,
+  untrackRunMetadataFiles,
+} from "../src/agent.ts";
+
+const execFileAsync = promisify(execFile);
 
 describe("generateUpdateReport", () => {
   test("empty changedFiles produces no-op report", () => {
@@ -148,5 +161,68 @@ describe("generateUpdateTitle", () => {
         { action: "created", path: ".wiki/a.md", description: "" },
       ]),
     ).toBe("docs: initialize wiki (1 new page)");
+  });
+});
+describe("filterReportFiles", () => {
+  test("excludes run metadata files", () => {
+    const input = [
+      { action: "created", path: ".wiki/quickstart.md", description: "Wrote .wiki/quickstart.md" },
+      { action: "created", path: ".wiki/.last-updated.json", description: "Wrote .wiki/.last-updated.json" },
+      { action: "created", path: ".wiki/.last-update-report.md", description: "Wrote .wiki/.last-update-report.md" },
+      { action: "created", path: ".wiki/.last-update-title.txt", description: "Wrote .wiki/.last-update-title.txt" },
+    ];
+    const filtered = filterReportFiles(input);
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0].path).toBe(".wiki/quickstart.md");
+  });
+
+  test("deduplicates entries by path keeping the first occurrence", () => {
+    const input = [
+      { action: "created", path: ".wiki/doc.md", description: "Wrote first" },
+      { action: "edited", path: ".wiki/doc.md", description: "Edited second" },
+    ];
+    const filtered = filterReportFiles(input);
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0].description).toBe("Wrote first");
+  });
+});
+
+describe("WIKI_GITIGNORE", () => {
+  test("contains entries for all run metadata files", () => {
+    expect(WIKI_GITIGNORE).toContain("/.last-updated.json");
+    expect(WIKI_GITIGNORE).toContain("/.last-update-report.md");
+    expect(WIKI_GITIGNORE).toContain("/.last-update-title.txt");
+  });
+});
+
+describe("untrackRunMetadataFiles", () => {
+  let projectRoot: string;
+
+  beforeEach(async () => {
+    projectRoot = await mkdtemp(path.join(os.tmpdir(), "wiki-untrack-test-"));
+  });
+
+  afterEach(async () => {
+    await rm(projectRoot, { recursive: true, force: true });
+  });
+
+  test("untracks metadata files when tracked in git", async () => {
+    await execFileAsync("git", ["init"], { cwd: projectRoot });
+    await execFileAsync("git", ["config", "user.name", "Test"], { cwd: projectRoot });
+    await execFileAsync("git", ["config", "user.email", "test@example.com"], { cwd: projectRoot });
+
+    const wikiDir = path.join(projectRoot, ".wiki");
+    await mkdir(wikiDir, { recursive: true });
+    const metaFile = path.join(wikiDir, ".last-updated.json");
+    await writeFile(metaFile, "{}\n", "utf8");
+
+    await execFileAsync("git", ["add", ".wiki/.last-updated.json"], { cwd: projectRoot });
+    await execFileAsync("git", ["commit", "-m", "initial commit"], { cwd: projectRoot });
+
+    const untracked = await untrackRunMetadataFiles(projectRoot);
+    expect(untracked).toContain(path.join(".wiki", ".last-updated.json"));
+
+    const { stdout } = await execFileAsync("git", ["ls-files", ".wiki/.last-updated.json"], { cwd: projectRoot });
+    expect(stdout.trim()).toBe("");
   });
 });

@@ -1,9 +1,13 @@
 import { mkdir, writeFile } from "node:fs/promises";
+import { execFile } from "node:child_process";
 import path from "node:path";
+import { promisify } from "node:util";
 import { createSystemPrompt, createUserMessage, type WikiCommand } from "./prompt.js";
 import { createTools, executeTool, stripThinkingTags } from "./tools.js";
 import { synchronizeWikiIndexes } from "./index-middleware.js";
 import { Ollama } from "ollama";
+
+const execFileAsync = promisify(execFile);
 
 export type AgentEvent =
   | { type: "assistant"; content: string }
@@ -12,6 +16,72 @@ export type AgentEvent =
   | { type: "done"; summary: string };
 
 const DEFAULT_MAX_ITERATIONS = 200;
+/**
+ * Run-metadata files written under .wiki/ after each run. These are
+ * regenerated on every run, excluded from wiki publishing and from the
+ * staging-PR has_changes gate, and gitignored so they never enter git
+ * history. They exist on disk for human/CI inspection only.
+ */
+const RUN_METADATA_FILES = [
+  ".last-updated.json",
+  ".last-update-report.md",
+  ".last-update-title.txt",
+] as const;
+
+export const WIKI_GITIGNORE =
+  RUN_METADATA_FILES.map((f) => `/${f}`).join("\n") + "\n";
+
+/**
+ * Filters a changed-files list for report generation: drops run-metadata
+ * file paths and dedupes by path so the report reflects only real wiki
+ * content changes (one entry per file). Exported for testing.
+ */
+export function filterReportFiles(
+  files: { action: string; path: string; description?: string }[],
+): { action: string; path: string; description?: string }[] {
+  const metadataSet = new Set<string>(RUN_METADATA_FILES);
+  const seenPaths = new Set<string>();
+  const result: { action: string; path: string; description?: string }[] = [];
+  for (const f of files) {
+    const base = path.basename(f.path);
+    if (metadataSet.has(base)) continue;
+    if (seenPaths.has(f.path)) continue;
+    seenPaths.add(f.path);
+    result.push(f);
+  }
+  return result;
+}
+/**
+ * Checks whether any run-metadata files under .wiki/ are currently tracked by
+ * Git. If any are tracked (e.g. in legacy repositories that committed them
+ * before they were gitignored), untracks them via `git rm --cached` so they
+ * no longer pollute future commits or staging PRs. Exported for testing.
+ */
+export async function untrackRunMetadataFiles(
+  projectRoot: string,
+): Promise<string[]> {
+  const metadataPaths = RUN_METADATA_FILES.map((f) => path.join(".wiki", f));
+  try {
+    const { stdout } = await execFileAsync("git", ["ls-files", ...metadataPaths], {
+      cwd: projectRoot,
+    });
+    const tracked = stdout
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    if (tracked.length > 0) {
+      await execFileAsync("git", ["rm", "--cached", ...tracked], {
+        cwd: projectRoot,
+      });
+      return tracked;
+    }
+  } catch {
+    // Ignore git execution errors (e.g. not a git repo or git not available)
+  }
+  return [];
+}
+
 
 /**
  * Ollama SDK message format. Tool call arguments are objects (not strings),
@@ -202,10 +272,13 @@ export async function runAgent(
       if (toolName === "write_file" || toolName === "edit_file") {
         const filePath = typeof args.path === "string" ? args.path : "unknown";
         if (result.startsWith("Wrote ") || result.startsWith("Edited ")) {
-          // Use the assistant's prose preceding this tool call as the
-          // human-readable description of what changed. Falls back to the
-          // tool result if the model didn't narrate the change.
-          const description = stripThinkingTags(assistantContent.trim() || result);
+          // Record the change using the tool's factual result as the
+          // description. We deliberately do NOT capture the assistant's
+          // preceding prose: it is internal planning narration emitted
+          // before the action, not a description of the resulting diff,
+          // and leaking it into the report/PR body pollutes the published
+          // record with deliberation that belongs in agent logs only.
+          const description = result;
           changedFiles.push({
             action: toolName === "write_file" ? "created" : "edited",
             path: filePath,
@@ -227,6 +300,17 @@ export async function runAgent(
   await createWorkflowFile(projectRoot, wikiPublish);
   onEvent({ type: "tool", name: "create_workflow", result: wikiPublish ? "Created .github/workflows/update-wiki.yml (with wiki publish)" : "Created .github/workflows/update-wiki.yml" });
 
+  // Write .wiki/.gitignore on every run so the run-metadata files below
+  // stay out of git history in every target repo without manual setup.
+  // Written before the no-op early return so it exists even on runs that
+  // change nothing.
+  await writeFile(
+    path.join(projectRoot, ".wiki", ".gitignore"),
+    WIKI_GITIGNORE,
+    "utf8",
+  );
+  await untrackRunMetadataFiles(projectRoot);
+
   if (changedFiles.length === 0) {
     onEvent({ type: "done", summary: "Wiki is already current. No files changed." });
     return;
@@ -240,8 +324,10 @@ export async function runAgent(
     "utf8",
   );
 
-  const report = stripThinkingTags(generateUpdateReport(command, changedFiles));
-  const title = generateUpdateTitle(command, changedFiles);
+  const reportFiles = filterReportFiles(changedFiles);
+
+  const report = stripThinkingTags(generateUpdateReport(command, reportFiles));
+  const title = generateUpdateTitle(command, reportFiles);
   await writeFile(
     path.join(projectRoot, ".wiki", ".last-update-report.md"),
     report,

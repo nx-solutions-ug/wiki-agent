@@ -20,7 +20,7 @@ A standalone Ollama-only documentation agent. It inspects your source code and g
 - **Configurable** — global config in `~/.wiki/`, project config in `.wiki/`
 - **GitHub Actions** — every run creates (or updates) `.github/workflows/update-wiki.yml` for scheduled updates
 - **Repo instructions** — reads `AGENTS.md` or `CLAUDE.md` from the project root and follows all conventions documented there
-- **Change reports** — each run writes `.wiki/.last-update-report.md` with created/edited pages, used as the staging PR body in CI
+- **Change reports** — each run writes `.wiki/.last-update-report.md` with created/edited pages, used as the staging PR body in CI. Run-metadata files (`.last-update-report.md`, `.last-update-title.txt`, `.last-updated.json`) are gitignored so they never enter git history; they exist on disk for the CI step and human inspection only
 - **Restricted toolset** — the agent can only read files, write under `.wiki/`, run read-only git subcommands, and use a `gh` CLI tool for inspecting pull requests and closing stale wiki staging PRs; there is no shell tool
 - **Staging PR staleness check** — before writing in update mode, the agent checks for open wiki staging PRs, abandons the update if a newer one already exists, and closes stale ones with a comment ("This branch is from an earlier staging run and is stale. Closing")
 - **Frontmatter stripping** — YAML frontmatter is stripped before publishing to the GitHub Wiki tab, since GitHub Wiki renders frontmatter as literal text
@@ -174,8 +174,7 @@ Each run produces:
 
 ```
 .wiki/
-├── .last-updated.json        # ISO timestamp of last run
-├── .last-update-report.md    # Change report (created/edited pages)
+├── .gitignore                # Ignores run-metadata files (see below)
 ├── config.json               # Project-specific config
 ├── quickstart.md             # Entry point
 ├── architecture/
@@ -187,8 +186,11 @@ Each run produces:
 └── index.md                  # Root directory index
 ```
 
-- `.last-updated.json` — `{ "lastUpdated": "2026-07-17T10:30:00.000Z" }`
+Run-metadata files are written to `.wiki/` on every run but are gitignored — they never enter git history and exist on disk for the CI step and human inspection only:
+
+- `.last-updated.json` — `{ "lastUpdated": "2026-07-17T10:30:00.000Z" }` (ISO timestamp of last run)
 - `.last-update-report.md` — markdown report listing created and edited pages, used as the staging PR body in CI
+- `.last-update-title.txt` — concise PR title for the staging snapshot PR
 - `index.md` files — auto-generated for each directory, listing pages and subdirectories with frontmatter titles/descriptions
 
 ## Development
@@ -207,7 +209,7 @@ bun pm pack
 3. In update mode, it checks for open wiki staging PRs via `gh pr list` and compares branch timestamps against the latest commit — if a newer staging PR already exists, it abandons the update; stale PRs (older branch timestamp) are closed with a comment ("This branch is from an earlier staging run and is stale. Closing")
 4. It generates wiki pages under `.wiki/` with YAML frontmatter using `write_file` and `edit_file` (the only mutating tools, constrained to `.wiki/`)
 5. After the run, `index.md` files are synchronized for each directory
-6. `.last-updated.json` and `.last-update-report.md` are written
+6. `.wiki/.gitignore` is written (ignoring the run-metadata files), then `.last-updated.json`, `.last-update-report.md`, and `.last-update-title.txt` are written. These run-metadata files stay out of git history; only real wiki content changes are committed to the staging PR
 7. A GitHub Actions workflow is created (or updated) for scheduled updates on every run
 8. In update mode, only pages affected by recent changes are refreshed
 9. With `--wiki`, the workflow flattens the `.wiki/` tree (stripping frontmatter, converting nested paths to flat dash-joined filenames, rewriting links) and publishes to the GitHub Wiki tab by pushing directly to `<repo>.wiki.git` `master`
