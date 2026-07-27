@@ -26,6 +26,7 @@ On-demand OMP invocation triggered by comments:
 
 - Fires on `issue_comment` and `pull_request_review_comment` events, but only when the comment body starts with `/omp` or contains ` /omp` (also accepts `/oc`).
 - Generates a GitHub App token, authenticates `gh`, and sets up git push credentials.
+- Installs the `agynio/gh-pr-review` `gh` extension so OMP can post inline review comments.
 - Installs OMP and authenticates it against Ollama Cloud using `secrets.OLLAMA_API_KEY`.
 - Extracts the command name and arguments from the comment, expands any matching `.omp/commands/<command>.md` prompt by replacing `$ARGUMENTS`, and pipes the result through `python3 .omp/stream-log.py`.
 - Runs OMP in JSON mode with model `ollama-cloud/minimax-m3` (per `.omp/agent/config.yml`, which maps `default`, `task`, and `commit` roles to `ollama-cloud/minimax-m3`; `plan` and `designer` use `ollama-cloud/kimi-k2.6`).
@@ -39,6 +40,8 @@ Automated OMP jobs triggered by repository events:
 - **`review-pr`** — runs on PR open/update or manual dispatch. On `synchronize`, it first checks whether the head commit author/committer looks like an agent/bot (names containing `opencode-agent`, `opencode`, `github-actions`, `omp-agent`, or `chronova-agent`). If the commit is from such an author, the re-review is skipped. It then classifies the PR as dependency / bot / human based on the PR author (`renovate`, `dependabot`, `[bot]`, or `opencode-agent` get special prefixes), posts an `eyes` reaction, and expands `.omp/commands/review-pr.md` for OMP review.
 
 After a successful triage, `omp-ci.yml` dispatches `.github/workflows/omp-fix-issue.yml` with the issue number in `client_payload`.
+
+Both `.github/workflows/omp.yml` and the `review-pr` job in `.github/workflows/omp-ci.yml` install the `agynio/gh-pr-review` `gh` extension before invoking OMP. The extension is used by OMP review prompts to post inline pull-request review comments.
 
 ## Command prompts
 
