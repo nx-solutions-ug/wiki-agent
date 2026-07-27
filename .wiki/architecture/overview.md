@@ -70,7 +70,9 @@ Tool results are truncated at `MAX_TOOL_RESULT_LENGTH` (10 000 characters) befor
 
 ## Post-run: index synchronization
 
-`index-middleware.ts` walks the `.wiki/` tree and writes an `index.md` for every directory. For each subdirectory it recurses; for each `*.md` file it parses the YAML frontmatter, extracts `title` and `description`, and emits a sorted bulleted list grouped into "Files" and "Directories". `index.md` and `_plan.md` are excluded from listings. If a generated index matches the existing one byte-for-byte, the file is not rewritten.
+`index-middleware.ts` walks the `.wiki/` tree and writes an `index.md` for every directory. For each subdirectory it recurses; for each `*.md` file it parses the YAML frontmatter, validates that it is a mapping with sane `title`/`description` scalars, and emits a sorted bulleted list grouped into "Files" and "Directories". `index.md` and `_plan.md` are excluded from listings. If a generated index matches the existing one byte-for-byte, the file is not rewritten.
+
+Entries are processed concurrently in bounded chunks (`CHUNK_SIZE = 16`) within each directory. The cap is per level: every recursive `synchronizeDirectory` call manages its own chunk, so total live concurrency scales with directory depth. Mutating the shared `files`/`directories` arrays from concurrent callbacks is safe because JavaScript runs each callback's synchronous segments to completion, and `renderLinks` sorts by `href` before emitting, making the final output order-independent. Invalid frontmatter does not silently drop the file; the parse error propagates up and aborts the sync, matching the original sequential behavior.
 
 This step is invoked once at the end of `runAgent` — it does not run on every tool call.
 
