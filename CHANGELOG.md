@@ -1,3 +1,16 @@
+## [1.12.2](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.12.1...v1.12.2) (2026-07-27)
+
+
+### Bug Fixes
+
+* **index:** propagate frontmatter errors and bound concurrency ([61c132e](https://github.com/nx-solutions-ug/wiki-agent/commit/61c132e7a90d23173634ccb391461f2e3ca46180))
+
+
+### Performance Improvements
+
+* **index:** parallelize and chunk directory synchronization ([64d5a5c](https://github.com/nx-solutions-ug/wiki-agent/commit/64d5a5c83e4c9703d82c150da4e8052be9796878))
+* **index:** parallelize directory synchronization ([39ebbbf](https://github.com/nx-solutions-ug/wiki-agent/commit/39ebbbf6cdb8c86126436158c04c4fe376af2174))
+
 ## [1.12.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.12.0...v1.12.1) (2026-07-26)
 
 
