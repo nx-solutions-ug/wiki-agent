@@ -55,7 +55,7 @@ The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.H
 bun pm pack
 ```
 
-Produces `wiki-agent-1.12.1.tgz`. The tarball includes `dist/`, `README.md`, and `LICENSE` per the `files` array in `package.json`. The earlier `package.json` `files` entry for `.github/workflows/wiki-update.yml` was removed, since workflows are generated into target repos by `--init`, not shipped in the package.
+Produces `wiki-agent-1.12.3.tgz`. The tarball includes `dist/`, `README.md`, and `LICENSE` per the `files` array in `package.json`. The earlier `package.json` `files` entry for `.github/workflows/wiki-update.yml` was removed, since workflows are generated into target repos by `--init`, not shipped in the package.
 
 ## Project layout
 
@@ -110,7 +110,7 @@ Vouched users are tracked in `.github/VOUCHED.td`. Bots and collaborators with w
 
 ## Known source inconsistencies
 
-- **Workflow filename mismatch**: `package.json` `files` used to list `.github/workflows/wiki-update.yml`, but `src/agent.ts:createWorkflowFile` writes `.github/workflows/update-wiki.yml`. As of v1.12.1 the `files` array only includes `dist`, `README.md`, and `LICENSE`, so this discrepancy no longer appears in published tarballs.
+- **Workflow filename mismatch**: `package.json` `files` used to list `.github/workflows/wiki-update.yml`, but `src/agent.ts:createWorkflowFile` writes `.github/workflows/update-wiki.yml`. The current `files` array only includes `dist`, `README.md`, and `LICENSE`, so this discrepancy no longer appears in published tarballs.
 - **OMP workflows**: the `.github/workflows/omp*.yml` files and `.omp/` directory live in this repo's source but are unrelated to the `wiki-agent` package; they automate the project's own issue/PR management via OMP.
 
 ## Release checklist
