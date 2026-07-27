@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createSystemPrompt, createUserMessage, type WikiCommand } from "./prompt.js";
-import { createTools, executeTool } from "./tools.js";
+import { createTools, executeTool, stripThinkingTags } from "./tools.js";
 import { synchronizeWikiIndexes } from "./index-middleware.js";
 import { Ollama } from "ollama";
 
@@ -205,7 +205,7 @@ export async function runAgent(
           // Use the assistant's prose preceding this tool call as the
           // human-readable description of what changed. Falls back to the
           // tool result if the model didn't narrate the change.
-          const description = assistantContent.trim() || result;
+          const description = stripThinkingTags(assistantContent.trim() || result);
           changedFiles.push({
             action: toolName === "write_file" ? "created" : "edited",
             path: filePath,
@@ -240,7 +240,7 @@ export async function runAgent(
     "utf8",
   );
 
-  const report = generateUpdateReport(command, changedFiles);
+  const report = stripThinkingTags(generateUpdateReport(command, changedFiles));
   const title = generateUpdateTitle(command, changedFiles);
   await writeFile(
     path.join(projectRoot, ".wiki", ".last-update-report.md"),

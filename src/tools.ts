@@ -50,6 +50,52 @@ export function parseArgsStringToArgv(value: string): string[] {
 const MAX_READ_LENGTH = 50_000;
 const MAX_TOOL_RESULT_LENGTH = 10_000;
 
+/**
+ * Pattern matching a single reasoning/thinking block: an opening tag, its
+ * body (across newlines), and the matching closing tag (same name, via
+ * backreference). Case-insensitive so <THINK>…</THINK> is caught too. The
+ * \b after the name avoids matching <thinker>; [^>]*> tolerates attributes
+ * a model might add (e.g. <think type="reasoning">).
+ */
+const THINKING_TAG_PAIR_RE = /<((?:think|thinking|reasoning|reflection))\b[^>]*>([\s\S]*?)<\/\1>/gi;
+
+/**
+ * Orphaned opening/closing tags left after the pair loop strips matched
+ * blocks. In rare nested same-tag cases (no current model does this) the
+ * inner pair is consumed first, leaving an unmatched closing tag; this
+ * removes those leftovers. Stripping orphaned opening tags is safe because
+ * any tag with a matching close was already removed by the pair pass.
+ */
+const THINKING_TAG_ORPHAN_RE = /<\/?(?:think|thinking|reasoning|reflection)\b[^>]*>/gi;
+
+/**
+ * Strips reasoning/thinking tag blocks from content before it is persisted to
+ * disk. Also trims leading whitespace left behind by a removed leading block
+ * so the frontmatter (if any) stays at the top of the file. Content without
+ * any thinking tags is returned unchanged.
+ *
+ * Works in two phases: (1) a non-greedy loop removes matched open/close
+ * pairs — non-greedy so two separate blocks don't merge into one match
+ * (greedy would eat the real content between them); the loop handles
+ * multiple sequential blocks. (2) orphaned tags left by rare nested same-tag
+ * blocks are stripped. Backreference (\1) ensures the closing tag name
+ * matches the opening tag name, so mismatched pairs like  …</thinking>
+ * are left intact rather than partially consumed.
+ */
+export function stripThinkingTags(content: string): string {
+  if (!content.includes("<")) return content;
+  let stripped = content;
+  let prev: string;
+  do {
+    prev = stripped;
+    stripped = stripped.replace(THINKING_TAG_PAIR_RE, "");
+  } while (stripped !== prev);
+  stripped = stripped.replace(THINKING_TAG_ORPHAN_RE, "");
+  // A leading thinking block often leaves leading blank lines before the
+  // frontmatter or heading; trim them so the file starts cleanly.
+  return stripped.replace(/^\s+/, "");
+}
+
 interface ToolDefinition {
   type: "function";
   function: {
@@ -184,7 +230,7 @@ export function createTools(projectRoot: string): Tool[] {
     },
     handler: async (args) => {
       const filePath = resolveWikiPath(args.path as string, projectRoot);
-      const content = args.content as string;
+      const content = stripThinkingTags(args.content as string);
 
       await mkdir(path.dirname(filePath), { recursive: true });
       await writeFile(filePath, content, "utf8");
@@ -223,7 +269,7 @@ export function createTools(projectRoot: string): Tool[] {
     handler: async (args) => {
       const filePath = resolveWikiPath(args.path as string, projectRoot);
       const oldString = args.old_string as string;
-      const newString = args.new_string as string;
+      const newString = stripThinkingTags(args.new_string as string);
 
       const content = await readFile(filePath, "utf8");
       const newContent = content.replace(oldString, newString);

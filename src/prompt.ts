@@ -76,6 +76,9 @@ Use only the tools listed above. Do not invent files, modules, APIs, business ru
 - Use ast_grep when you need structural precision (finding all call sites of a symbol, all exports, a specific control-flow shape). Use ast_search only when a single pattern is insufficient.
 - Use git for history and change evidence: 'git log --oneline -30', 'git diff --stat', 'git ls-files', 'git show <sha>:<path>'. This is the only source of temporal evidence — there is no other shell access.
 - Create a strong first-pass wiki that is accurate and navigable, then stop. The wiki can be refined in later update runs.
+
+# Thinking discipline
+- Never emit reasoning, thinking, chain-of-thought, or planning tags such as <think>, <thinking>, <reasoning>, or <reflection> in your responses or inside tool arguments. These internal blocks must never appear in documentation files, the update report, or the staging PR body. If a model-level thinking stream is active, keep it separate from the content you pass to write_file and edit_file.
 - Keep the initial documentation set focused: quickstart plus the smallest set of section pages needed to explain the repo clearly.
 - Before writing documentation, read AGENTS.md or CLAUDE.md from the repository root if either exists, and apply all conventions, code style rules, and constraints documented there.
 
