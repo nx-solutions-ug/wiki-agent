@@ -56,7 +56,7 @@ GitHub wikis must be initialized once through the UI before they can be pushed t
 
 ## Other repository automation
 
-The repository also runs automated issue/PR management and OMP-driven workflows. See [OMP Automation Workflows](./omp.md) for details on `.github/workflows/auto-manage.yml`, `.github/workflows/omp.yml`, `.github/workflows/omp-ci.yml`, and `.github/workflows/omp-fix-issue.yml`, plus the command prompts under `.omp/commands/`.
+The repository also runs automated issue/PR management and OMP-driven workflows. See [OMP Automation Workflows](./omp.md) for details on `.github/workflows/auto-manage.yml`, `.github/workflows/omp.yml`, `.github/workflows/omp-ci.yml`, and `.github/workflows/omp-fix-issue.yml`, plus the command prompts under `.omp/commands/` (including `_pr-commit-push.md`, which commits and pushes changes from freeform `/omp` PR comments).
 
 The repository also gates external pull requests via the **vouch** system. Maintainers vouch users by commenting on Discussions, and a PR gate workflow auto-closes PRs from unvouched users. See [Vouch Access Control](./vouch.md) for the `.github/workflows/vouch-manage.yml` and `.github/workflows/vouch-pr.yml` workflows and the `.github/VOUCHED.td` list.
 

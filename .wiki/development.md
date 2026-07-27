@@ -99,7 +99,7 @@ The repo uses several GitHub Actions workflows beyond `update-wiki.yml`:
 - `.github/workflows/release.yml` — runs on every push to `main`. After a passing test job it generates a GitHub App token and runs `npx --yes semantic-release` to bump `package.json`, write `CHANGELOG.md`, create a GitHub release, and publish `@chronova/wiki-agent` to npm with `secrets.NPM_TOKEN`. It then edits the release body with a full commit-level changelog built from `git log` and uploaded via `gh release edit`.
 - `.github/workflows/auto-manage.yml` — tags new/reopened issues with `needs-triage` and auto-assigns new issues and PRs to `niklasschaeffer`.
 - `.github/workflows/omp.yml` — invokes the OMP agent on comments containing `/omp` (or `/oc`) and routes command prompts from `.omp/commands/*.md` into OMP.
-- `.github/workflows/omp-ci.yml` — automated OMP triage, PR labeling, and PR review triggered by issues/PR events. It dispatches `.github/workflows/omp-fix-issue.yml` after each triage run.
+- `.github/workflows/omp-ci.yml` — automated OMP triage, PR labeling, and PR review triggered by issues/PR events. It dispatches `.github/workflows/omp-fix-issue.yml` after each triage run. The `review-pr` job installs the `gh-pr-review` extension (`agynio/gh-pr-review`) because `review-pr.md` instructs OMP to use `gh pr-review` for inline review comments.
 - `.github/workflows/omp-fix-issue.yml` — triggered by `repository_dispatch` of type `issue-triaged` or manually with an issue number. Expands `.omp/commands/fix-issue.md` and runs OMP to propose a fix. It requires `id-token: write`, `contents: write`, `issues: write`, and `pull-requests: write`.
 - `.github/workflows/vouch-manage.yml` — lets maintainers vouch or denounce users via Discussion comments (`!vouch`, `!denounce`, `!unvouch`).
 - `.github/workflows/vouch-pr.yml` — auto-closes PRs from unvouched users and labels vouched/allowed PRs with `vouched`.
@@ -112,6 +112,7 @@ Vouched users are tracked in `.github/VOUCHED.td`. Bots and collaborators with w
 
 - **Workflow filename mismatch**: `package.json` `files` used to list `.github/workflows/wiki-update.yml`, but `src/agent.ts:createWorkflowFile` writes `.github/workflows/update-wiki.yml`. As of v1.13.0 the `files` array only includes `dist`, `README.md`, and `LICENSE`, so this discrepancy no longer appears in published tarballs.
 - **OMP workflows**: the `.github/workflows/omp*.yml` files and `.omp/` directory live in this repo's source but are unrelated to the `wiki-agent` package; they automate the project's own issue/PR management via OMP.
+- **OMP review flow mismatch**: `omp-ci.yml` computes a `review-type` prefix (`dep:`, `bot:`, or empty) from the PR author, but the output step is not used in the actual OMP invocation; the review type is determined by `review-pr.md` from the PR author instead.
 
 ## Release checklist
 
