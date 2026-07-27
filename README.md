@@ -16,10 +16,9 @@ A standalone Ollama-only documentation agent. It inspects your source code and g
 - **Local or Cloud** — connect to a local Ollama server or Ollama Cloud with an API key
 - **TUI + Headless** — interactive terminal UI or `--print` for CI/CD
 - **Two commands** — `--init` to create docs from scratch, `--update` to refresh existing docs; `--version` to show the current version
-- **GitHub Wiki tab publishing** — `--wiki` flag generates a workflow that pushes generated pages directly to `<repo>.wiki.git`
+- **Repo instructions** — reads `AGENTS.md` or `CLAUDE.md` from the project root and follows all conventions documented there. On `--init`, a `## Wiki Agent` section is appended (never prepended) to `AGENTS.md` (or `CLAUDE.md` if only that exists) declaring the project is managed by wiki-agent, with the version and initialization timestamp. If neither file exists, `AGENTS.md` is created. The section is idempotent — subsequent `--init` runs refresh the version/timestamp rather than duplicating it
 - **Configurable** — global config in `~/.wiki/`, project config in `.wiki/`
 - **GitHub Actions** — every run creates (or updates) `.github/workflows/update-wiki.yml` for scheduled updates
-- **Repo instructions** — reads `AGENTS.md` or `CLAUDE.md` from the project root and follows all conventions documented there
 - **Change reports** — each run writes `.wiki/.last-update-report.md` with created/edited pages, used as the staging PR body in CI. Run-metadata files (`.last-update-report.md`, `.last-update-title.txt`, `.last-updated.json`) are gitignored so they never enter git history; they exist on disk for the CI step and human inspection only
 - **Restricted toolset** — the agent can only read files, write under `.wiki/`, run read-only git subcommands, and use a `gh` CLI tool for inspecting pull requests and closing stale wiki staging PRs; there is no shell tool
 - **Staging PR staleness check** — before writing in update mode, the agent checks for open wiki staging PRs, abandons the update if a newer one already exists, and closes stale ones with a comment ("This branch is from an earlier staging run and is stale. Closing")
@@ -210,8 +209,9 @@ bun pm pack
 4. It generates wiki pages under `.wiki/` with YAML frontmatter using `write_file` and `edit_file` (the only mutating tools, constrained to `.wiki/`)
 5. After the run, `index.md` files are synchronized for each directory
 6. `.wiki/.gitignore` is written (ignoring the run-metadata files), then `.last-updated.json`, `.last-update-report.md`, and `.last-update-title.txt` are written. These run-metadata files stay out of git history; only real wiki content changes are committed to the staging PR
-7. A GitHub Actions workflow is created (or updated) for scheduled updates on every run
-8. In update mode, only pages affected by recent changes are refreshed
-9. With `--wiki`, the workflow flattens the `.wiki/` tree (stripping frontmatter, converting nested paths to flat dash-joined filenames, rewriting links) and publishes to the GitHub Wiki tab by pushing directly to `<repo>.wiki.git` `master`
+7. On `--init`, a `## Wiki Agent` section is appended to `AGENTS.md` (or `CLAUDE.md` if only that exists) declaring the project uses wiki-agent; if neither file exists, `AGENTS.md` is created. The section is idempotent
+8. A GitHub Actions workflow is created (or updated) for scheduled updates on every run
+9. In update mode, only pages affected by recent changes are refreshed
+10. With `--wiki`, the workflow flattens the `.wiki/` tree (stripping frontmatter, converting nested paths to flat dash-joined filenames, rewriting links) and publishes to the GitHub Wiki tab by pushing directly to `<repo>.wiki.git` `master`
 
 The agent uses a manual tool-calling loop with the Ollama chat API — no LangChain or LangGraph dependency. The recursion limit prevents infinite loops. There is no general-purpose shell tool; the agent cannot execute arbitrary commands on the host system. The `gh` tool allows read-only inspection (pr list, pr view, repo view, etc.) plus `pr close` and `pr comment` — but only on wiki staging PRs (branches matching `wiki/staging-*`); all other mutating operations are blocked.

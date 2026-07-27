@@ -1,5 +1,5 @@
 import { describe, expect, test, beforeEach, afterEach } from "vitest";
-import { mkdtemp, rm, writeFile, mkdir } from "node:fs/promises";
+import { mkdtemp, rm, writeFile, readFile, mkdir } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import os from "node:os";
@@ -10,6 +10,7 @@ import {
   filterReportFiles,
   WIKI_GITIGNORE,
   untrackRunMetadataFiles,
+  appendWikiAgentFrontmatter,
 } from "../src/agent.ts";
 
 const execFileAsync = promisify(execFile);
@@ -224,5 +225,79 @@ describe("untrackRunMetadataFiles", () => {
 
     const { stdout } = await execFileAsync("git", ["ls-files", ".wiki/.last-updated.json"], { cwd: projectRoot });
     expect(stdout.trim()).toBe("");
+  });
+});
+describe("appendWikiAgentFrontmatter", () => {
+  let projectRoot: string;
+
+  beforeEach(async () => {
+    projectRoot = await mkdtemp(path.join(os.tmpdir(), "wiki-frontmatter-test-"));
+  });
+
+  afterEach(async () => {
+    await rm(projectRoot, { recursive: true, force: true });
+  });
+
+  test("creates AGENTS.md when neither file exists", async () => {
+    const result = await appendWikiAgentFrontmatter(projectRoot);
+    expect(result).toEqual({ file: "AGENTS.md", action: "created" });
+    const content = await readFile(path.join(projectRoot, "AGENTS.md"), "utf8");
+    expect(content).toContain("<!-- wiki-agent -->");
+    expect(content).toContain("## Wiki Agent");
+    expect(content).toContain("version:");
+  });
+
+  test("appends to existing AGENTS.md without prepending", async () => {
+    const agentsPath = path.join(projectRoot, "AGENTS.md");
+    await writeFile(agentsPath, "# My Project\n\nSome existing content.\n", "utf8");
+    const result = await appendWikiAgentFrontmatter(projectRoot);
+    expect(result).toEqual({ file: "AGENTS.md", action: "appended" });
+    const content = await readFile(agentsPath, "utf8");
+    expect(content.startsWith("# My Project")).toBe(true);
+    expect(content).toContain("Some existing content.");
+    expect(content).toContain("<!-- wiki-agent -->");
+    const markerIdx = content.indexOf("<!-- wiki-agent -->");
+    const existingIdx = content.indexOf("Some existing content.");
+    expect(markerIdx).toBeGreaterThan(existingIdx);
+  });
+
+  test("refreshes existing wiki-agent section idempotently", async () => {
+    const agentsPath = path.join(projectRoot, "AGENTS.md");
+    const first = await appendWikiAgentFrontmatter(projectRoot);
+    expect(first?.action).toBe("created");
+    const firstContent = await readFile(agentsPath, "utf8");
+    const second = await appendWikiAgentFrontmatter(projectRoot);
+    expect(second).toEqual({ file: "AGENTS.md", action: "refreshed" });
+    const secondContent = await readFile(agentsPath, "utf8");
+    const markerCount = secondContent.split("<!-- wiki-agent -->").length - 1;
+    expect(markerCount).toBe(1);
+    expect(secondContent.length).toBeLessThan(firstContent.length * 2);
+  });
+
+  test("prefers AGENTS.md over CLAUDE.md", async () => {
+    await writeFile(path.join(projectRoot, "AGENTS.md"), "# Agents\n", "utf8");
+    await writeFile(path.join(projectRoot, "CLAUDE.md"), "# Claude\n", "utf8");
+    const result = await appendWikiAgentFrontmatter(projectRoot);
+    expect(result?.file).toBe("AGENTS.md");
+    const claudeContent = await readFile(path.join(projectRoot, "CLAUDE.md"), "utf8");
+    expect(claudeContent).not.toContain("<!-- wiki-agent -->");
+  });
+
+  test("uses CLAUDE.md when AGENTS.md is absent", async () => {
+    await writeFile(path.join(projectRoot, "CLAUDE.md"), "# Claude\n", "utf8");
+    const result = await appendWikiAgentFrontmatter(projectRoot);
+    expect(result?.file).toBe("CLAUDE.md");
+    const content = await readFile(path.join(projectRoot, "CLAUDE.md"), "utf8");
+    expect(content).toContain("<!-- wiki-agent -->");
+  });
+
+  test("handles file without trailing newline", async () => {
+    const agentsPath = path.join(projectRoot, "AGENTS.md");
+    await writeFile(agentsPath, "# No trailing newline", "utf8");
+    const result = await appendWikiAgentFrontmatter(projectRoot);
+    expect(result?.action).toBe("appended");
+    const content = await readFile(agentsPath, "utf8");
+    expect(content).toContain("# No trailing newline\n");
+    expect(content).toContain("<!-- wiki-agent -->");
   });
 });

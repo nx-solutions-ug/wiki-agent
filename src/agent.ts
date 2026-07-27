@@ -1,10 +1,11 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, readFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
 import { createSystemPrompt, createUserMessage, type WikiCommand } from "./prompt.js";
 import { createTools, executeTool, stripThinkingTags } from "./tools.js";
 import { synchronizeWikiIndexes } from "./index-middleware.js";
+import { VERSION } from "./version.js";
 import { Ollama } from "ollama";
 
 const execFileAsync = promisify(execFile);
@@ -71,7 +72,10 @@ export async function untrackRunMetadataFiles(
       .filter(Boolean);
 
     if (tracked.length > 0) {
-      await execFileAsync("git", ["rm", "--cached", ...tracked], {
+      // -f overrides the modification guard since these files are regenerated
+      // every run and will have unstaged modifications; --cached keeps them
+      // on disk while removing them from the git index.
+      await execFileAsync("git", ["rm", "--cached", "-f", ...tracked], {
         cwd: projectRoot,
       });
       return tracked;
@@ -80,6 +84,88 @@ export async function untrackRunMetadataFiles(
     // Ignore git execution errors (e.g. not a git repo or git not available)
   }
   return [];
+}
+/**
+ * Marker string used to detect an existing wiki-agent section in
+ * AGENTS.md / CLAUDE.md so the appender is idempotent.
+ */
+const WIKI_AGENT_MARKER = "<!-- wiki-agent -->";
+
+/**
+ * Builds the wiki-agent markdown section appended to AGENTS.md / CLAUDE.md
+ * on `--init` runs. Declares that the project is managed by wiki-agent and
+ * records the version and timestamp for traceability.
+ */
+function buildWikiAgentSection(): string {
+  const timestamp = new Date().toISOString();
+  return [
+    "",
+    WIKI_AGENT_MARKER,
+    "## Wiki Agent",
+    "",
+    "This repository is managed by [wiki-agent](https://github.com/nx-solutions-ug/wiki-agent).",
+    "Documentation is generated under `.wiki/` and kept in sync via `wiki --update`.",
+    "Do not hand-edit files under `.wiki/` — regenerate them with `wiki --update` instead.",
+    "",
+    "```yaml",
+    `version: ${VERSION}`,
+    `wiki-path: .wiki/`,
+    `initialized: ${timestamp}`,
+    "```",
+    "",
+  ].join("\n");
+}
+
+/**
+ * On `--init`, appends a wiki-agent section to AGENTS.md (or CLAUDE.md if
+ * only that exists) declaring the project uses wiki-agent. If neither file
+ * exists, creates AGENTS.md with the section. Idempotent: if the marker is
+ * already present, the version/timestamp block is refreshed. The section is
+ * always appended (never prepended) so existing frontmatter and content stay
+ * intact. Exported for testing.
+ */
+export async function appendWikiAgentFrontmatter(
+  projectRoot: string,
+): Promise<{ file: string; action: "created" | "appended" | "refreshed" } | null> {
+  const candidates = ["AGENTS.md", "CLAUDE.md"];
+  let targetFile: string | null = null;
+  let existing: string | null = null;
+
+  for (const name of candidates) {
+    try {
+      const content = await readFile(path.join(projectRoot, name), "utf8");
+      targetFile = name;
+      existing = content;
+      break;
+    } catch {
+      // file doesn't exist — try next
+    }
+  }
+
+  const section = buildWikiAgentSection();
+
+  if (existing === null || targetFile === null) {
+    // Neither file exists — create AGENTS.md with the section.
+    const filePath = path.join(projectRoot, "AGENTS.md");
+    await writeFile(filePath, `# Repository Guidelines\n${section}`, "utf8");
+    return { file: "AGENTS.md", action: "created" };
+  }
+
+  const filePath = path.join(projectRoot, targetFile);
+  const markerIdx = existing.indexOf(WIKI_AGENT_MARKER);
+
+  if (markerIdx === -1) {
+    // Marker absent — append the section.
+    const ensureNewline = existing.endsWith("\n") ? "" : "\n";
+    await writeFile(filePath, existing + ensureNewline + section, "utf8");
+    return { file: targetFile, action: "appended" };
+  }
+
+  // Marker present — refresh the section by replacing from the marker to the
+  // end of the file (the section is always the last appended block).
+  const before = existing.slice(0, markerIdx).replace(/\n+$/, "\n");
+  await writeFile(filePath, before + section, "utf8");
+  return { file: targetFile, action: "refreshed" };
 }
 
 
@@ -300,6 +386,16 @@ export async function runAgent(
   await createWorkflowFile(projectRoot, wikiPublish);
   onEvent({ type: "tool", name: "create_workflow", result: wikiPublish ? "Created .github/workflows/update-wiki.yml (with wiki publish)" : "Created .github/workflows/update-wiki.yml" });
 
+  if (command === "init") {
+    const result = await appendWikiAgentFrontmatter(projectRoot);
+    if (result) {
+      onEvent({
+        type: "tool",
+        name: "append_agents_frontmatter",
+        result: `${result.action} wiki-agent section in ${result.file}`,
+      });
+    }
+  }
   // Write .wiki/.gitignore on every run so the run-metadata files below
   // stay out of git history in every target repo without manual setup.
   // Written before the no-op early return so it exists even on runs that
