@@ -353,21 +353,30 @@ export function createTools(projectRoot: string): Tool[] {
       );
       const globPattern = (args.glob as string) ?? "";
 
-      const cmd = [
-        "grep",
+      const includes = (globPattern || "*.ts *.tsx *.js *.jsx *.py *.go *.rs *.java *.rb *.php *.md *.yml *.yaml *.json *.toml *.sh")
+        .trim()
+        .split(/\s+/)
+        .map(p => `--include=${p}`);
+
+      const cmdArgs = [
         "-rn",
-        "--include=" + (globPattern || "*.ts *.tsx *.js *.jsx *.py *.go *.rs *.java *.rb *.php *.md *.yml *.yaml *.json *.toml *.sh"),
+        ...includes,
         "--",
-        pattern.replace(/'/g, "'\\''"),
+        pattern,
         searchPath,
-      ].join(" ");
+      ];
 
       try {
-        const { stdout } = await execAsync(cmd, {
+        const { stdout } = await execFileAsync("grep", cmdArgs, {
           maxBuffer: 1024 * 1024,
         });
         return truncateResult(stdout || "(no matches)");
-      } catch {
+      } catch (error) {
+        // grep returns exit code 1 when no matches are found, which throws an error in execFileAsync.
+        // We handle that gracefully.
+        if (error instanceof Error && 'stdout' in error) {
+           return truncateResult((error as any).stdout || "(no matches)");
+        }
         return "(no matches)";
       }
     },
@@ -405,29 +414,27 @@ export function createTools(projectRoot: string): Tool[] {
 
       const findPattern = pattern
         .replace(/\*\*/g, "")
-        .replace(/\*/g, "")
-        .replace(/'/g, "'\\''");
+        .replace(/\*/g, "");
 
-      const cmd = [
-        "find",
+      const cmdArgs = [
         searchPath,
         "-name",
-        `'${findPattern}'`,
+        findPattern,
         "-type",
         "f",
         "-not",
         "-path",
-        "'*/node_modules/*'",
+        "*/node_modules/*",
         "-not",
         "-path",
-        "'*/.git/*'",
+        "*/.git/*",
         "-not",
         "-path",
-        "'*/dist/*'",
-      ].join(" ");
+        "*/dist/*",
+      ];
 
       try {
-        const { stdout } = await execAsync(cmd, {
+        const { stdout } = await execFileAsync("find", cmdArgs, {
           maxBuffer: 1024 * 1024,
         });
         return truncateResult(stdout || "(no files found)");
@@ -548,37 +555,44 @@ export function createTools(projectRoot: string): Tool[] {
         projectRoot,
       );
 
-      const cmd = [
-        "ast-grep",
+      const cmdArgs = [
         "run",
         "--json=compact",
         "--lang",
-        `'${lang.replace(/'/g, "'\\''")}'`,
+        lang,
         "--pattern",
-        `'${pattern.replace(/'/g, "'\\''")}'`,
+        pattern,
       ];
 
       const selector = args.selector as string | undefined;
       if (selector) {
-        cmd.push("--selector", `'${selector.replace(/'/g, "'\\''")}'`);
+        cmdArgs.push("--selector", selector);
       }
 
       const strictness = args.strictness as string | undefined;
       if (strictness) {
-        cmd.push("--strictness", `'${strictness.replace(/'/g, "'\\''")}'`);
+        cmdArgs.push("--strictness", strictness);
       }
 
-      cmd.push(`'${searchPath.replace(/'/g, "'\\''")}'`);
+      cmdArgs.push(searchPath);
 
       try {
-        const { stdout } = await execAsync(cmd.join(" "), {
+        const { stdout } = await execFileAsync("ast-grep", cmdArgs, {
           cwd: projectRoot,
           maxBuffer: 1024 * 1024,
           timeout: 30_000,
         });
         return truncateResult(stdout || "(no matches)");
       } catch (error) {
+        // ast-grep exits with 1 when no matches are found, gracefully handle that
+        if (error instanceof Error && 'stdout' in error && (error as any).stdout) {
+           return truncateResult((error as any).stdout);
+        }
         const message = error instanceof Error ? error.message : String(error);
+        // Do not fail entirely if it was just exit code 1 with no stdout (which usually means no matches)
+        if (error instanceof Error && 'code' in error && (error as any).code === 1 && !('stdout' in error && (error as any).stdout)) {
+           return "(no matches)";
+        }
         return truncateResult(`Error: ${message}`);
       }
     },
@@ -615,18 +629,31 @@ export function createTools(projectRoot: string): Tool[] {
         projectRoot,
       );
 
+      const cmdArgs = [
+        "scan",
+        "--json=compact",
+        "--inline-rules",
+        rule,
+        searchPath,
+      ];
+
       try {
-        const { stdout } = await execAsync(
-          `ast-grep scan --json=compact --inline-rules '${rule.replace(/'/g, "'\\''")}' '${searchPath.replace(/'/g, "'\\''")}'`,
-          {
-            cwd: projectRoot,
-            maxBuffer: 1024 * 1024,
-            timeout: 30_000,
-          },
-        );
+        const { stdout } = await execFileAsync("ast-grep", cmdArgs, {
+          cwd: projectRoot,
+          maxBuffer: 1024 * 1024,
+          timeout: 30_000,
+        });
         return truncateResult(stdout || "(no matches)");
       } catch (error) {
+        // ast-grep exits with 1 when no matches are found, gracefully handle that
+        if (error instanceof Error && 'stdout' in error && (error as any).stdout) {
+           return truncateResult((error as any).stdout);
+        }
         const message = error instanceof Error ? error.message : String(error);
+        // Do not fail entirely if it was just exit code 1 with no stdout (which usually means no matches)
+        if (error instanceof Error && 'code' in error && (error as any).code === 1 && !('stdout' in error && (error as any).stdout)) {
+           return "(no matches)";
+        }
         return truncateResult(`Error: ${message}`);
       }
     },
