@@ -1,3 +1,10 @@
+## [1.13.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.13.0...v1.13.1) (2026-07-27)
+
+
+### Bug Fixes
+
+* **omp:** ensure /omp PR commands commit and push changes ([#96](https://github.com/nx-solutions-ug/wiki-agent/issues/96)) ([a98a157](https://github.com/nx-solutions-ug/wiki-agent/commit/a98a1570faf79756bb062affb111c7ffe4d6547c)), closes [nx-solutions-ug/chronova#637](https://github.com/nx-solutions-ug/chronova/issues/637)
+
 # [1.13.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.12.4...v1.13.0) (2026-07-27)
 
 
