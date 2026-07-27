@@ -1,3 +1,11 @@
+## [1.12.3](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.12.2...v1.12.3) (2026-07-27)
+
+
+### Bug Fixes
+
+* harden thinking-tag regex for case-insensitivity and nesting ([631b469](https://github.com/nx-solutions-ug/wiki-agent/commit/631b46995b634100236af3219621409a11bd69df))
+* strip reasoning/thinking tags from generated wiki content ([a7b24c4](https://github.com/nx-solutions-ug/wiki-agent/commit/a7b24c4ab581feda11e5152049458599916984ca)), closes [#79](https://github.com/nx-solutions-ug/wiki-agent/issues/79)
+
 ## [1.12.2](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.12.1...v1.12.2) (2026-07-27)
 
 
