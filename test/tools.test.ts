@@ -4,7 +4,7 @@ import { exec } from "node:child_process";
 import { promisify } from "node:util";
 import os from "node:os";
 import path from "node:path";
-import { createTools, executeTool, parseArgsStringToArgv } from "../src/tools.ts";
+import { createTools, executeTool, parseArgsStringToArgv, stripThinkingTags } from "../src/tools.ts";
 
 const execAsync = promisify(exec);
 
@@ -156,6 +156,173 @@ describe("tools", () => {
       );
 
       expect(result).toContain("No match found");
+    });
+  });
+
+  describe("thinking tag stripping", () => {
+    // Build tags from char codes so the literal angle brackets survive
+    // tooling and reach the assertions intact.
+    const LT = String.fromCharCode(60);
+    const GT = String.fromCharCode(62);
+    const think = (body: string) => `${LT}think${GT}${body}${LT}/think${GT}`;
+    const thinking = (body: string) => `${LT}thinking${GT}${body}${LT}/thinking${GT}`;
+    const reasoning = (body: string) => `${LT}reasoning${GT}${body}${LT}/reasoning${GT}`;
+    const reflection = (body: string) => `${LT}reflection${GT}${body}${LT}/reflection${GT}`;
+
+    test("write_file strips think blocks from content", async () => {
+      const result = await executeTool(
+        "write_file",
+        {
+          path: ".wiki/quickstart.md",
+          content: `${think("Let me plan the doc.")}\n---\ntype: Guide\ntitle: Quickstart\n---\n# Quickstart\n`,
+        },
+        projectRoot,
+      );
+
+      expect(result).toBe("Wrote .wiki/quickstart.md");
+
+      const content = await readFile(
+        path.join(projectRoot, ".wiki", "quickstart.md"),
+        "utf8",
+      );
+      expect(content).not.toContain(`${LT}think`);
+      expect(content).not.toContain("Let me plan the doc");
+      expect(content).toContain("---\ntype: Guide\ntitle: Quickstart\n---");
+      expect(content).toContain("# Quickstart");
+    });
+
+    test("write_file strips thinking blocks", async () => {
+      await executeTool(
+        "write_file",
+        {
+          path: ".wiki/arch.md",
+          content: `${thinking("I need to describe the architecture.")}\n# Architecture\n`,
+        },
+        projectRoot,
+      );
+
+      const content = await readFile(
+        path.join(projectRoot, ".wiki", "arch.md"),
+        "utf8",
+      );
+      expect(content).not.toContain(`${LT}thinking`);
+      expect(content).not.toContain("I need to describe");
+      expect(content).toContain("# Architecture");
+    });
+
+    test("write_file strips reasoning and reflection blocks", async () => {
+      await executeTool(
+        "write_file",
+        {
+          path: ".wiki/cli.md",
+          content: `${reasoning("r1")}\nmid\n${reflection("r2")}\n# CLI\n`,
+        },
+        projectRoot,
+      );
+
+      const content = await readFile(
+        path.join(projectRoot, ".wiki", "cli.md"),
+        "utf8",
+      );
+      expect(content).not.toContain(`${LT}reasoning`);
+      expect(content).not.toContain(`${LT}reflection`);
+      expect(content).not.toContain("r1");
+      expect(content).not.toContain("r2");
+      expect(content).toContain("mid");
+      expect(content).toContain("# CLI");
+    });
+
+    test("write_file strips thinking tags spanning multiple lines", async () => {
+      await executeTool(
+        "write_file",
+        {
+          path: ".wiki/multi.md",
+          content: `${think("Line one\nLine two\nLine three")}\n\n# Multi\n`,
+        },
+        projectRoot,
+      );
+
+      const content = await readFile(
+        path.join(projectRoot, ".wiki", "multi.md"),
+        "utf8",
+      );
+      expect(content).not.toContain(`${LT}think`);
+      expect(content).not.toContain("Line one");
+      expect(content).not.toContain("Line two");
+      expect(content).not.toContain("Line three");
+      expect(content).toContain("# Multi");
+    });
+
+    test("write_file leaves content without thinking tags unchanged", async () => {
+      await executeTool(
+        "write_file",
+        {
+          path: ".wiki/clean.md",
+          content: "---\ntype: Guide\ntitle: Clean\n---\n# Clean\n\nNo thinking here.\n",
+        },
+        projectRoot,
+      );
+
+      const content = await readFile(
+        path.join(projectRoot, ".wiki", "clean.md"),
+        "utf8",
+      );
+      expect(content).toBe(
+        "---\ntype: Guide\ntitle: Clean\n---\n# Clean\n\nNo thinking here.\n",
+      );
+    });
+
+    test("edit_file strips thinking tags from new_string", async () => {
+      await executeTool(
+        "write_file",
+        { path: ".wiki/edit.md", content: "# Title\n\nold section\n" },
+        projectRoot,
+      );
+
+      const result = await executeTool(
+        "edit_file",
+        {
+          path: ".wiki/edit.md",
+          old_string: "old section",
+          new_string: `${think("Plan the new section.")}\nnew section`,
+        },
+        projectRoot,
+      );
+
+      expect(result).toBe("Edited .wiki/edit.md");
+
+      const content = await readFile(
+        path.join(projectRoot, ".wiki", "edit.md"),
+        "utf8",
+      );
+      expect(content).not.toContain(`${LT}think`);
+      expect(content).not.toContain("Plan the new section");
+      expect(content).toContain("new section");
+      expect(content).toContain("# Title");
+    });
+
+    test("stripThinkingTags removes all known tag variants and trims leading whitespace", () => {
+      const input = `${think("Plan.")}\n${thinking("thk")}\n${reasoning("rsn")}\n${reflection("rfl")}\n# Title\n`;
+      const stripped = stripThinkingTags(input);
+      expect(stripped).not.toContain(`${LT}think`);
+      expect(stripped).not.toContain(`${LT}thinking`);
+      expect(stripped).not.toContain(`${LT}reasoning`);
+      expect(stripped).not.toContain(`${LT}reflection`);
+      expect(stripped).not.toContain("Plan.");
+      expect(stripped).not.toContain("thk");
+      expect(stripped).toContain("# Title");
+      // Leading whitespace from the removed leading block is trimmed
+      expect(stripped.startsWith("#")).toBe(true);
+    });
+
+    test("stripThinkingTags returns content unchanged when no tags present", () => {
+      const input = "---\ntitle: X\n---\n# X\n";
+      expect(stripThinkingTags(input)).toBe(input);
+    });
+
+    test("stripThinkingTags short-circuits on content with no angle bracket", () => {
+      const input = "plain text no tags here";
+      expect(stripThinkingTags(input)).toBe(input);
     });
   });
 

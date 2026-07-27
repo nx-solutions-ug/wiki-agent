@@ -50,6 +50,29 @@ export function parseArgsStringToArgv(value: string): string[] {
 const MAX_READ_LENGTH = 50_000;
 const MAX_TOOL_RESULT_LENGTH = 10_000;
 
+/**
+ * Pattern matching reasoning/thinking blocks that some Ollama models emit
+ * inside tool-call content (e.g. <think>...</think>, <thinking>...</thinking>,
+ * <reasoning>...</reasoning>, <reflection>...</reflection>). These are internal
+ * chain-of-thought and must never be written to the generated wiki files.
+ * Matches across newlines; tags and their body are removed entirely.
+ */
+const THINKING_TAG_RE = /<(?:think|thinking|reasoning|reflection)\b[^>]*>[\s\S]*?<\/(?:think|thinking|reasoning|reflection)>/g;
+
+/**
+ * Strips reasoning/thinking tag blocks from content before it is persisted to
+ * disk. Also trims leading whitespace left behind by a removed leading block
+ * so the frontmatter (if any) stays at the top of the file. Content without
+ * any thinking tags is returned unchanged.
+ */
+export function stripThinkingTags(content: string): string {
+  if (!content.includes("<")) return content;
+  const stripped = content.replace(THINKING_TAG_RE, "");
+  // A leading thinking block often leaves leading blank lines before the
+  // frontmatter or heading; trim them so the file starts cleanly.
+  return stripped.replace(/^\s+/, "");
+}
+
 interface ToolDefinition {
   type: "function";
   function: {
@@ -184,7 +207,7 @@ export function createTools(projectRoot: string): Tool[] {
     },
     handler: async (args) => {
       const filePath = resolveWikiPath(args.path as string, projectRoot);
-      const content = args.content as string;
+      const content = stripThinkingTags(args.content as string);
 
       await mkdir(path.dirname(filePath), { recursive: true });
       await writeFile(filePath, content, "utf8");
@@ -223,7 +246,7 @@ export function createTools(projectRoot: string): Tool[] {
     handler: async (args) => {
       const filePath = resolveWikiPath(args.path as string, projectRoot);
       const oldString = args.old_string as string;
-      const newString = args.new_string as string;
+      const newString = stripThinkingTags(args.new_string as string);
 
       const content = await readFile(filePath, "utf8");
       const newContent = content.replace(oldString, newString);
