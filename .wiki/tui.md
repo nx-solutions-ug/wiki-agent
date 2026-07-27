@@ -40,6 +40,10 @@ Consecutive `assistant` chunks are merged into a single `DisplayEvent` so stream
 - `error` — shown in red.
 - `done` — shown in green and bold; toggles the "Working…" indicator to "Done".
 
+### `EventLine` rendering
+
+Historical display rows are rendered by a dedicated `EventLine` component rather than inline in `RunView`. `EventLine` is wrapped in `React.memo` so that appending a new event — or merging another assistant chunk into the active row — does not re-render the unchanged rows. The active assistant row is replaced with a new immutable `DisplayEvent` object so React can bail out of the memoized rows and only re-render the row that actually changed.
+
 While the agent is running the footer shows `⏳ Working...`; on completion it switches to `✓ Done` (or `✓ Failed: <message>`) and adds a `Press q or Ctrl+C to exit.` hint.
 
 ## Key bindings
