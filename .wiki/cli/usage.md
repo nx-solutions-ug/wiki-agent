@@ -19,8 +19,8 @@ Exactly one of `--init` or `--update` is required. If neither is present, the he
 
 | Command | Effect |
 |---------|--------|
-| `wiki --init` | Initialize wiki documentation. Drives the model with the "init" user message and writes `.github/workflows/update-wiki.yml`. |
-| `wiki --update` | Refresh an existing wiki. Drives the model with the "update" user message and recent git history. Produces `.wiki/.last-update-report.md` and `.wiki/.last-updated.json` when content changes. |
+| `wiki --init` | Initialize wiki documentation. Drives the model with the "init" user message, writes `.github/workflows/update-wiki.yml`, and adds/refreshes a `## Wiki Agent` section in `AGENTS.md` (or `CLAUDE.md` if only that exists). |
+| `wiki --update` | Refresh an existing wiki. Drives the model with the "update" user message and recent git history. Produces `.wiki/.last-update-report.md` and `.wiki/.last-updated.json` when content changes. Before writing, it performs the staging PR staleness check via the `gh` tool and closes stale `wiki/staging-*` PRs. |
 | `wiki --version` | Print the current package version (read from `package.json`) and exit. |
 | `wiki --help` / `-h` | Print the help text and exit. |
 

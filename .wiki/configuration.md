@@ -14,6 +14,8 @@ Wiki Agent merges configuration from several sources. The exact precedence is fi
 - `baseUrl`: `WIKI_OLLAMA_BASE_URL` → global config `baseUrl` → mode default (`http://localhost:11434` for local, `https://ollama.com` for cloud).
 - `model`: `--model` CLI flag → `.wiki/config.json` `modelOverride` → `WIKI_MODEL` environment variable → `~/.wiki/config.json` `defaultModel` → built-in `kimi-k2.7-code`.
 
+Note: `resolveConfig` reads env vars and global config in the same pass — env wins over global for each field independently.
+
 ## Global config: `~/.wiki/config.json`
 
 Lives in the user's home directory. Created and updated by the TUI's credentials setup wizard (`src/tui/CredentialsSetup.tsx`). The file is written with mode `0o600` because it may contain an API key.

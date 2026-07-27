@@ -9,7 +9,7 @@ tags: [tools, filesystem, sandbox]
 
 The agent in `src/agent.ts` does not speak to the filesystem directly. It receives a list of tool definitions built by `createTools(projectRoot)` in `src/tools.ts` and forwards them as the `tools` field of every Ollama `chat` request. The model returns `tool_calls`, the runtime normalizes the arguments (`normalizeToolCallArgs`) and dispatches them through `executeTool`.
 
-All tools are local to the runtime; no network calls are made by the tools themselves. The agent loop in `src/agent.ts` tracks successful `write_file` and `edit_file` calls, captures the assistant's preceding prose as a per-file change description, and feeds them to `generateUpdateReport` for the PR body. The same loop also writes `.wiki/.last-update-title.txt` with a generated title for the staging PR.
+All tools are local to the runtime; no network calls are made by the tools themselves. The agent loop in `src/agent.ts` tracks successful `write_file` and `edit_file` calls and records the tool result as a per-file change description for the update report. It deliberately does not capture the assistant's preceding prose, because that prose is internal planning narration and leaking it into the published PR body would pollute the record. The same loop also writes `.wiki/.last-update-title.txt` with a generated title for the staging PR. Both descriptions and the final report are passed through `stripThinkingTags` so reasoning blocks do not leak into PR bodies.
 
 ## Tool catalog
 
@@ -116,7 +116,7 @@ The tool is intentionally constrained — it is the only way the agent reaches r
 - **Subcommand allowlist**: only `log`, `diff`, `show`, `ls-files`, `blame`, `status`, `remote`, `describe`, `rev-parse`, `shortlog`, `name-rev`, `ls-tree`, `cat-file`, and `reflog` are permitted. Any other subcommand (e.g. `commit`, `rm`, `push`) returns `Error: git subcommand '<name>' is not permitted.`
 - **Metacharacter guard**: the argument string is rejected if it contains shell-control or redirection metacharacters (`[;&|\`$()<>]`). This prevents command chaining and flag injection even within an allowed subcommand.
 
-This replaced the older general-purpose `execute` shell tool; there is no longer any way for the model to run arbitrary host commands.
+This replaced the older general-purpose `execute` shell tool; there is no longer any way for the model to run arbitrary host commands. Tests in `test/tools.test.ts` also cover command-injection regressions for `grep`, `glob`, `git`, and `gh` (e.g. pattern payloads and argument separators that must not produce shell evaluation or unexpected output).
 
 ## `gh`
 
