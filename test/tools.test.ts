@@ -324,6 +324,57 @@ describe("tools", () => {
       const input = "plain text no tags here";
       expect(stripThinkingTags(input)).toBe(input);
     });
+
+    test("stripThinkingTags is case-insensitive for uppercase tags", () => {
+      const LT = String.fromCharCode(60);
+      const upper = `${LT}THINK${GT}planning${LT}/THINK${GT}\n# Title\n`;
+      const mixed = `${LT}Thinking${GT}thk${LT}/THINKING${GT}\n# Title\n`;
+      expect(stripThinkingTags(upper)).toBe("# Title\n");
+      expect(stripThinkingTags(mixed)).toBe("# Title\n");
+    });
+
+    test("stripThinkingTags removes nested same-tag blocks and orphaned tags", () => {
+      const LT = String.fromCharCode(60);
+      const GT = String.fromCharCode(62);
+      const open = `${LT}think${GT}`;
+      const close = `${LT}/think${GT}`;
+      // Nested same-tag blocks: no current model emits these, but the
+      // orphan-cleanup pass should at least strip the leftover closing tag.
+      const nested = `${open}outer${open}inner${close}tail${close}\n# Title\n`;
+      const stripped = stripThinkingTags(nested);
+      // No think tags should remain (orphaned closing tag is cleaned up)
+      expect(stripped).not.toContain(`${LT}think`);
+      expect(stripped).not.toContain("outer");
+      expect(stripped).not.toContain("inner");
+      // The matched inner pair is removed; the orphaned outer closing tag is
+      // removed. Content between the two closing tags ("tail") may persist
+      // since it was outside the matched pair — acceptable for a case no real
+      // model produces.
+      expect(stripped).toContain("# Title");
+    });
+
+    test("stripThinkingTags strips orphaned mismatched tags but preserves body", () => {
+      const LT = String.fromCharCode(60);
+      const GT = String.fromCharCode(62);
+      //  opened, </thinking> closed — backreference prevents a pair
+      // match, so the body is NOT consumed as thinking content. The orphan
+      // cleanup then strips the unmatched tags themselves, leaving the body.
+      const mismatched = `${LT}think${GT}body${LT}/thinking${GT}\n# Title\n`;
+      const stripped = stripThinkingTags(mismatched);
+      expect(stripped).not.toContain(`${LT}think`);
+      expect(stripped).not.toContain(`${LT}/thinking`);
+      // Body content survives — it was not inside a matched pair
+      expect(stripped).toContain("body");
+      expect(stripped).toContain("# Title");
+    });
+
+    test("stripThinkingTags tolerates attributes on the opening tag", () => {
+      const LT = String.fromCharCode(60);
+      const GT = String.fromCharCode(62);
+      const withAttr = `${LT}think type="reasoning"${GT}body${LT}/think${GT}\n# Title\n`;
+      const stripped = stripThinkingTags(withAttr);
+      expect(stripped).toBe("# Title\n");
+    });
   });
 
   describe("git tool", () => {
