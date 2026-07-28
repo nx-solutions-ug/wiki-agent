@@ -1,12 +1,12 @@
 import { describe, expect, test, beforeEach, afterEach, beforeAll } from "vitest";
 import { mkdtemp, rm, writeFile, readFile, mkdir } from "node:fs/promises";
-import { exec } from "node:child_process";
+import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import os from "node:os";
 import path from "node:path";
 import { createTools, executeTool, parseArgsStringToArgv, stripThinkingTags } from "../src/tools.ts";
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 
 function tempDir(): Promise<string> {
   return mkdtemp(path.join(os.tmpdir(), "wiki-tools-test-"));
@@ -379,7 +379,8 @@ describe("tools", () => {
 
   describe("git tool", () => {
     beforeEach(async () => {
-      await execAsync("git init && git -c user.email=t@t -c user.name=t commit --allow-empty -m first", { cwd: projectRoot });
+      await execFileAsync("git", ["init"], { cwd: projectRoot });
+      await execFileAsync("git", ["-c", "user.email=t@t", "-c", "user.name=t", "commit", "--allow-empty", "-m", "first"], { cwd: projectRoot });
     });
 
     test("rejects non-git subcommands", async () => {
