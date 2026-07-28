@@ -385,13 +385,13 @@ export function createTools(projectRoot: string): Tool[] {
       function: {
         name: "glob",
         description:
-          "Find files matching a pattern. Uses the system find command.",
+          "Find files matching a pattern using the system find command. find searches recursively by default, so *.ts matches at any depth. Use * as a wildcard within a single path segment (e.g. *.ts, src/*.tsx).",
         parameters: {
           type: "object",
           properties: {
             pattern: {
               type: "string",
-              description: "Glob pattern (e.g. *.ts, **/*.tsx). * matches within a directory, ** matches recursively.",
+              description: "Glob pattern. * matches within a single path segment (e.g. *.ts, src/*.tsx). find searches recursively, so *.ts matches at any depth without **.",
             },
             path: {
               type: "string",
@@ -412,9 +412,15 @@ export function createTools(projectRoot: string): Tool[] {
       // SECURITY: Use execFileAsync (not execAsync) to bypass the shell
       // entirely. Arguments are passed as an array, so model-controlled
       // pattern/path values cannot trigger shell command injection.
+      // Normalize ** patterns: find -name uses fnmatch where ** is literal,
+      // not recursive. Strip leading **/ and collapse internal **/ since
+      // find already searches recursively — *.ts matches at any depth.
+      const findPattern = pattern
+        .replace(/^\*\*\//, "")
+        .replace(/\*\*\//g, "");
       const cmdArgs = [
         searchPath,
-        "-name", pattern,
+        "-name", findPattern,
         "-type", "f",
         "-not", "-path", "*/node_modules/*",
         "-not", "-path", "*/.git/*",

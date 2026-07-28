@@ -620,6 +620,27 @@ describe("tools", () => {
       );
       expect(result).not.toContain("vulnerable");
     });
+
+    test("finds files matching a wildcard pattern", async () => {
+      await writeFile(path.join(projectRoot, "test.md"), "# Test\n");
+      const result = await executeTool(
+        "glob",
+        { pattern: "*.md" },
+        projectRoot,
+      );
+      expect(result).toContain("test.md");
+    });
+
+    test("normalizes ** prefix so recursive patterns work with find", async () => {
+      await mkdir(path.join(projectRoot, "src"), { recursive: true });
+      await writeFile(path.join(projectRoot, "src", "nested.ts"), "export {}\n");
+      const result = await executeTool(
+        "glob",
+        { pattern: "**/*.ts" },
+        projectRoot,
+      );
+      expect(result).toContain("nested.ts");
+    });
   });
 
   describe("tool definitions", () => {
