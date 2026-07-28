@@ -579,6 +579,38 @@ describe("tools", () => {
     });
   });
 
+  describe("grep tool", () => {
+    test("prevents command injection via pattern", async () => {
+      await writeFile(path.join(projectRoot, "test.md"), "some content\n");
+      const result = await executeTool(
+        "grep",
+        { pattern: "'; echo 'vulnerable" },
+        projectRoot,
+      );
+      expect(result).not.toContain("vulnerable");
+    });
+
+    test("prevents command injection via path", async () => {
+      await writeFile(path.join(projectRoot, "test.md"), "some content\n");
+      const result = await executeTool(
+        "grep",
+        { pattern: "some", path: ".; echo 'vulnerable #" },
+        projectRoot,
+      );
+      expect(result).not.toContain("vulnerable");
+    });
+
+    test("searches for a pattern and returns matches", async () => {
+      await writeFile(path.join(projectRoot, "test.md"), "hello world\nfoo bar\n");
+      const result = await executeTool(
+        "grep",
+        { pattern: "hello" },
+        projectRoot,
+      );
+      expect(result).toContain("hello world");
+    });
+  });
+
   describe("glob tool", () => {
     test("prevents command injection", async () => {
       const result = await executeTool(

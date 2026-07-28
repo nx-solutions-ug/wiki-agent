@@ -353,17 +353,23 @@ export function createTools(projectRoot: string): Tool[] {
       );
       const globPattern = (args.glob as string) ?? "";
 
-      const cmd = [
-        "grep",
-        "-rn",
-        "--include=" + (globPattern || "*.ts *.tsx *.js *.jsx *.py *.go *.rs *.java *.rb *.php *.md *.yml *.yaml *.json *.toml *.sh"),
-        "--",
-        pattern.replace(/'/g, "'\\''"),
-        searchPath,
-      ].join(" ");
+      // SECURITY: Use execFileAsync (not execAsync) to bypass the shell
+      // entirely. Arguments are passed as an array, so model-controlled
+      // pattern/path/glob values cannot trigger shell command injection.
+      const defaultIncludes = [
+        "*.ts", "*.tsx", "*.js", "*.jsx", "*.py", "*.go", "*.rs",
+        "*.java", "*.rb", "*.php", "*.md", "*.yml", "*.yaml",
+        "*.json", "*.toml", "*.sh",
+      ];
+      const includeFlags = globPattern
+        ? ["--include=" + globPattern]
+        : defaultIncludes.map((g) => "--include=" + g);
+
+      const cmdArgs = ["-rn", ...includeFlags, "--", pattern, searchPath];
 
       try {
-        const { stdout } = await execAsync(cmd, {
+        const { stdout } = await execFileAsync("grep", cmdArgs, {
+          cwd: projectRoot,
           maxBuffer: 1024 * 1024,
         });
         return truncateResult(stdout || "(no matches)");
@@ -403,31 +409,21 @@ export function createTools(projectRoot: string): Tool[] {
         projectRoot,
       );
 
-      const findPattern = pattern
-        .replace(/\*\*/g, "")
-        .replace(/\*/g, "")
-        .replace(/'/g, "'\\''");
-
-      const cmd = [
-        "find",
+      // SECURITY: Use execFileAsync (not execAsync) to bypass the shell
+      // entirely. Arguments are passed as an array, so model-controlled
+      // pattern/path values cannot trigger shell command injection.
+      const cmdArgs = [
         searchPath,
-        "-name",
-        `'${findPattern}'`,
-        "-type",
-        "f",
-        "-not",
-        "-path",
-        "'*/node_modules/*'",
-        "-not",
-        "-path",
-        "'*/.git/*'",
-        "-not",
-        "-path",
-        "'*/dist/*'",
-      ].join(" ");
+        "-name", pattern,
+        "-type", "f",
+        "-not", "-path", "*/node_modules/*",
+        "-not", "-path", "*/.git/*",
+        "-not", "-path", "*/dist/*",
+      ];
 
       try {
-        const { stdout } = await execAsync(cmd, {
+        const { stdout } = await execFileAsync("find", cmdArgs, {
+          cwd: projectRoot,
           maxBuffer: 1024 * 1024,
         });
         return truncateResult(stdout || "(no files found)");
