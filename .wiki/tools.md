@@ -101,7 +101,7 @@ Runs `grep -rn --include=… -- <pattern> <path>` via `execFileAsync`, bypassing
 }
 ```
 
-Uses the system `find` command, which searches recursively from the given path. The pattern is matched against basenames only (`find -name`), not full paths; use the `path` parameter to scope to a subdirectory. `**/` prefixes and internal `**/` sequences are normalized away because `find -name` uses fnmatch where `**` is literal, not recursive — since `find` already searches recursively, `*.ts` matches at any depth without `**`. `find` is invoked with `-type f` and excludes for `node_modules`, `.git`, and `dist`.
+Uses the system `find` command, which searches recursively from the given path. The pattern is matched against basenames only (`find -name`), not full paths; use the `path` parameter to scope to a subdirectory. Leading `**/` and internal `**/` sequences in the pattern are stripped before being handed to `find -name`, because the tool only supports single-segment wildcards. `find` is invoked with `-type f` and excludes for `node_modules`, `.git`, and `dist`.
 
 ## `git`
 
@@ -154,7 +154,7 @@ Read-only inspection (`pr list`, `pr view`, `repo view`, `issue list`, etc.) is 
 }
 ```
 
-Searches code by AST structure (not text) using `@ast-grep/cli` (`ast-grep run --json=compact`). Requires a `pattern` and a `lang`. Note that this tool still builds its command via string interpolation and runs it through `execAsync`; while model-controlled values are single-quote-escaped, it is less hardened than the `grep`/`glob`/`git`/`gh` tools.
+Searches code by AST structure (not text) using `@ast-grep/cli` (`ast-grep run --json=compact`). Requires a `pattern` and a `lang`. Arguments are passed directly via `execFileAsync`, bypassing the shell.
 
 - `pattern` — AST pattern; `$NAME` matches a single node, `$$ARGS` matches zero-or-more nodes (required).
 - `lang` — one of the supported languages: `bash, c, cpp, csharp, css, elixir, go, haskell, html, java, javascript, json, jsx, kotlin, lua, nix, php, python, ruby, rust, scala, solidity, swift, tsx, typescript, yaml` (required).
@@ -173,7 +173,7 @@ Output is the compact JSON array from ast-grep, truncated at `MAX_TOOL_RESULT_LE
 }
 ```
 
-Searches code using an inline ast-grep YAML rule (`ast-grep scan --json=compact --inline-rules`). More powerful than `ast_grep`: supports relational/inside/has constraints and multiple rules separated by `---`. Like `ast_grep`, this tool currently uses `execAsync` with single-quote escaping for its model-controlled inputs.
+Searches code using an inline ast-grep YAML rule (`ast-grep scan --json=compact --inline-rules`). More powerful than `ast_grep`: supports relational/inside/has constraints and multiple rules separated by `---`. Arguments are passed directly via `execFileAsync`, bypassing the shell, and the tool validates that `rule` is a valid YAML structure containing `id`, `language`, and `rule`/`rules` fields.
 
 - `rule` — inline YAML rule(s), each with `id`, `language`, and `rule` fields (required).
 - `path` — relative path to search in (default `.`), resolved via `resolveProjectPath`.
@@ -185,7 +185,7 @@ Output and error handling match `ast_grep`.
 - `read_file`, `ls`, `grep`, `glob`, `git`, `ast_grep`, `ast_search`, `gh` — must stay within the project root.
 - `write_file`, `edit_file` — must stay within `.wiki/`.
 - `gh` — read-only inspection is allowed; `pr close` and `pr comment` are permitted only on wiki staging PRs (branches matching `wiki/staging-*`).
-- `grep`, `glob`, `git`, and `gh` use `execFileAsync` and are not vulnerable to shell command injection via their argument strings.
+- `grep`, `glob`, `git`, `gh`, `ast_grep`, and `ast_search` use `execFileAsync` and are not vulnerable to shell command injection via their argument strings.
 
 Both checks use `path.resolve` and a `startsWith` comparison against the appropriate root plus the platform separator. The tests in `test/tools.test.ts` cover both the in-bounds and out-of-bounds cases, the `git` and `gh` subcommand allowlists and metacharacter guard, `grep`/`glob` command-injection prevention, `ast_grep`/`ast_search` structural matching, the absence of the old general-purpose `execute` shell tool, and reasoning-tag stripping (see below).
 

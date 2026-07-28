@@ -1,9 +1,8 @@
 import { readFile, writeFile, readdir, stat, mkdir } from "node:fs/promises";
-import { exec, execFile } from "node:child_process";
+import { execFile } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
 
-const execAsync = promisify(exec);
 const execFileAsync = promisify(execFile);
 
 export function parseArgsStringToArgv(value: string): string[] {
@@ -550,30 +549,29 @@ export function createTools(projectRoot: string): Tool[] {
         projectRoot,
       );
 
-      const cmd = [
-        "ast-grep",
+      const argv = [
         "run",
         "--json=compact",
         "--lang",
-        `'${lang.replace(/'/g, "'\\''")}'`,
+        lang,
         "--pattern",
-        `'${pattern.replace(/'/g, "'\\''")}'`,
+        pattern,
       ];
 
       const selector = args.selector as string | undefined;
       if (selector) {
-        cmd.push("--selector", `'${selector.replace(/'/g, "'\\''")}'`);
+        argv.push("--selector", selector);
       }
 
       const strictness = args.strictness as string | undefined;
       if (strictness) {
-        cmd.push("--strictness", `'${strictness.replace(/'/g, "'\\''")}'`);
+        argv.push("--strictness", strictness);
       }
 
-      cmd.push(`'${searchPath.replace(/'/g, "'\\''")}'`);
+      argv.push(searchPath);
 
       try {
-        const { stdout } = await execAsync(cmd.join(" "), {
+        const { stdout } = await execFileAsync("ast-grep", argv, {
           cwd: projectRoot,
           maxBuffer: 1024 * 1024,
           timeout: 30_000,
@@ -612,14 +610,27 @@ export function createTools(projectRoot: string): Tool[] {
     },
     handler: async (args) => {
       const rule = args.rule as string;
+      if (
+        !rule ||
+        typeof rule !== "string" ||
+        !/\bid\s*:/i.test(rule) ||
+        !/\blanguage\s*:/i.test(rule) ||
+        !/\b(rule|rules)\s*:/i.test(rule)
+      ) {
+        return truncateResult(
+          "Error: Invalid ast-grep rule. Must be YAML containing id, language, and rule/rules fields.",
+        );
+      }
+
       const searchPath = resolveProjectPath(
         (args.path as string) ?? ".",
         projectRoot,
       );
 
       try {
-        const { stdout } = await execAsync(
-          `ast-grep scan --json=compact --inline-rules '${rule.replace(/'/g, "'\\''")}' '${searchPath.replace(/'/g, "'\\''")}'`,
+        const { stdout } = await execFileAsync(
+          "ast-grep",
+          ["scan", "--json=compact", "--inline-rules", rule, searchPath],
           {
             cwd: projectRoot,
             maxBuffer: 1024 * 1024,
