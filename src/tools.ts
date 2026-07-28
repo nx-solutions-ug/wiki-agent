@@ -353,17 +353,23 @@ export function createTools(projectRoot: string): Tool[] {
       );
       const globPattern = (args.glob as string) ?? "";
 
-      const cmd = [
-        "grep",
-        "-rn",
-        "--include=" + (globPattern || "*.ts *.tsx *.js *.jsx *.py *.go *.rs *.java *.rb *.php *.md *.yml *.yaml *.json *.toml *.sh"),
-        "--",
-        pattern.replace(/'/g, "'\\''"),
-        searchPath,
-      ].join(" ");
+      // SECURITY: Use execFileAsync (not execAsync) to bypass the shell
+      // entirely. Arguments are passed as an array, so model-controlled
+      // pattern/path/glob values cannot trigger shell command injection.
+      const defaultIncludes = [
+        "*.ts", "*.tsx", "*.js", "*.jsx", "*.py", "*.go", "*.rs",
+        "*.java", "*.rb", "*.php", "*.md", "*.yml", "*.yaml",
+        "*.json", "*.toml", "*.sh",
+      ];
+      const includeFlags = globPattern
+        ? ["--include=" + globPattern]
+        : defaultIncludes.map((g) => "--include=" + g);
+
+      const cmdArgs = ["-rn", ...includeFlags, "--", pattern, searchPath];
 
       try {
-        const { stdout } = await execAsync(cmd, {
+        const { stdout } = await execFileAsync("grep", cmdArgs, {
+          cwd: projectRoot,
           maxBuffer: 1024 * 1024,
         });
         return truncateResult(stdout || "(no matches)");
@@ -379,13 +385,13 @@ export function createTools(projectRoot: string): Tool[] {
       function: {
         name: "glob",
         description:
-          "Find files matching a pattern. Uses the system find command.",
+          "Find files matching a filename pattern. Uses the system find command, which searches recursively from the given path.",
         parameters: {
           type: "object",
           properties: {
             pattern: {
               type: "string",
-              description: "Glob pattern (e.g. *.ts, **/*.tsx). * matches within a directory, ** matches recursively.",
+              description: "Glob pattern matched against filenames. * matches within a filename (e.g. *.ts, *.test.ts). find searches recursively, so *.ts matches at any depth without **. Use the path parameter to scope to a subdirectory.",
             },
             path: {
               type: "string",
@@ -403,31 +409,27 @@ export function createTools(projectRoot: string): Tool[] {
         projectRoot,
       );
 
+      // SECURITY: Use execFileAsync (not execAsync) to bypass the shell
+      // entirely. Arguments are passed as an array, so model-controlled
+      // pattern/path values cannot trigger shell command injection.
+      // Normalize ** patterns: find -name uses fnmatch where ** is literal,
+      // not recursive. Strip leading **/ and collapse internal **/ since
+      // find already searches recursively — *.ts matches at any depth.
       const findPattern = pattern
-        .replace(/\*\*/g, "")
-        .replace(/\*/g, "")
-        .replace(/'/g, "'\\''");
-
-      const cmd = [
-        "find",
+        .replace(/^\*\*\//, "")
+        .replace(/\*\*\//g, "");
+      const cmdArgs = [
         searchPath,
-        "-name",
-        `'${findPattern}'`,
-        "-type",
-        "f",
-        "-not",
-        "-path",
-        "'*/node_modules/*'",
-        "-not",
-        "-path",
-        "'*/.git/*'",
-        "-not",
-        "-path",
-        "'*/dist/*'",
-      ].join(" ");
+        "-name", findPattern,
+        "-type", "f",
+        "-not", "-path", "*/node_modules/*",
+        "-not", "-path", "*/.git/*",
+        "-not", "-path", "*/dist/*",
+      ];
 
       try {
-        const { stdout } = await execAsync(cmd, {
+        const { stdout } = await execFileAsync("find", cmdArgs, {
+          cwd: projectRoot,
           maxBuffer: 1024 * 1024,
         });
         return truncateResult(stdout || "(no files found)");

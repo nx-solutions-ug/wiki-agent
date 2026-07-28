@@ -579,6 +579,38 @@ describe("tools", () => {
     });
   });
 
+  describe("grep tool", () => {
+    test("prevents command injection via pattern", async () => {
+      await writeFile(path.join(projectRoot, "test.md"), "some content\n");
+      const result = await executeTool(
+        "grep",
+        { pattern: "'; echo 'vulnerable" },
+        projectRoot,
+      );
+      expect(result).not.toContain("vulnerable");
+    });
+
+    test("prevents command injection via path", async () => {
+      await writeFile(path.join(projectRoot, "test.md"), "some content\n");
+      const result = await executeTool(
+        "grep",
+        { pattern: "some", path: ".; echo 'vulnerable #" },
+        projectRoot,
+      );
+      expect(result).not.toContain("vulnerable");
+    });
+
+    test("searches for a pattern and returns matches", async () => {
+      await writeFile(path.join(projectRoot, "test.md"), "hello world\nfoo bar\n");
+      const result = await executeTool(
+        "grep",
+        { pattern: "hello" },
+        projectRoot,
+      );
+      expect(result).toContain("hello world");
+    });
+  });
+
   describe("glob tool", () => {
     test("prevents command injection", async () => {
       const result = await executeTool(
@@ -587,6 +619,27 @@ describe("tools", () => {
         projectRoot,
       );
       expect(result).not.toContain("vulnerable");
+    });
+
+    test("finds files matching a wildcard pattern", async () => {
+      await writeFile(path.join(projectRoot, "test.md"), "# Test\n");
+      const result = await executeTool(
+        "glob",
+        { pattern: "*.md" },
+        projectRoot,
+      );
+      expect(result).toContain("test.md");
+    });
+
+    test("normalizes ** prefix so recursive patterns work with find", async () => {
+      await mkdir(path.join(projectRoot, "src"), { recursive: true });
+      await writeFile(path.join(projectRoot, "src", "nested.ts"), "export {}\n");
+      const result = await executeTool(
+        "glob",
+        { pattern: "**/*.ts" },
+        projectRoot,
+      );
+      expect(result).toContain("nested.ts");
     });
   });
 
