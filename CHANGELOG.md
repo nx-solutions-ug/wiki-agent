@@ -1,3 +1,10 @@
+## [1.13.2](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.13.1...v1.13.2) (2026-07-28)
+
+
+### Bug Fixes
+
+* resolve review threads and approve PR when all findings addressed ([c2ba538](https://github.com/nx-solutions-ug/wiki-agent/commit/c2ba538b134e4b078a2580f0fd4128bd5bee5fe7))
+
 ## [1.13.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.13.0...v1.13.1) (2026-07-27)
 
 
