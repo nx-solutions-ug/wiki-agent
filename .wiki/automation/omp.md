@@ -36,7 +36,7 @@ Automated OMP jobs triggered by repository events:
 
 - **`triage-issue`** — runs when an issue is opened or when manually dispatched with an issue number. Reacts with 👀, installs OMP, authenticates to Ollama Cloud, expands `.omp/commands/triage-issue.md`, runs OMP, and dispatches a follow-up `issue-triaged` event.
 - **`label-pr`** — runs when a PR is opened, synchronized, or marked ready for review. Skips if the PR already has both a type label (`bug`, `feature`, `enhancement`, `docs`, `chore`) and a priority label (`priority: critical`, `priority: high`, `priority: medium`, `priority: low`). Otherwise, expands `.omp/commands/label-pr.md` and runs OMP.
-- **`review-pr`** — runs on PR open/update or manual dispatch. On `synchronize`, it first checks whether the head commit author/committer looks like an agent/bot (names containing `opencode-agent`, `opencode`, `github-actions`, `omp-agent`, or `chronova-agent`). If the commit is from such an author, the re-review is skipped. The workflow installs the `gh-pr-review` extension, posts an `eyes` reaction, and expands `.omp/commands/review-pr.md` for OMP review. The `review-pr.md` prompt itself determines the review type (dependency / bot / human) from the PR author and posts the appropriate review.
+- **`review-pr`** — runs on PR open/update or manual dispatch. On `synchronize`, it first checks whether the head commit author/committer looks like an agent/bot (names containing `opencode-agent`, `opencode`, `github-actions`, `omp-agent`, or `chronova-agent`). If the commit is from such an author, the re-review is skipped. The workflow installs the `gh-pr-review` extension, posts an `eyes` reaction, and expands `.omp/commands/review-pr.md` for OMP review. The prompt determines the review type (dependency / bot / human) from the PR author and posts the appropriate review. It also resolves previously unresolved review threads and approves the PR when all prior findings have been addressed.
 
 After each triage run, `omp-ci.yml` dispatches `.github/workflows/omp-fix-issue.yml` with the issue number in `client_payload`.
 
@@ -46,7 +46,7 @@ The `.omp/commands/*.md` files contain parameterized prompts used by the OMP wor
 
 - `.omp/commands/triage-issue.md` — triage instructions for new issues.
 - `.omp/commands/label-pr.md` — instructions for assigning type and priority labels.
-- `.omp/commands/review-pr.md` — instructions for reviewing pull requests.
+- `.omp/commands/review-pr.md` — instructions for reviewing pull requests, including deduplication against existing threads, resolving threads when fixes are pushed, and approving once all findings are addressed.
 - `.omp/commands/fix-issue.md` — instructions for generating fixes from triaged issues.
 - `.omp/commands/_pr-commit-push.md` — commit/push instructions appended to freeform `/omp` prompts on PR comments so the agent persists changes to the PR branch.
 
