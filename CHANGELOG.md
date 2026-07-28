@@ -1,3 +1,15 @@
+# [1.14.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.13.2...v1.14.0) (2026-07-28)
+
+
+### Bug Fixes
+
+* include APPROVED state in review thread dedup filter ([2396774](https://github.com/nx-solutions-ug/wiki-agent/commit/239677429a6ae29ad5d0b27efc0dbf76cd6aa0cc))
+
+
+### Features
+
+* add eyes reaction to /omp trigger comments ([28ced37](https://github.com/nx-solutions-ug/wiki-agent/commit/28ced37c1ff7b7d0975b308bd13636ebf9325c5a))
+
 ## [1.13.2](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.13.1...v1.13.2) (2026-07-28)
 
 
