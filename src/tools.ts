@@ -385,13 +385,13 @@ export function createTools(projectRoot: string): Tool[] {
       function: {
         name: "glob",
         description:
-          "Find files matching a pattern using the system find command. find searches recursively by default, so *.ts matches at any depth. Use * as a wildcard within a single path segment (e.g. *.ts, src/*.tsx).",
+          "Find files matching a filename pattern. Uses the system find command, which searches recursively from the given path.",
         parameters: {
           type: "object",
           properties: {
             pattern: {
               type: "string",
-              description: "Glob pattern. * matches within a single path segment (e.g. *.ts, src/*.tsx). find searches recursively, so *.ts matches at any depth without **.",
+              description: "Glob pattern matched against filenames. * matches within a filename (e.g. *.ts, *.test.ts). find searches recursively, so *.ts matches at any depth without **. Use the path parameter to scope to a subdirectory.",
             },
             path: {
               type: "string",
