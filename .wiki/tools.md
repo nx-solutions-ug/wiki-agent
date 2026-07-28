@@ -90,18 +90,18 @@ Lists the immediate children of a directory. Directory entries are suffixed with
 }
 ```
 
-Builds and runs a `grep -rn --include=…` command. The include filter defaults to a broad set of source and config extensions when `glob` is not provided. Single quotes inside the pattern are escaped; matches and stderr are returned, capped at the standard truncation length.
+Runs `grep -rn --include=… -- <pattern> <path>` via `execFileAsync`, bypassing the shell entirely so model-controlled `pattern`/`path` values cannot trigger command injection. The include filter defaults to a broad set of source and config extensions when `glob` is not provided, with each `--include=` passed as a separate argv element. Matches are returned, capped at the standard truncation length.
 
 ## `glob`
 
 ```json
 {
-  "pattern": "**/*.ts",
+  "pattern": "*.ts",
   "path": "src"
 }
 ```
 
-Uses the system `find` command. The pattern is normalized (`**` and `*` are stripped) and `find` is invoked with `-type f` and excludes for `node_modules`, `.git`, and `dist`. The handler does not support full glob semantics — it matches by the file name only, not the path.
+Uses the system `find` command, which searches recursively from the given path. The pattern is matched against basenames only (`find -name`), not full paths; use the `path` parameter to scope to a subdirectory. Leading `**/` and internal `**/` sequences in the pattern are stripped before being handed to `find -name`, because the tool only supports single-segment wildcards. `find` is invoked with `-type f` and excludes for `node_modules`, `.git`, and `dist`.
 
 ## `git`
 
@@ -115,8 +115,9 @@ The tool is intentionally constrained — it is the only way the agent reaches r
 
 - **Subcommand allowlist**: only `log`, `diff`, `show`, `ls-files`, `blame`, `status`, `remote`, `describe`, `rev-parse`, `shortlog`, `name-rev`, `ls-tree`, `cat-file`, and `reflog` are permitted. Any other subcommand (e.g. `commit`, `rm`, `push`) returns `Error: git subcommand '<name>' is not permitted.`
 - **Metacharacter guard**: the argument string is rejected if it contains shell-control or redirection metacharacters (`[;&|\`$()<>]`). This prevents command chaining and flag injection even within an allowed subcommand.
+- **Shell bypass**: arguments are parsed into an argv array and passed to `execFileAsync`, which executes `git` directly without invoking a shell. This removes the possibility of command injection through the argument string entirely.
 
-This replaced the older general-purpose `execute` shell tool; there is no longer any way for the model to run arbitrary host commands.
+The `execute` shell tool that previously allowed arbitrary commands was removed from the tool catalog.
 
 ## `gh`
 
@@ -135,6 +136,8 @@ The tool is constrained the same way as the `git` tool:
 - **Staging-only exceptions**: `pr close` and `pr comment` are allowed, but only when the target PR's `headRefName` starts with `wiki/staging-`. The handler verifies this by calling `gh pr view <number> --json headRefName` before executing the action.
 - **Metacharacter guard**: the argument string is rejected if it contains shell-control or redirection metacharacters (`[;&|\`$()<>]`).
 
+`gh` is also invoked through `execFileAsync`, so shell metacharacters cannot bypass the allowlist by way of command substitution or chaining.
+
 Read-only inspection (`pr list`, `pr view`, `repo view`, `issue list`, etc.) is always allowed. The update-mode staging PR staleness check uses this tool to list open `wiki/staging-*` PRs and compare branch timestamps against the latest commit timestamp, then close any stale ones with a comment before proceeding. See [CLI Usage](../cli/usage.md) for the `GH_TOKEN` environment variable used by the workflow.
 
 ## Argument parsing helper
@@ -151,7 +154,7 @@ Read-only inspection (`pr list`, `pr view`, `repo view`, `issue list`, etc.) is 
 }
 ```
 
-Searches code by AST structure (not text) using `@ast-grep/cli` (`ast-grep run --json=compact`). Requires a `pattern` and a `lang`.
+Searches code by AST structure (not text) using `@ast-grep/cli` (`ast-grep run --json=compact`). Requires a `pattern` and a `lang`. Arguments are passed directly via `execFileAsync`, bypassing the shell.
 
 - `pattern` — AST pattern; `$NAME` matches a single node, `$$ARGS` matches zero-or-more nodes (required).
 - `lang` — one of the supported languages: `bash, c, cpp, csharp, css, elixir, go, haskell, html, java, javascript, json, jsx, kotlin, lua, nix, php, python, ruby, rust, scala, solidity, swift, tsx, typescript, yaml` (required).
@@ -170,7 +173,7 @@ Output is the compact JSON array from ast-grep, truncated at `MAX_TOOL_RESULT_LE
 }
 ```
 
-Searches code using an inline ast-grep YAML rule (`ast-grep scan --json=compact --inline-rules`). More powerful than `ast_grep`: supports relational/inside/has constraints and multiple rules separated by `---`.
+Searches code using an inline ast-grep YAML rule (`ast-grep scan --json=compact --inline-rules`). More powerful than `ast_grep`: supports relational/inside/has constraints and multiple rules separated by `---`. Arguments are passed directly via `execFileAsync`, bypassing the shell, and the tool validates that `rule` is a valid YAML structure containing `id`, `language`, and `rule`/`rules` fields.
 
 - `rule` — inline YAML rule(s), each with `id`, `language`, and `rule` fields (required).
 - `path` — relative path to search in (default `.`), resolved via `resolveProjectPath`.
@@ -182,8 +185,9 @@ Output and error handling match `ast_grep`.
 - `read_file`, `ls`, `grep`, `glob`, `git`, `ast_grep`, `ast_search`, `gh` — must stay within the project root.
 - `write_file`, `edit_file` — must stay within `.wiki/`.
 - `gh` — read-only inspection is allowed; `pr close` and `pr comment` are permitted only on wiki staging PRs (branches matching `wiki/staging-*`).
+- `grep`, `glob`, `git`, `gh`, `ast_grep`, and `ast_search` use `execFileAsync` and are not vulnerable to shell command injection via their argument strings.
 
-Both checks use `path.resolve` and a `startsWith` comparison against the appropriate root plus the platform separator. The tests in `test/tools.test.ts` cover both the in-bounds and out-of-bounds cases, the `git` and `gh` subcommand allowlists and metacharacter guard, `ast_grep`/`ast_search` structural matching, the absence of the old general-purpose `execute` shell tool, and reasoning-tag stripping (see below).
+Both checks use `path.resolve` and a `startsWith` comparison against the appropriate root plus the platform separator. The tests in `test/tools.test.ts` cover both the in-bounds and out-of-bounds cases, the `git` and `gh` subcommand allowlists and metacharacter guard, `grep`/`glob` command-injection prevention, `ast_grep`/`ast_search` structural matching, the absence of the old general-purpose `execute` shell tool, and reasoning-tag stripping (see below).
 
 ## Reasoning-tag stripping
 

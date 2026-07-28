@@ -479,6 +479,15 @@ describe("tools", () => {
       expect(result).not.toContain("Error:");
       expect(result.trim().startsWith("[")).toBe(true);
     });
+
+    test("validates rule parameter shape", async () => {
+      const result = await executeTool(
+        "ast_search",
+        { rule: "invalid rule without id or lang", path: "." },
+        projectRoot,
+      );
+      expect(result).toContain("Error: Invalid ast-grep rule");
+    });
   });
 
   describe("gh tool", () => {
