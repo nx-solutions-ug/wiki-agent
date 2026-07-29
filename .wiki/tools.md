@@ -42,7 +42,6 @@ All tools are local to the runtime; no network calls are made by the tools thems
 
 The handler splits on newlines, slices `[offset, offset + limit)`, rejoins, and passes through the tool-result truncator. The path is verified to stay inside the project root.
 
-The handler splits on newlines, slices `[offset, offset + limit)`, rejoins, and passes through the tool-result truncator. The path is verified to stay inside the project root.
 
 ## `write_file`
 
