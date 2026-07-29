@@ -5,6 +5,11 @@ import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
 
+// Directories excluded from system file-traversal tools (grep/find). These
+// are massive/generated/VCS directories that tools like `grep` and `find`
+// would otherwise traverse even though no useful results live inside.
+const EXCLUDED_DIRS = ["node_modules", ".git", "dist", ".wiki"];
+
 export function parseArgsStringToArgv(value: string): string[] {
   const tokens: string[] = [];
   let currentToken = '';
@@ -372,10 +377,7 @@ export function createTools(projectRoot: string): Tool[] {
       // (e.g., from ~13ms to ~4ms for a 1000-file node_modules/ in local tests).
       const cmdArgs = [
         "-rn",
-        "--exclude-dir=node_modules",
-        "--exclude-dir=.git",
-        "--exclude-dir=dist",
-        "--exclude-dir=.wiki",
+        ...EXCLUDED_DIRS.map((dir) => `--exclude-dir=${dir}`),
         ...includeFlags,
         "--",
         pattern,
@@ -437,9 +439,7 @@ export function createTools(projectRoot: string): Tool[] {
         searchPath,
         "-name", findPattern,
         "-type", "f",
-        "-not", "-path", "*/node_modules/*",
-        "-not", "-path", "*/.git/*",
-        "-not", "-path", "*/dist/*",
+        ...EXCLUDED_DIRS.flatMap((dir) => ["-not", "-path", `*/${dir}/*`]),
       ];
 
       try {
