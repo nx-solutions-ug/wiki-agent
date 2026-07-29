@@ -40,7 +40,7 @@ All tools are local to the runtime; no network calls are made by the tools thems
 - `offset` — 0-indexed line offset, default `0`.
 - `limit` — maximum lines to return, default `500`.
 
-The handler splits on newlines, slices `[offset, offset + limit)`, rejoins, and passes through the tool-result truncator. The path is verified to stay inside the project root.
+The handler reads the file with a `createReadStream` + `readline` pipeline, streaming lines lazily and stopping as soon as `offset + limit` lines have been seen. This avoids loading a massive file into memory when only a small slice is requested. The collected lines are joined and passed through the tool-result truncator. The path is verified to stay inside the project root.
 
 
 ## `write_file`
