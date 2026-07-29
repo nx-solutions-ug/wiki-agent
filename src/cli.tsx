@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import React from "react";
 import { render as inkRender } from "ink";
-import { exec } from "node:child_process";
+import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { runAgent } from "./agent.js";
 import {
@@ -12,7 +12,7 @@ import { getHelpText } from "./prompt.js";
 import { VERSION } from "./version.js";
 import { App } from "./tui/App.js";
 
-const execAsync = promisify(exec);
+const execFileAsync = promisify(execFile);
 interface CliArgs {
   command: "init" | "update" | null;
   print: boolean;
@@ -62,7 +62,8 @@ function parseArgs(argv: string[]): CliArgs {
 
 async function getGitSummary(cwd: string): Promise<string> {
   try {
-    const { stdout } = await execAsync("git log --oneline -30", {
+    // SECURITY: Use execFileAsync (not execAsync) to bypass the shell
+    const { stdout } = await execFileAsync("git", ["log", "--oneline", "-30"], {
       cwd,
       maxBuffer: 1024 * 1024,
     });
