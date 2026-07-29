@@ -4,4 +4,4 @@
 
 ## 2024-11-20 - System Tools & Default Exclusions
 **Learning:** System tools like `grep` and `find` (unlike code-aware tools like `rg` or `ast-grep`) do not respect `.gitignore` by default. Invoking them without explicit exclusions on the project root causes them to deeply traverse massive directories like `node_modules` or `.git`, resulting in severe performance bottlenecks (unnecessary disk I/O and processing).
-**Action:** Whenever invoking system file-traversal tools in the codebase, always hardcode explicit exclusions for known massive/generated directories (e.g. `--exclude-dir=node_modules`, `--exclude-dir=.git`, `--exclude-dir=dist`, `--exclude-dir=.wiki`).\n
+**Action:** Whenever invoking system file-traversal tools in the codebase, always hardcode explicit exclusions for known massive/generated directories (e.g. `--exclude-dir=node_modules`, `--exclude-dir=.git`, `--exclude-dir=dist`, `--exclude-dir=.wiki`).
