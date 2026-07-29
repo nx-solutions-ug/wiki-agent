@@ -618,6 +618,21 @@ describe("tools", () => {
       );
       expect(result).toContain("hello world");
     });
+
+    test("excludes files under node_modules from results", async () => {
+      await mkdir(path.join(projectRoot, "node_modules", "sentinel-pkg"), { recursive: true });
+      await writeFile(
+        path.join(projectRoot, "node_modules", "sentinel-pkg", "match-me.js"),
+        "hello from dependency\n",
+      );
+      const result = await executeTool(
+        "grep",
+        { pattern: "hello" },
+        projectRoot,
+      );
+      expect(result).not.toContain("node_modules");
+      expect(result).not.toContain("match-me.js");
+    });
   });
 
   describe("glob tool", () => {
