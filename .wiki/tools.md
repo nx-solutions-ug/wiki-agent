@@ -42,6 +42,7 @@ All tools are local to the runtime; no network calls are made by the tools thems
 
 The handler splits on newlines, slices `[offset, offset + limit)`, rejoins, and passes through the tool-result truncator. The path is verified to stay inside the project root.
 
+
 ## `write_file`
 
 ```json
@@ -90,7 +91,9 @@ Lists the immediate children of a directory. Directory entries are suffixed with
 }
 ```
 
-Runs `grep -rn --include=… -- <pattern> <path>` via `execFileAsync`, bypassing the shell entirely so model-controlled `pattern`/`path` values cannot trigger command injection. The include filter defaults to a broad set of source and config extensions when `glob` is not provided, with each `--include=` passed as a separate argv element. Matches are returned, capped at the standard truncation length.
+Runs `grep -rn --exclude-dir=… --include=… -- <pattern> <path>` via `execFileAsync`, bypassing the shell entirely so model-controlled `pattern`/`path` values cannot trigger command injection. The include filter defaults to a broad set of source and config extensions when `glob` is not provided, with each `--include=` passed as a separate argv element.
+
+To avoid severe disk I/O from traversing massive generated/VCS directories, the search always excludes `node_modules`, `.git`, `dist`, and `.wiki` via `--exclude-dir=`. Matches are returned, capped at the standard truncation length.
 
 ## `glob`
 
@@ -101,7 +104,9 @@ Runs `grep -rn --include=… -- <pattern> <path>` via `execFileAsync`, bypassing
 }
 ```
 
-Uses the system `find` command, which searches recursively from the given path. The pattern is matched against basenames only (`find -name`), not full paths; use the `path` parameter to scope to a subdirectory. Leading `**/` and internal `**/` sequences in the pattern are stripped before being handed to `find -name`, because the tool only supports single-segment wildcards. `find` is invoked with `-type f` and excludes for `node_modules`, `.git`, and `dist`.
+Uses the system `find` command, which searches recursively from the given path. The pattern is matched against basenames only (`find -name`), not full paths; use the `path` parameter to scope to a subdirectory. Leading `**/` and internal `**/` sequences in the pattern are stripped before being handed to `find -name`, because the tool only supports single-segment wildcards.
+
+`find` is invoked with `-type f` and prunes the same massive/generated/VCS directories as `grep`: `node_modules`, `.git`, `dist`, and `.wiki` (via `-not -path */<dir>/*`).
 
 ## `git`
 
@@ -186,8 +191,9 @@ Output and error handling match `ast_grep`.
 - `write_file`, `edit_file` — must stay within `.wiki/`.
 - `gh` — read-only inspection is allowed; `pr close` and `pr comment` are permitted only on wiki staging PRs (branches matching `wiki/staging-*`).
 - `grep`, `glob`, `git`, `gh`, `ast_grep`, and `ast_search` use `execFileAsync` and are not vulnerable to shell command injection via their argument strings.
+- `grep` and `glob` share one directory exclusion list (`node_modules`, `.git`, `dist`, `.wiki`) so they never waste I/O traversing massive generated or VCS trees.
 
-Both checks use `path.resolve` and a `startsWith` comparison against the appropriate root plus the platform separator. The tests in `test/tools.test.ts` cover both the in-bounds and out-of-bounds cases, the `git` and `gh` subcommand allowlists and metacharacter guard, `grep`/`glob` command-injection prevention, `ast_grep`/`ast_search` structural matching, the absence of the old general-purpose `execute` shell tool, and reasoning-tag stripping (see below).
+Both checks use `path.resolve` and a `startsWith` comparison against the appropriate root plus the platform separator. The tests in `test/tools.test.ts` cover both the in-bounds and out-of-bounds cases, the `git` and `gh` subcommand allowlists and metacharacter guard, `grep`/`glob` command-injection prevention and directory exclusions, `ast_grep`/`ast_search` structural matching, the absence of the old general-purpose `execute` shell tool, and reasoning-tag stripping (see below).
 
 ## Reasoning-tag stripping
 
