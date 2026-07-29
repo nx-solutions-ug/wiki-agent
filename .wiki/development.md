@@ -37,7 +37,7 @@ bun run test
 Runs `vitest run` against the test files in `test/`. There are eight Vitest test files:
 
 - `config.test.ts` — global/project config I/O and `resolveConfig` precedence.
-- `tools.test.ts` — path-safety checks, file read/write/edit, tool definition shape, `git` and `gh` subcommand allowlists, metacharacter guard, `grep`/`glob` command-injection prevention, wildcard restoration, directory exclusions (`node_modules`, `.git`, `dist`, `.wiki`), `ast_grep`/`ast_search` structural matching, `parseArgsStringToArgv`, and reasoning-tag stripping (the four `think`/`thinking`/`reasoning`/`reflection` tag pairs) in `write_file`/`edit_file`.
+- `tools.test.ts` — path-safety checks, file read/write/edit, `read_file` streaming behavior, tool definition shape, `git` and `gh` subcommand allowlists, metacharacter guard, `grep`/`glob` command-injection prevention, wildcard restoration, directory exclusions (`node_modules`, `.git`, `dist`, `.wiki`), `ast_grep`/`ast_search` structural matching, `parseArgsStringToArgv`, and reasoning-tag stripping (the four `think`/`thinking`/`reasoning`/`reflection` tag pairs) in `write_file`/`edit_file`.
 - `index-middleware.test.ts` — `index.md` regeneration, exclusions, error propagation for invalid frontmatter, and idempotency.
 - `prompt.test.ts` — system prompt, user message templates, and help text contents.
 - `report.test.ts` — `generateUpdateReport`: no-op reports, created/edited listings, per-file description blockquotes, truncation, whitespace collapse, and summary counts.
