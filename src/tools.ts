@@ -1,4 +1,6 @@
 import { readFile, writeFile, readdir, stat, mkdir } from "node:fs/promises";
+import { createReadStream } from "node:fs";
+import readline from "node:readline";
 import { execFile } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -200,11 +202,29 @@ export function createTools(projectRoot: string): Tool[] {
       const offset = (args.offset as number) ?? 0;
       const limit = (args.limit as number) ?? 500;
 
-      const content = await readFile(filePath, "utf8");
-      const lines = content.split("\n");
-      const end = Math.min(offset + limit, lines.length);
-      const result = lines.slice(offset, end).join("\n");
+      // PERFORMANCE OPTIMIZATION (Bolt ⚡):
+      // Reading large files via readFile and splitting the entire content by newline
+      // is slow and consumes massive memory for large files (e.g. minified JS, DB dumps).
+      // Using createReadStream with readline processes lines lazily and aborts reading
+      // immediately after reaching the desired slice (offset + limit).
+      const selectedLines: string[] = [];
+      const stream = createReadStream(filePath, { encoding: "utf8" });
+      const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
 
+      let currentLine = 0;
+      for await (const line of rl) {
+        if (currentLine >= offset && currentLine < offset + limit) {
+          selectedLines.push(line);
+        }
+        currentLine++;
+        if (currentLine >= offset + limit) {
+          rl.close();
+          stream.destroy();
+          break;
+        }
+      }
+
+      const result = selectedLines.join("\n");
       return truncateResult(result);
     },
   };

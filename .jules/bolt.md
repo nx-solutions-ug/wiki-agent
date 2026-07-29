@@ -5,3 +5,7 @@
 ## 2024-11-20 - System Tools & Default Exclusions
 **Learning:** System tools like `grep` and `find` (unlike code-aware tools like `rg` or `ast-grep`) do not respect `.gitignore` by default. Invoking them without explicit exclusions on the project root causes them to deeply traverse massive directories like `node_modules` or `.git`, resulting in severe performance bottlenecks (unnecessary disk I/O and processing).
 **Action:** Whenever invoking system file-traversal tools in the codebase, always hardcode explicit exclusions for known massive/generated directories (e.g. `--exclude-dir=node_modules`, `--exclude-dir=.git`, `--exclude-dir=dist`, `--exclude-dir=.wiki`).
+
+## 2024-11-21 - File Reading Overhead
+**Learning:** Loading the entire contents of a file into a single string in memory via `readFile` (e.g. `const content = await readFile(filePath, "utf8"); content.split("\n")`) just to return a specific small range of lines using an `offset` and `limit` creates major performance bottlenecks on large files (e.g., massive JSON blobs, minified JS or CSV dumps). This bloats memory usage unnecessarily and places significant pressure on garbage collection.
+**Action:** When creating tools that return slices of files, always implement them defensively for massive files by using a stream based approach, e.g., with `createReadStream` and `node:readline`. This allows to lazily loop line-by-line and crucially, call `.destroy()` on the stream the exact moment the `limit` is met to halt disk I/O instantly.
