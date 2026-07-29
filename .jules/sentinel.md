@@ -14,7 +14,10 @@
 
 **Learning:** `execAsync` joins everything into one shell string, so space-separated values within a single `--include=` flag work (the shell word-splits them... actually no, it wouldn't work correctly there either, but the `--include` was one flag covering all extensions as a glob). With `execFileAsync`, each `--include=` must be a separate array element: `["--include=*.ts", "--include=*.tsx", ...]`. The behavioral difference between shell string execution and array-based execution affects flag handling.
 
-**Prevention:** When converting from `execAsync(cmd.join(" "))` to `execFileAsync(cmd, args)`, carefully audit how multi-value flags work. Split space-separated lists into individual flag arguments.## 2026-07-28 - Removed remaining execAsync instances
+**Prevention:** When converting from `execAsync(cmd.join(" "))` to `execFileAsync(cmd, args)`, carefully audit how multi-value flags work. Split space-separated lists into individual flag arguments.
+
+## 2026-07-28 - Removed remaining execAsync instances
+
 **Vulnerability:** `execAsync` (`child_process.exec`) was still used in `src/cli.tsx` and `test/tools.test.ts`. While not directly exposing user input to shell execution in these specific cases, its presence risks accidental command injection if arguments ever become dynamic or if the pattern is copied elsewhere.
 **Learning:** Even internal utility scripts or testing commands should avoid `child_process.exec` to maintain a secure baseline. Using `execFile` avoids the overhead and risks of a shell entirely.
 **Prevention:** We have completely purged `execAsync` from the codebase and replaced it with `execFileAsync`. Any new shell executions should follow this pattern by passing arguments as an array to `execFileAsync`.
