@@ -1,6 +1,7 @@
-import { readFile, writeFile, readdir, stat } from "node:fs/promises";
+import { readFile, writeFile, readdir, stat, open } from "node:fs/promises";
 import path from "node:path";
 import { parse } from "yaml";
+import { StringDecoder } from "node:string_decoder";
 
 const INDEX_FILE = "index.md";
 const EXCLUDED_FILES = new Set([INDEX_FILE, "_plan.md"]);
@@ -144,12 +145,42 @@ interface FrontmatterMetadata {
 async function parseFrontmatter(
   filePath: string,
 ): Promise<FrontmatterMetadata> {
-  let content: string;
+  let content = "";
+  let fd;
 
   try {
-    content = await readFile(filePath, "utf8");
+    // PERFORMANCE OPTIMIZATION (Bolt ⚡):
+    // Previously, readFile was used to load the entire content of every markdown
+    // file into memory just to extract the frontmatter at the top. For large files,
+    // this creates massive memory bloat and GC pressure.
+    // We now read the file in chunks and abort early if the file doesn't start
+    // with frontmatter, or stop reading once we've found the end of the frontmatter block.
+    fd = await open(filePath, "r");
+    const buffer = Buffer.alloc(4096);
+    const decoder = new StringDecoder("utf8");
+
+    while (true) {
+      const { bytesRead } = await fd.read(buffer, 0, 4096, null);
+      if (bytesRead === 0) {
+        content += decoder.end();
+        break;
+      }
+      content += decoder.write(buffer.subarray(0, bytesRead));
+
+      // Frontmatter must start at the very beginning of the file
+      if (!content.startsWith("---")) return {};
+
+      // If we've found the closing tag, we have enough content
+      if (/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/u.test(content)) break;
+
+      // Safety bound: if we've read 64KB and still haven't found the end,
+      // it's likely not valid frontmatter or excessively large.
+      if (content.length > 65536) break;
+    }
   } catch {
     return {};
+  } finally {
+    if (fd) await fd.close().catch(() => {});
   }
 
   const block = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/u.exec(content)?.[1];
