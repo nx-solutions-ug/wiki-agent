@@ -1,4 +1,5 @@
-import { readFile, writeFile, readdir, stat } from "node:fs/promises";
+import { readFile, writeFile, readdir, stat, open } from "node:fs/promises";
+import { StringDecoder } from "node:string_decoder";
 import path from "node:path";
 import { parse } from "yaml";
 
@@ -144,12 +145,44 @@ interface FrontmatterMetadata {
 async function parseFrontmatter(
   filePath: string,
 ): Promise<FrontmatterMetadata> {
-  let content: string;
+  let content = "";
+  let fd;
 
   try {
-    content = await readFile(filePath, "utf8");
+    fd = await open(filePath, "r");
+    const buffer = Buffer.alloc(4096);
+    const decoder = new StringDecoder("utf8");
+
+    while (true) {
+      const { bytesRead } = await fd.read(buffer, 0, buffer.length, null);
+      if (bytesRead === 0) {
+        content += decoder.end();
+        break;
+      }
+      content += decoder.write(buffer.subarray(0, bytesRead));
+
+      // PERFORMANCE OPTIMIZATION (Bolt ⚡):
+      // Stop reading early if the file doesn't start with YAML frontmatter.
+      // This prevents scanning massive files (e.g. minified JS, DB dumps) that
+      // accidentally have a .md extension or are passed in incorrectly.
+      if (
+        content.length >= 5 &&
+        !content.startsWith("---\n") &&
+        !content.startsWith("---\r\n")
+      ) {
+        break;
+      }
+
+      // Check if we have loaded the full frontmatter block
+      const match = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/u.exec(content);
+      if (match) {
+        break;
+      }
+    }
   } catch {
     return {};
+  } finally {
+    await fd?.close();
   }
 
   const block = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/u.exec(content)?.[1];
