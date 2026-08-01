@@ -419,6 +419,27 @@ describe("tools", () => {
       expect(result).toContain("metacharacters");
     });
 
+    test("rejects output redirection", async () => {
+      const flags = ["-O", "--output"];
+      for (const flag of flags) {
+        const result = await executeTool(
+          "git",
+          { args: `log ${flag} evil.txt` },
+          projectRoot,
+        );
+        expect(result).toContain("output redirection flags are not permitted in git");
+      }
+    });
+
+    test("allows valid read-only short flags in git", async () => {
+      // -o is valid for git ls-files, -f for git blame, -F for git log grep
+      const resultLsFiles = await executeTool("git", { args: "ls-files -o" }, projectRoot);
+      expect(resultLsFiles).not.toContain("not permitted");
+
+      const resultBlame = await executeTool("git", { args: "blame -f package.json" }, projectRoot);
+      expect(resultBlame).not.toContain("not permitted");
+    });
+
     test("allows read-only log in a git repo", async () => {
 
       const result = await executeTool(
@@ -568,6 +589,34 @@ describe("tools", () => {
         projectRoot,
       );
       expect(result).toContain("metacharacters");
+    });
+
+    test("rejects mutating flags and output redirection", async () => {
+      const flags = ["-X", "--method", "-f", "-F", "--input", "--raw-field", "--field"];
+      for (const flag of flags) {
+        const result = await executeTool(
+          "gh",
+          { args: `api ${flag} /repos/owner/repo/issues` },
+          projectRoot,
+        );
+        expect(result).toContain("mutating flags and output redirection are not permitted");
+
+        const resultEq = await executeTool(
+          "gh",
+          { args: `api ${flag}=/repos/owner/repo/issues` },
+          projectRoot,
+        );
+        expect(resultEq).toContain("mutating flags and output redirection are not permitted");
+      }
+    });
+
+    test("rejects short mutating flags with concatenated values", async () => {
+      const result = await executeTool(
+        "gh",
+        { args: "api -XPOST /repos/owner/repo/issues" },
+        projectRoot,
+      );
+      expect(result).toContain("mutating flags and output redirection are not permitted");
     });
 
     test("rejects issue create", async () => {

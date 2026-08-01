@@ -515,6 +515,23 @@ export function createTools(projectRoot: string): Tool[] {
         return `Error: git subcommand '${subcommand}' is not permitted. Only read-only inspection subcommands are allowed (log, diff, show, ls-files, blame, status, remote, describe, rev-parse, shortlog, name-rev, ls-tree, cat-file, reflog).`;
       }
 
+      // Explicitly reject output redirection for git (e.g. -O, --output)
+      // Note: -o is allowed for git ls-files (-o means --others).
+      // -F and -f are safe read-only flags for git log/blame.
+      const forbiddenGitFlags = ["-O", "--output", "--output-indicator-new", "--output-indicator-old", "--output-indicator-context"];
+      if (
+        tokens.some((token) =>
+          forbiddenGitFlags.some(
+            (flag) => {
+              if (token === flag || token.startsWith(`${flag}=`)) return true;
+              return false;
+            }
+          ),
+        )
+      ) {
+        return "Error: output redirection flags are not permitted in git.";
+      }
+
       // Reject shell metacharacters as defense-in-depth, although execFile
       // prevents command chaining or shell evaluation.
       if (/[;&|`$()<>]/.test(argString)) {
@@ -730,6 +747,28 @@ export function createTools(projectRoot: string): Tool[] {
       const subcommand = tokens[0] ?? "";
       if (!ALLOWED_GH_SUBCOMMANDS[subcommand]) {
         return `Error: gh subcommand '${subcommand}' is not permitted. Only inspection subcommands and pr close/comment on wiki staging PRs are allowed (pr, issue, repo, run, api, search, release, label, workflow).`;
+      }
+
+      // Explicitly reject mutating flags and output redirection for gh api
+      const forbiddenGhFlags = ["-X", "--method", "-f", "-F", "--input", "--raw-field", "--field"];
+      if (
+        tokens.some((token) =>
+          forbiddenGhFlags.some(
+            (flag) => {
+              if (token === flag || token.startsWith(`${flag}=`)) return true;
+              // Check for concatenated short flags (e.g. -XPOST or -fVALUE).
+              // Only apply if it's a short flag (-X) and token starts with it.
+              // To avoid false positives on legitimate arguments like `"-foo"`,
+              // we only match if the token starts with the short flag but NOT with `--`.
+              if (flag.length === 2 && token.startsWith(flag) && !token.startsWith("--")) {
+                  return true;
+              }
+              return false;
+            }
+          ),
+        )
+      ) {
+        return "Error: mutating flags and output redirection are not permitted.";
       }
 
       const action = tokens[1] ?? "";

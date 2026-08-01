@@ -23,3 +23,9 @@
 **Learning:** Even internal utility scripts or testing commands should avoid `child_process.exec` to maintain a secure baseline. Using `execFile` avoids the overhead and risks of a shell entirely.
 
 **Prevention:** We have completely purged `execAsync` from the codebase and replaced it with `execFileAsync`. Any new shell executions should follow this pattern by passing arguments as an array to `execFileAsync`.
+
+## 2026-07-28 - Unrestricted arguments in CLI tools
+
+**Vulnerability:** The `git` and `gh` tools use strict whitelists for permitted subcommands but did not restrict the arguments passed to those subcommands. This allowed potentially dangerous mutating flags (`-X`, `--method`, `-f`, `-F`, `--input`) or output redirection (`--output`, `-o`) for otherwise "read-only" subcommands like `git log` or `gh api`. This could lead to arbitrary file writes or unauthorized API state changes.
+**Learning:** Even when restricting subcommands using a strict whitelist, the flags passed to them can also pose a significant security risk if not sanitized or restricted properly.
+**Prevention:** Always use strict whitelists for permitted actions AND explicitly reject mutating flags or output redirection when implementing or maintaining CLI wrappers, especially for read-only tools.
