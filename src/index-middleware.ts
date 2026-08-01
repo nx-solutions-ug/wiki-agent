@@ -1,5 +1,6 @@
-import { readFile, writeFile, readdir, stat } from "node:fs/promises";
+import { readFile, writeFile, readdir, stat, open } from "node:fs/promises";
 import path from "node:path";
+import { StringDecoder } from "node:string_decoder";
 import { parse } from "yaml";
 
 const INDEX_FILE = "index.md";
@@ -144,12 +145,47 @@ interface FrontmatterMetadata {
 async function parseFrontmatter(
   filePath: string,
 ): Promise<FrontmatterMetadata> {
-  let content: string;
+  let content = "";
+  let fileHandle;
 
   try {
-    content = await readFile(filePath, "utf8");
+    fileHandle = await open(filePath, "r");
+    const decoder = new StringDecoder("utf8");
+    const buffer = Buffer.alloc(4096);
+
+    while (true) {
+      const result = await fileHandle.read(buffer, 0, buffer.length, null);
+      if (result.bytesRead === 0) {
+        content += decoder.end();
+        break;
+      }
+      content += decoder.write(buffer.subarray(0, result.bytesRead));
+
+      // Stop early if the file definitely does not start with frontmatter
+      if (content.length >= 4 && !content.startsWith("---\n") && !content.startsWith("---\r\n")) {
+        break;
+      }
+
+      // Stop reading as soon as we have the full frontmatter block
+      if (/^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)/u.test(content)) {
+        break;
+      }
+
+      // Safety bound: don't read huge files looking for missing end marker
+      if (content.length > 16384) {
+        break;
+      }
+    }
   } catch {
     return {};
+  } finally {
+    if (fileHandle) {
+      try {
+        await fileHandle.close();
+      } catch {
+        // Ignore close errors
+      }
+    }
   }
 
   const block = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/u.exec(content)?.[1];
