@@ -1,4 +1,5 @@
-import { readFile, writeFile, readdir, stat } from "node:fs/promises";
+import { readFile, writeFile, readdir, stat, open } from "node:fs/promises";
+import { StringDecoder } from "node:string_decoder";
 import path from "node:path";
 import { parse } from "yaml";
 
@@ -144,22 +145,50 @@ interface FrontmatterMetadata {
 async function parseFrontmatter(
   filePath: string,
 ): Promise<FrontmatterMetadata> {
-  let content: string;
+  let fd;
+  let content = "";
+  let frontmatterBlock: string | null = null;
 
   try {
-    content = await readFile(filePath, "utf8");
+    fd = await open(filePath, "r");
+    const buffer = Buffer.alloc(4096);
+    const decoder = new StringDecoder("utf8");
+    let bytesReadTotal = 0;
+
+    // Read chunks until EOF to find frontmatter, bailing early if no leading ---
+    while (true) {
+      const res = await fd.read(buffer, 0, 4096, null);
+      if (res.bytesRead === 0) break;
+
+      bytesReadTotal += res.bytesRead;
+      content += decoder.write(buffer.subarray(0, res.bytesRead));
+
+      // If the first chunk doesn't start with ---, it has no frontmatter
+      if (bytesReadTotal <= 4096 && !content.startsWith("---\n") && !content.startsWith("---\r\n")) {
+        break;
+      }
+
+      // We look for the closing ---
+      const match = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/u.exec(content);
+      if (match) {
+        frontmatterBlock = match[1];
+        break;
+      }
+    }
   } catch {
     return {};
+  } finally {
+    if (fd) {
+      await fd.close().catch(() => {});
+    }
   }
 
-  const block = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/u.exec(content)?.[1];
-
-  if (!block) return {};
+  if (!frontmatterBlock) return {};
 
   let fields: unknown;
 
   try {
-    fields = parse(`\n${block}`, {
+    fields = parse(`\n${frontmatterBlock}`, {
       maxAliasCount: 100,
       schema: "core",
       uniqueKeys: true,

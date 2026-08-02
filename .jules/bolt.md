@@ -9,3 +9,7 @@
 ## 2024-11-21 - File Reading Overhead
 **Learning:** Loading the entire contents of a file into a single string in memory via `readFile` (e.g. `const content = await readFile(filePath, "utf8"); content.split("\n")`) just to return a specific small range of lines using an `offset` and `limit` creates major performance bottlenecks on large files (e.g., massive JSON blobs, minified JS or CSV dumps). This bloats memory usage unnecessarily and places significant pressure on garbage collection.
 **Action:** When creating tools that return slices of files, always implement them defensively for massive files by using a stream based approach, e.g., with `createReadStream` and `node:readline`. This allows to lazily loop line-by-line and crucially, call `.destroy()` on the stream the exact moment the `limit` is met to halt disk I/O instantly.
+
+## 2024-11-22 - Frontmatter Parsing Chunking
+**Learning:** Loading the entire contents of a file into a single string in memory just to extract the frontmatter (e.g., using `fs.readFile` and regex over the entire file) creates massive performance bottlenecks and high memory usage, especially for large markdown files.
+**Action:** When extracting frontmatter, implement defensive parsing by using chunked reading (e.g., `fs.promises.open` and `fd.read`) with a `StringDecoder` to lazily search for the frontmatter boundary, halting I/O as soon as the closing `---` is found or it's determined that the file lacks frontmatter.
