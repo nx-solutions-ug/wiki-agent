@@ -509,16 +509,41 @@ export function createTools(projectRoot: string): Tool[] {
         reflog: true,
       };
 
+      // Reject shell metacharacters as defense-in-depth, although execFile
+      // prevents command chaining or shell evaluation.
+      if (/[;&|`$()<>]/.test(argString)) {
+        return "Error: shell metacharacters are not permitted in git arguments.";
+      }
+
       const tokens = parseArgsStringToArgv(argString);
       const subcommand = tokens[0] ?? "";
       if (!ALLOWED_GIT_SUBCOMMANDS[subcommand]) {
         return `Error: git subcommand '${subcommand}' is not permitted. Only read-only inspection subcommands are allowed (log, diff, show, ls-files, blame, status, remote, describe, rev-parse, shortlog, name-rev, ls-tree, cat-file, reflog).`;
       }
 
-      // Reject shell metacharacters as defense-in-depth, although execFile
-      // prevents command chaining or shell evaluation.
-      if (/[;&|`$()<>]/.test(argString)) {
-        return "Error: shell metacharacters are not permitted in git arguments.";
+      // SECURITY: Explicitly reject mutating and redirection flags that could be
+      // used to write files arbitrarily or perform unauthorized actions.
+      for (let i = 0; i < tokens.length; i++) {
+        const token = tokens[i];
+
+        // Git 'ls-files -o' (others) is legitimate and shouldn't be blocked.
+        // We only block short flag 'o' if the command is not ls-files, or if
+        // it's combined with other short flags in a way that isn't just '-o'.
+        if (
+          token === "--out" || token.startsWith("--out=") ||
+          token === "--outp" || token.startsWith("--outp=") ||
+          token === "--outpu" || token.startsWith("--outpu=") ||
+          token === "--output" || token.startsWith("--output=")
+        ) {
+          return "Error: output redirection flags are not permitted.";
+        }
+
+        if (/^-[^-]*o/.test(token)) {
+          if (subcommand === "ls-files" && token === "-o") {
+            continue; // legitimate usage
+          }
+          return "Error: output redirection flags are not permitted.";
+        }
       }
 
       try {
@@ -726,6 +751,12 @@ export function createTools(projectRoot: string): Tool[] {
         close: true, comment: true,
       };
 
+      // Reject shell metacharacters as defense-in-depth, although execFile
+      // prevents command chaining or shell evaluation.
+      if (/[;&|`$()<>]/.test(argString)) {
+        return "Error: shell metacharacters are not permitted in gh arguments.";
+      }
+
       const tokens = parseArgsStringToArgv(argString);
       const subcommand = tokens[0] ?? "";
       if (!ALLOWED_GH_SUBCOMMANDS[subcommand]) {
@@ -736,6 +767,24 @@ export function createTools(projectRoot: string): Tool[] {
 
       if (BLOCKED_ACTIONS[action]) {
         return `Error: gh ${subcommand} ${action} is a blocked operation.`;
+      }
+
+      // SECURITY: Explicitly reject mutating and redirection flags that could be
+      // used to write files arbitrarily or perform unauthorized actions (like changing API methods).
+      for (const token of tokens) {
+        if (
+          /^-[^-]*(o|X|f|F)/.test(token) ||
+          token === "--output" || token.startsWith("--output=") ||
+          token === "--method" || token.startsWith("--method=") ||
+          token === "--input" || token.startsWith("--input=") ||
+          token === "--out" || token.startsWith("--out=") ||
+          token === "--outp" || token.startsWith("--outp=") ||
+          token === "--outpu" || token.startsWith("--outpu=") ||
+          token === "--meth" || token.startsWith("--meth=") ||
+          token === "--metho" || token.startsWith("--metho=")
+        ) {
+          return "Error: output redirection, custom methods, and arbitrary input flags are not permitted.";
+        }
       }
 
       // For close/comment on PRs, verify the target is a wiki staging PR.
@@ -763,12 +812,6 @@ export function createTools(projectRoot: string): Tool[] {
         }
       } else if (STAGING_ONLY_ACTIONS[action]) {
         return `Error: gh ${subcommand} ${action} is not supported. Only gh pr ${action} is permitted, and only on wiki staging PRs.`;
-      }
-
-      // Reject shell metacharacters as defense-in-depth, although execFile
-      // prevents command chaining or shell evaluation.
-      if (/[;&|`$()<>]/.test(argString)) {
-        return "Error: shell metacharacters are not permitted in gh arguments.";
       }
 
       try {

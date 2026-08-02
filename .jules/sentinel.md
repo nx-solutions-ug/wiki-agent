@@ -23,3 +23,11 @@
 **Learning:** Even internal utility scripts or testing commands should avoid `child_process.exec` to maintain a secure baseline. Using `execFile` avoids the overhead and risks of a shell entirely.
 
 **Prevention:** We have completely purged `execAsync` from the codebase and replaced it with `execFileAsync`. Any new shell executions should follow this pattern by passing arguments as an array to `execFileAsync`.
+
+## 2026-07-28 - Unauthorized state change via mutating and redirection flags in CLI wrappers
+
+**Vulnerability:** The `gh` and `git` tools use `execFileAsync` and an allowlist of subcommands, but did not restrict the flags passed to those subcommands. This allowed command injection-like behavior via flags such as `-X POST` (unauthorized API state changes) or `-o / --output` (arbitrary file writes outside `.wiki/`).
+
+**Learning:** When creating CLI wrappers (e.g., `gh`, `git`), restricting subcommands is not enough if the CLI allows arbitrary flags that can override the command's primary behavior (like redirecting output to a file or changing an HTTP method). Even if we bypass shell command injection using `execFileAsync`, the CLI itself can interpret these arguments and perform dangerous actions.
+
+**Prevention:** Always implement strict allowlists for subcommands, but also explicitly reject known dangerous flags (`--output`, `-o`, `-X`, `--method`, `-f`, `-F`, `--input`, etc.) when model input is passed to system binaries.
