@@ -101,10 +101,12 @@ export async function resolveConfig(
 
   const env = process.env;
 
-  const mode: ProviderMode =
-    env.WIKI_PROVIDER_MODE === "cloud" || env.WIKI_PROVIDER_MODE === "local" || env.WIKI_PROVIDER_MODE === "openai" || env.WIKI_OLLAMA_MODE === "cloud" || env.WIKI_OLLAMA_MODE === "local" || env.WIKI_OLLAMA_MODE === "openai"
-      ? (env.WIKI_PROVIDER_MODE || env.WIKI_OLLAMA_MODE || globalConfig.mode) as ProviderMode
-      : globalConfig.mode;
+  let mode = globalConfig.mode;
+  if (env.WIKI_PROVIDER_MODE === "cloud" || env.WIKI_PROVIDER_MODE === "local" || env.WIKI_PROVIDER_MODE === "openai") {
+    mode = env.WIKI_PROVIDER_MODE as ProviderMode;
+  } else if (env.WIKI_OLLAMA_MODE === "cloud" || env.WIKI_OLLAMA_MODE === "local" || env.WIKI_OLLAMA_MODE === "openai") {
+    mode = env.WIKI_OLLAMA_MODE as ProviderMode;
+  }
 
   const apiKey =
     (env.WIKI_PROVIDER_API_KEY || env.WIKI_OLLAMA_API_KEY) ?? globalConfig.apiKey;
@@ -125,7 +127,7 @@ export async function resolveConfig(
 }
 
 /**
- * Creates an Ollama client from resolved config.
+ * Creates an LLM client (Ollama or OpenAI) from resolved config.
  */
 export function createLLMClient(config: ResolvedConfig): LLMClient {
   if (config.mode === "openai") {

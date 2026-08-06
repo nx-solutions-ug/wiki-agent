@@ -93,7 +93,11 @@ export class OpenAIAdapter implements LLMClient {
               } else {
                 const active = activeToolCalls.get(tc.index);
                 if (active) {
+                  if (tc.function?.name) active.function.name += tc.function.name;
                   active.function.arguments += tc.function?.arguments || "";
+                  if (active.function.arguments.length > 100_000) {
+                     active.function.arguments = active.function.arguments.slice(0, 100_000);
+                  }
                 }
               }
             }
@@ -105,7 +109,6 @@ export class OpenAIAdapter implements LLMClient {
             id: tc.id,
             function: {
               name: tc.function.name,
-              // Keep arguments as string here, agent.ts will parse it
               arguments: tc.function.arguments,
             },
           }));
@@ -127,7 +130,7 @@ export class OpenAIAdapter implements LLMClient {
             id: tc.id,
             function: {
               name: tc.function.name,
-              arguments: tc.function.arguments,
+              arguments: typeof tc.function.arguments === "string" ? tc.function.arguments : JSON.stringify(tc.function.arguments),
             },
           })),
         },
