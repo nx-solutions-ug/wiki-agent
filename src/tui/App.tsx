@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Box, Text, useApp, useInput } from "ink";
 import { runAgent, type AgentEvent } from "../agent.js";
-import { createOllamaClient, type ResolvedConfig } from "../config.js";
+import { createLLMClient, type ResolvedConfig } from "../config.js";
 import { CredentialsSetup } from "./CredentialsSetup.js";
 import { RunView } from "./RunView.js";
 import { VERSION } from "../version.js";
@@ -15,7 +15,7 @@ interface AppProps {
 }
 
 export function App({ command, cwd, config, verbose, wiki }: AppProps): React.ReactElement {
-  const [needsSetup, setNeedsSetup] = useState(config.mode === "cloud" && !config.apiKey);
+  const [needsSetup, setNeedsSetup] = useState((config.mode === "cloud" || config.mode === "openai") && !config.apiKey);
   const [resolvedConfig, setResolvedConfig] = useState(config);
   const { exit } = useApp();
 

@@ -6,7 +6,7 @@ import { createSystemPrompt, createUserMessage, type WikiCommand } from "./promp
 import { createTools, executeTool, stripThinkingTags } from "./tools.js";
 import { synchronizeWikiIndexes } from "./index-middleware.js";
 import { VERSION } from "./version.js";
-import { Ollama } from "ollama";
+import { type LLMClient, type LLMMessage, type LLMToolCall } from "./llm.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -169,23 +169,7 @@ export async function appendWikiAgentFrontmatter(
 }
 
 
-/**
- * Ollama SDK message format. Tool call arguments are objects (not strings),
- * and tool response messages use `tool_name` (not `tool_call_id`).
- */
-interface OllamaMessage {
-  role: string;
-  content: string;
-  tool_calls?: OllamaToolCall[];
-  tool_name?: string;
-}
 
-interface OllamaToolCall {
-  function: {
-    name: string;
-    arguments: Record<string, unknown>;
-  };
-}
 
 export interface RunOptions {
   command: WikiCommand;
@@ -247,7 +231,7 @@ function normalizeToolCallArgs(
 }
 
 export async function runAgent(
-  client: Ollama,
+  client: LLMClient,
   options: RunOptions,
 ): Promise<void> {
   const {
@@ -266,7 +250,7 @@ export async function runAgent(
   const systemPrompt = await createSystemPrompt(projectRoot);
   const userMessage = createUserMessage(command, projectRoot, gitSummary);
 
-  const messages: OllamaMessage[] = [
+  const messages: LLMMessage[] = [
     { role: "system", content: systemPrompt },
     { role: "user", content: userMessage },
   ];
@@ -274,7 +258,7 @@ export async function runAgent(
 
   for (let i = 0; i < maxIter; i++) {
     let assistantContent = "";
-    let toolCalls: OllamaToolCall[] = [];
+    let toolCalls: LLMToolCall[] = [];
 
     try {
       if (stream) {
@@ -292,7 +276,8 @@ export async function runAgent(
           }
 
           if (chunk.message?.tool_calls) {
-            toolCalls.push(...chunk.message.tool_calls.flatMap(tc => tc.function?.name ? [{
+            toolCalls.push(...chunk.message.tool_calls.flatMap((tc: any) => tc.function?.name ? [{
+              id: tc.id,
               function: {
                 name: tc.function.name,
                 arguments: normalizeToolCallArgs(tc.function.arguments),
@@ -313,7 +298,8 @@ export async function runAgent(
         onEvent({ type: "assistant", content: assistantContent });
 
         if (result.message?.tool_calls) {
-          toolCalls.push(...result.message.tool_calls.flatMap(tc => tc.function?.name ? [{
+          toolCalls.push(...result.message.tool_calls.flatMap((tc: any) => tc.function?.name ? [{
+            id: tc.id,
             function: {
               name: tc.function.name,
               arguments: normalizeToolCallArgs(tc.function.arguments),
@@ -336,7 +322,7 @@ export async function runAgent(
       break;
     }
 
-    const assistantMessage: OllamaMessage = {
+    const assistantMessage: LLMMessage = {
       role: "assistant",
       content: assistantContent,
       ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
@@ -380,6 +366,7 @@ export async function runAgent(
         role: "tool",
         content: result,
         tool_name: toolName,
+        tool_call_id: toolCall.id,
       });
     }
   }

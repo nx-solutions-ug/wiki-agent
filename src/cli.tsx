@@ -6,7 +6,7 @@ import { promisify } from "node:util";
 import { runAgent } from "./agent.js";
 import {
   resolveConfig,
-  createOllamaClient,
+  createLLMClient,
 } from "./config.js";
 import { getHelpText } from "./prompt.js";
 import { VERSION } from "./version.js";
@@ -80,7 +80,7 @@ async function runHeadless(
   wiki: boolean,
 ): Promise<void> {
   const config = await resolveConfig(cwd, model);
-  const client = createOllamaClient(config);
+  const client = createLLMClient(config);
   const gitSummary = await getGitSummary(cwd);
 
   await runAgent(client, {
