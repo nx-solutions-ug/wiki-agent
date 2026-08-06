@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Box, Text, useApp, useInput } from "ink";
 import TextInput from "ink-text-input";
-import { saveGlobalConfig, type GlobalConfig, type ResolvedConfig } from "../config.js";
+import { saveGlobalConfig, type GlobalConfig, type ResolvedConfig, type ProviderMode } from "../config.js";
 
 interface CredentialsSetupProps {
   cwd: string;
@@ -14,7 +14,7 @@ export function CredentialsSetup({
   onConfigSaved,
 }: CredentialsSetupProps): React.ReactElement {
   const [step, setStep] = useState<SetupStep>("mode-select");
-  const [mode, setMode] = useState<"local" | "cloud" | "openai">("local");
+  const [mode, setMode] = useState<ProviderMode>("local");
   const [apiKey, setApiKey] = useState("");
   const [model, setModel] = useState("kimi-k2.7-code");
   const [error, setError] = useState<string | null>(null);
@@ -69,7 +69,7 @@ export function CredentialsSetup({
 
   if (step === "mode-select") {
     return React.createElement(Box, { flexDirection: "column" },
-      React.createElement(Text, { bold: true }, "Select Ollama mode:"),
+      React.createElement(Text, { bold: true }, "Select provider:"),
       React.createElement(Text, null,
         React.createElement(Text, { color: "green" }, "  1. "),
         "Ollama Local (no API key required)",

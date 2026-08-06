@@ -269,14 +269,14 @@ export async function runAgent(
           stream: true,
         });
 
-        for await (const chunk of streamResponse) {
+        for await (const chunk of streamResponse as AsyncGenerator<import("./llm.js").LLMResponse>) {
           if (chunk.message?.content) {
             assistantContent += chunk.message.content;
             onEvent({ type: "assistant", content: chunk.message.content });
           }
 
           if (chunk.message?.tool_calls) {
-            toolCalls.push(...chunk.message.tool_calls.flatMap((tc: any) => tc.function?.name ? [{
+            toolCalls.push(...chunk.message.tool_calls.flatMap((tc: LLMToolCall) => tc.function?.name ? [{
               id: tc.id,
               function: {
                 name: tc.function.name,
@@ -293,12 +293,12 @@ export async function runAgent(
           stream: false,
         });
 
-        const msgContent = result.message?.content;
+        const msgContent = (result as import("./llm.js").LLMResponse).message?.content;
         assistantContent = typeof msgContent === "string" ? msgContent : "";
         onEvent({ type: "assistant", content: assistantContent });
 
-        if (result.message?.tool_calls) {
-          toolCalls.push(...result.message.tool_calls.flatMap((tc: any) => tc.function?.name ? [{
+        if ((result as import("./llm.js").LLMResponse).message?.tool_calls) {
+          toolCalls.push(...(result as import("./llm.js").LLMResponse).message!.tool_calls!.flatMap((tc: LLMToolCall) => tc.function?.name ? [{
             id: tc.id,
             function: {
               name: tc.function.name,

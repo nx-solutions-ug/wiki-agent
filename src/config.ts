@@ -3,7 +3,7 @@ import path from "node:path";
 import os from "node:os";
 import { Ollama } from "ollama";
 import OpenAI from "openai";
-import { type LLMClient, OpenAIAdapter } from "./llm.js";
+import { type LLMClient, OpenAIAdapter, OllamaAdapter } from "./llm.js";
 
 export type ProviderMode = "local" | "cloud" | "openai";
 
@@ -137,13 +137,13 @@ export function createLLMClient(config: ResolvedConfig): LLMClient {
     }));
   }
   if (config.mode === "cloud" && config.apiKey) {
-    return (new Ollama({
+    return new OllamaAdapter(new Ollama({
       host: config.baseUrl,
       headers: { Authorization: `Bearer ${config.apiKey}` },
-    })) as any as LLMClient;
+    }));
   }
 
-  return (new Ollama({ host: config.baseUrl })) as any as LLMClient;
+  return new OllamaAdapter(new Ollama({ host: config.baseUrl }));
 }
 
 export function truncateResult(result: string): string {

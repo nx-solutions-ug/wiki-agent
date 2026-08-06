@@ -31,6 +31,7 @@ describe("OpenAIAdapter", () => {
     expect(chunks[0]).toEqual({ message: { content: "test" } });
     expect(chunks[1]).toEqual({
       message: {
+        content: "",
         tool_calls: [
           { id: "call_123", function: { name: "test_tool", arguments: { arg: 1 } } },
         ],
@@ -64,6 +65,7 @@ describe("OpenAIAdapter", () => {
     expect(chunks).toHaveLength(1);
     expect(chunks[0]).toEqual({
       message: {
+        content: "",
         tool_calls: [
           { id: "call_456", function: { name: "delayed_tool", arguments: { arg: 2 } } },
         ],
