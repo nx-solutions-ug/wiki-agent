@@ -280,7 +280,7 @@ export async function runAgent(
               id: tc.id,
               function: {
                 name: tc.function.name,
-                arguments: normalizeToolCallArgs(tc.function.arguments),
+                arguments: tc.function.arguments as Record<string, unknown>,
               },
             }] : []));
           }
@@ -302,7 +302,7 @@ export async function runAgent(
             id: tc.id,
             function: {
               name: tc.function.name,
-              arguments: normalizeToolCallArgs(tc.function.arguments),
+              arguments: tc.function.arguments as Record<string, unknown>,
             },
           }] : []));
         }

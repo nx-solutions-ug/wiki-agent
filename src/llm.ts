@@ -1,4 +1,23 @@
+
+function parseArgs(args: string | Record<string, unknown>): Record<string, unknown> {
+  if (typeof args === "string") {
+    try {
+      const parsed = JSON.parse(args);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return parsed as Record<string, unknown>;
+      }
+    } catch {
+      return {};
+    }
+  }
+  if (typeof args === "object" && args !== null && !Array.isArray(args)) {
+    return args as Record<string, unknown>;
+  }
+  return {};
+}
+
 import OpenAI from "openai";
+import { type ChatCompletionMessageToolCall, type ChatCompletionChunk } from "openai/resources/index.js";
 
 export interface LLMMessage {
   role: string;
@@ -82,22 +101,24 @@ export class OpenAIAdapter implements LLMClient {
 
           if (delta.tool_calls) {
             for (const tc of delta.tool_calls) {
+              let active = activeToolCalls.get(tc.index);
+              if (!active) {
+                active = {
+                  id: tc.id || "",
+                  function: { name: "", arguments: "" }
+                };
+                activeToolCalls.set(tc.index, active);
+              }
               if (tc.id) {
-                activeToolCalls.set(tc.index, {
-                  id: tc.id,
-                  function: {
-                    name: tc.function?.name || "",
-                    arguments: tc.function?.arguments || "",
-                  },
-                });
-              } else {
-                const active = activeToolCalls.get(tc.index);
-                if (active) {
-                  if (tc.function?.name) active.function.name += tc.function.name;
-                  active.function.arguments += tc.function?.arguments || "";
-                  if (active.function.arguments.length > 100_000) {
-                     active.function.arguments = active.function.arguments.slice(0, 100_000);
-                  }
+                active.id = tc.id;
+              }
+              if (tc.function?.name) {
+                active.function.name += tc.function.name;
+              }
+              if (tc.function?.arguments) {
+                active.function.arguments += tc.function.arguments;
+                if (active.function.arguments.length > 100_000) {
+                  active.function.arguments = active.function.arguments.slice(0, 100_000);
                 }
               }
             }
@@ -109,7 +130,7 @@ export class OpenAIAdapter implements LLMClient {
             id: tc.id,
             function: {
               name: tc.function.name,
-              arguments: tc.function.arguments,
+              arguments: parseArgs(tc.function.arguments),
             },
           }));
           yield { message: { tool_calls } };
@@ -130,7 +151,7 @@ export class OpenAIAdapter implements LLMClient {
             id: tc.id,
             function: {
               name: tc.function.name,
-              arguments: typeof tc.function.arguments === "string" ? tc.function.arguments : JSON.stringify(tc.function.arguments),
+              arguments: parseArgs(tc.function.arguments),
             },
           })),
         },
