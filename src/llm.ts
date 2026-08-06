@@ -1,3 +1,7 @@
+import OpenAI from "openai";
+import { type ChatCompletionMessageToolCall, type ChatCompletionChunk } from "openai/resources/index.js";
+import { Ollama, type Message as OllamaSDKMessage } from "ollama";
+
 
 function parseArgs(args: string | Record<string, unknown>): Record<string, unknown> {
   if (typeof args === "string") {
@@ -16,8 +20,6 @@ function parseArgs(args: string | Record<string, unknown>): Record<string, unkno
   return {};
 }
 
-import OpenAI from "openai";
-import { type ChatCompletionMessageToolCall, type ChatCompletionChunk } from "openai/resources/index.js";
 
 
 export interface LLMResponse {
@@ -43,13 +45,28 @@ export interface LLMToolCall {
   };
 }
 
+
+export interface LLMTool {
+  type: "function";
+  function: {
+    name: string;
+    description: string;
+    parameters: Record<string, unknown>;
+  };
+}
 export interface LLMClient {
   chat(options: {
     model: string;
     messages: LLMMessage[];
-    tools?: any[];
-    stream?: boolean;
-  }): Promise<LLMResponse | AsyncGenerator<LLMResponse>>;
+    tools?: LLMTool[];
+    stream?: false;
+  }): Promise<LLMResponse>;
+  chat(options: {
+    model: string;
+    messages: LLMMessage[];
+    tools?: LLMTool[];
+    stream: true;
+  }): Promise<AsyncGenerator<LLMResponse>>;
 }
 
 export class OpenAIAdapter implements LLMClient {
@@ -58,9 +75,9 @@ export class OpenAIAdapter implements LLMClient {
   async chat(options: {
     model: string;
     messages: LLMMessage[];
-    tools?: any[];
+    tools?: LLMTool[];
     stream?: boolean;
-  }): Promise<LLMResponse | AsyncGenerator<LLMResponse>> {
+  }): Promise<any> {
     const messages = options.messages.map((m): OpenAI.Chat.ChatCompletionMessageParam => {
       if (m.role === "tool") {
         return { role: "tool", content: m.content || "", tool_call_id: m.tool_call_id || "" };
@@ -85,7 +102,7 @@ export class OpenAIAdapter implements LLMClient {
       return { role: "user", content: m.content || "" };
     });
 
-    const tools = options.tools?.map((t: any): OpenAI.Chat.ChatCompletionTool => ({
+    const tools = options.tools?.map((t): OpenAI.Chat.ChatCompletionTool => ({
       type: "function" as const,
       function: {
         name: t.function.name,
@@ -132,7 +149,7 @@ export class OpenAIAdapter implements LLMClient {
               if (tc.function?.arguments) {
                 active.function.arguments += tc.function.arguments;
                 if (active.function.arguments.length > 100_000) {
-                  active.function.arguments = active.function.arguments.slice(0, 100_000);
+                  throw new Error("Tool call arguments exceed maximum length of 100,000 characters");
                 }
               }
             }
@@ -161,8 +178,9 @@ export class OpenAIAdapter implements LLMClient {
       return {
         message: {
           content: msg.content || "",
-          tool_calls: msg.tool_calls?.map((tc) => {
-            const func = (tc as any).function;
+          tool_calls: msg.tool_calls?.map((tcObj) => {
+            const tc = tcObj as import("openai/resources/index.js").ChatCompletionMessageFunctionToolCall;
+            const func = tc.function;
             return {
               id: tc.id,
               function: {
@@ -178,7 +196,6 @@ export class OpenAIAdapter implements LLMClient {
 }
 
 
-import { Ollama } from "ollama";
 
 export class OllamaAdapter implements LLMClient {
   constructor(private ollama: Ollama) {}
@@ -186,9 +203,9 @@ export class OllamaAdapter implements LLMClient {
   async chat(options: {
     model: string;
     messages: LLMMessage[];
-    tools?: any[];
+    tools?: LLMTool[];
     stream?: boolean;
-  }): Promise<LLMResponse | AsyncGenerator<LLMResponse>> {
+  }): Promise<any> {
     const messages = options.messages.map((m) => ({
       role: m.role,
       content: m.content,
@@ -206,21 +223,25 @@ export class OllamaAdapter implements LLMClient {
     if (options.stream) {
       const stream = await this.ollama.chat({
         model: options.model,
-        messages: messages as any,
-        ...(options.tools && options.tools.length > 0 ? { tools: options.tools as any } : {}),
+        messages: messages as OllamaSDKMessage[],
+        ...(options.tools && options.tools.length > 0 ? { tools: options.tools } : {}),
         stream: true,
       });
       return (async function* () {
+        let streamToolCallIds: string[] | null = null;
         for await (const chunk of stream) {
+          if (chunk.message.tool_calls && chunk.message.tool_calls.length > 0 && !streamToolCallIds) {
+             streamToolCallIds = chunk.message.tool_calls.map(() => "call_" + Math.random().toString(36).slice(2));
+          }
           yield {
             message: {
               content: chunk.message.content || "",
               ...(chunk.message.tool_calls && chunk.message.tool_calls.length > 0 ? {
-                tool_calls: chunk.message.tool_calls.map((tc: any) => ({
-                  id: "call_" + Math.random().toString(36).slice(2), // Ollama doesn't stream ids
+                tool_calls: chunk.message.tool_calls.map((tc, idx) => ({
+                  id: streamToolCallIds ? streamToolCallIds[idx] : "call_" + Math.random().toString(36).slice(2),
                   function: {
                     name: tc.function.name,
-                    arguments: tc.function.arguments,
+                    arguments: tc.function.arguments as Record<string, unknown>,
                   },
                 })),
               } : {}),
@@ -231,19 +252,19 @@ export class OllamaAdapter implements LLMClient {
     } else {
       const res = await this.ollama.chat({
         model: options.model,
-        messages: messages as any,
-        ...(options.tools && options.tools.length > 0 ? { tools: options.tools as any } : {}),
+        messages: messages as OllamaSDKMessage[],
+        ...(options.tools && options.tools.length > 0 ? { tools: options.tools } : {}),
         stream: false,
       });
       return {
         message: {
           content: res.message.content || "",
           ...(res.message.tool_calls && res.message.tool_calls.length > 0 ? {
-            tool_calls: res.message.tool_calls.map((tc: any) => ({
+            tool_calls: res.message.tool_calls.map((tc) => ({
               id: "call_" + Math.random().toString(36).slice(2),
               function: {
                 name: tc.function.name,
-                arguments: tc.function.arguments,
+                arguments: tc.function.arguments as Record<string, unknown>,
               },
             })),
           } : {}),

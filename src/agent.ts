@@ -264,12 +264,12 @@ export async function runAgent(
       if (stream) {
         const streamResponse = await client.chat({
           model,
-          messages: messages as never,
-          tools: tools.map((t) => t.definition) as never,
-          stream: true,
+          messages,
+          tools: tools.map((t) => t.definition as import("./llm.js").LLMTool),
+          stream: true as const,
         });
 
-        for await (const chunk of streamResponse as AsyncGenerator<import("./llm.js").LLMResponse>) {
+        for await (const chunk of streamResponse) {
           if (chunk.message?.content) {
             assistantContent += chunk.message.content;
             onEvent({ type: "assistant", content: chunk.message.content });
@@ -280,7 +280,7 @@ export async function runAgent(
               id: tc.id,
               function: {
                 name: tc.function.name,
-                arguments: tc.function.arguments as Record<string, unknown>,
+                arguments: tc.function.arguments,
               },
             }] : []));
           }
@@ -288,21 +288,21 @@ export async function runAgent(
       } else {
         const result = await client.chat({
           model,
-          messages: messages as never,
-          tools: tools.map((t) => t.definition) as never,
-          stream: false,
+          messages,
+          tools: tools.map((t) => t.definition as import("./llm.js").LLMTool),
+          stream: false as const,
         });
 
-        const msgContent = (result as import("./llm.js").LLMResponse).message?.content;
+        const msgContent = result.message?.content;
         assistantContent = typeof msgContent === "string" ? msgContent : "";
         onEvent({ type: "assistant", content: assistantContent });
 
-        if ((result as import("./llm.js").LLMResponse).message?.tool_calls) {
-          toolCalls.push(...(result as import("./llm.js").LLMResponse).message!.tool_calls!.flatMap((tc: LLMToolCall) => tc.function?.name ? [{
+        if (result.message?.tool_calls) {
+          toolCalls.push(...result.message!.tool_calls!.flatMap((tc: LLMToolCall) => tc.function?.name ? [{
             id: tc.id,
             function: {
               name: tc.function.name,
-              arguments: tc.function.arguments as Record<string, unknown>,
+              arguments: tc.function.arguments,
             },
           }] : []));
         }
