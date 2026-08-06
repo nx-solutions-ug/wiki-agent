@@ -265,7 +265,7 @@ export async function runAgent(
         const streamResponse = await client.chat({
           model,
           messages,
-          tools: tools.map((t) => t.definition as import("./llm.js").LLMTool),
+          tools: tools.map((t) => t.definition),
           stream: true as const,
         });
 
@@ -289,7 +289,7 @@ export async function runAgent(
         const result = await client.chat({
           model,
           messages,
-          tools: tools.map((t) => t.definition as import("./llm.js").LLMTool),
+          tools: tools.map((t) => t.definition),
           stream: false as const,
         });
 

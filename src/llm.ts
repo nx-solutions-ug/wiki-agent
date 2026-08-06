@@ -1,5 +1,4 @@
 import OpenAI from "openai";
-import { type ChatCompletionMessageToolCall, type ChatCompletionChunk } from "openai/resources/index.js";
 import { Ollama, type Message as OllamaSDKMessage } from "ollama";
 
 
@@ -51,7 +50,11 @@ export interface LLMTool {
   function: {
     name: string;
     description: string;
-    parameters: Record<string, unknown>;
+    parameters: {
+      type: string;
+      properties: Record<string, unknown>;
+      required: string[];
+    };
   };
 }
 export interface LLMClient {
@@ -72,12 +75,9 @@ export interface LLMClient {
 export class OpenAIAdapter implements LLMClient {
   constructor(private openai: OpenAI) {}
 
-  async chat(options: {
-    model: string;
-    messages: LLMMessage[];
-    tools?: LLMTool[];
-    stream?: boolean;
-  }): Promise<any> {
+  chat(options: { model: string; messages: LLMMessage[]; tools?: LLMTool[]; stream?: false }): Promise<LLMResponse>;
+  chat(options: { model: string; messages: LLMMessage[]; tools?: LLMTool[]; stream: true }): Promise<AsyncGenerator<LLMResponse>>;
+  async chat(options: { model: string; messages: LLMMessage[]; tools?: LLMTool[]; stream?: boolean }): Promise<LLMResponse | AsyncGenerator<LLMResponse>> {
     const messages = options.messages.map((m): OpenAI.Chat.ChatCompletionMessageParam => {
       if (m.role === "tool") {
         return { role: "tool", content: m.content || "", tool_call_id: m.tool_call_id || "" };
@@ -200,12 +200,9 @@ export class OpenAIAdapter implements LLMClient {
 export class OllamaAdapter implements LLMClient {
   constructor(private ollama: Ollama) {}
 
-  async chat(options: {
-    model: string;
-    messages: LLMMessage[];
-    tools?: LLMTool[];
-    stream?: boolean;
-  }): Promise<any> {
+  chat(options: { model: string; messages: LLMMessage[]; tools?: LLMTool[]; stream?: false }): Promise<LLMResponse>;
+  chat(options: { model: string; messages: LLMMessage[]; tools?: LLMTool[]; stream: true }): Promise<AsyncGenerator<LLMResponse>>;
+  async chat(options: { model: string; messages: LLMMessage[]; tools?: LLMTool[]; stream?: boolean }): Promise<LLMResponse | AsyncGenerator<LLMResponse>> {
     const messages = options.messages.map((m) => ({
       role: m.role,
       content: m.content,
@@ -224,7 +221,7 @@ export class OllamaAdapter implements LLMClient {
       const stream = await this.ollama.chat({
         model: options.model,
         messages: messages as OllamaSDKMessage[],
-        ...(options.tools && options.tools.length > 0 ? { tools: options.tools } : {}),
+        ...(options.tools && options.tools.length > 0 ? { tools: options.tools as any } : {}),
         stream: true,
       });
       return (async function* () {
@@ -253,7 +250,7 @@ export class OllamaAdapter implements LLMClient {
       const res = await this.ollama.chat({
         model: options.model,
         messages: messages as OllamaSDKMessage[],
-        ...(options.tools && options.tools.length > 0 ? { tools: options.tools } : {}),
+        ...(options.tools && options.tools.length > 0 ? { tools: options.tools as any } : {}),
         stream: false,
       });
       return {

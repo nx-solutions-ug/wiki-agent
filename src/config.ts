@@ -86,7 +86,8 @@ export async function saveProjectConfig(
 
 /**
  * Resolves the effective configuration by merging (in priority order):
- * 1. Environment variables (WIKI_OLLAMA_MODE, WIKI_OLLAMA_API_KEY,
+ * 1. Environment variables (WIKI_PROVIDER_MODE, WIKI_PROVIDER_API_KEY,
+ *    WIKI_PROVIDER_BASE_URL, WIKI_OLLAMA_MODE, WIKI_OLLAMA_API_KEY,
  *    WIKI_OLLAMA_BASE_URL, WIKI_MODEL)
  * 2. Global config file (~/.wiki/config.json)
  * 3. Project config (.wiki/config.json modelOverride)

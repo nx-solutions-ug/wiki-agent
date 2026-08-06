@@ -103,4 +103,28 @@ describe("OpenAIAdapter", () => {
       },
     });
   });
+
+  it("handles malformed JSON gracefully", async () => {
+    const mockOpenAI = {
+      chat: {
+        completions: {
+          create: vi.fn().mockResolvedValue({
+            choices: [{
+              message: {
+                content: "test",
+                tool_calls: [
+                   { id: "call_123", function: { name: "test_tool", arguments: '{"bad json' } }
+                ]
+              }
+            }]
+          }),
+        },
+      },
+    };
+
+    const adapter = new OpenAIAdapter(mockOpenAI as unknown as OpenAI);
+    const result = await adapter.chat({ model: "test", messages: [], stream: false as const });
+
+    expect(result.message.tool_calls![0].function.arguments).toEqual({});
+  });
 });

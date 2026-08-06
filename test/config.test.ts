@@ -1,4 +1,4 @@
-import { describe, expect, test, beforeEach, afterEach } from "vitest";
+import { describe, expect, test, beforeEach, afterEach, it, vi } from "vitest";
 import { mkdtemp, rm, readFile, writeFile, mkdir } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -8,8 +8,10 @@ import {
   loadProjectConfig,
   saveProjectConfig,
   resolveConfig,
+  createLLMClient,
   type GlobalConfig,
-} from "../src/config.ts";
+} from "../src/config.js";
+import { OllamaAdapter, OpenAIAdapter } from "../src/llm.js";
 
 function tempDir(): Promise<string> {
   return mkdtemp(path.join(os.tmpdir(), "wiki-test-"));
@@ -122,5 +124,60 @@ describe("config", () => {
       expect(config.model).toBe("kimi-k2.7-code");
       await rm(projectRoot, { recursive: true, force: true });
     });
+  });
+});
+
+describe("resolveConfig precedence", () => {
+  const originalEnv = process.env;
+
+  beforeEach(() => {
+    process.env = { ...originalEnv };
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+  });
+
+  it("prioritizes WIKI_PROVIDER_MODE over WIKI_OLLAMA_MODE", async () => {
+    process.env.WIKI_PROVIDER_MODE = "openai";
+    process.env.WIKI_OLLAMA_MODE = "cloud";
+    const config = await resolveConfig("/fake/path");
+    expect(config.mode).toBe("openai");
+  });
+
+  it("falls back to WIKI_OLLAMA_MODE if WIKI_PROVIDER_MODE is missing", async () => {
+    delete process.env.WIKI_PROVIDER_MODE;
+    process.env.WIKI_OLLAMA_MODE = "cloud";
+    const config = await resolveConfig("/fake/path");
+    expect(config.mode).toBe("cloud");
+  });
+
+  it("resolves baseUrl for openai correctly", async () => {
+    process.env.WIKI_PROVIDER_MODE = "openai";
+    const config = await resolveConfig("/fake/path");
+    expect(config.baseUrl).toBe("https://api.openai.com/v1");
+  });
+
+  it("resolves baseUrl for cloud correctly", async () => {
+    process.env.WIKI_PROVIDER_MODE = "cloud";
+    const config = await resolveConfig("/fake/path");
+    expect(config.baseUrl).toBe("https://ollama.com");
+  });
+});
+
+describe("createLLMClient", () => {
+  it("creates OpenAIAdapter for openai mode", () => {
+    const client = createLLMClient({ mode: "openai", baseUrl: "https://api.openai.com/v1", apiKey: "test_key", model: "test" });
+    expect(client).toBeInstanceOf(OpenAIAdapter);
+  });
+
+  it("creates OllamaAdapter for cloud mode", () => {
+    const client = createLLMClient({ mode: "cloud", baseUrl: "https://ollama.com", apiKey: "test", model: "test" });
+    expect(client).toBeInstanceOf(OllamaAdapter);
+  });
+
+  it("creates OllamaAdapter for local mode", () => {
+    const client = createLLMClient({ mode: "local", baseUrl: "http://localhost:11434", model: "test" });
+    expect(client).toBeInstanceOf(OllamaAdapter);
   });
 });
