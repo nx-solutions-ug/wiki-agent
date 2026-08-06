@@ -61,5 +61,5 @@
   "trustedDependencies": [
     "@ast-grep/cli"
   ],
-  "packageManager": "bun@1.2.14"
+  "packageManager": "bun@1.3.14"
 }
