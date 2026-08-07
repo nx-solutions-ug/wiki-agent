@@ -2,12 +2,12 @@
 type: Quickstart
 title: Quickstart
 description: Install, configure, and run Wiki Agent to generate a wiki for any repository.
-tags: [quickstart, install, setup]
+tags: [quickstart, install, setup, ollama, openai]
 ---
 
 # Quickstart
 
-Wiki Agent is a standalone documentation agent that uses Ollama (local or cloud) to inspect a repository and produce a wiki under `.wiki/`. It exposes a small CLI plus an interactive TUI and ships a GitHub Actions workflow for scheduled updates.
+Wiki Agent is a standalone documentation agent that uses Ollama (local or cloud) or any OpenAI-compatible provider to inspect a repository and produce a wiki under `.wiki/`. It exposes a small CLI plus an interactive TUI and ships a GitHub Actions workflow for scheduled updates.
 
 ## 1. Install
 
@@ -39,12 +39,13 @@ wiki --help
 
 The README uses a hero banner at `public/banner.png`. The npm tarball only includes `dist/`, `README.md`, and `LICENSE` (the `files` array in `package.json`); workflows are generated into target repos by `--init`, not shipped in the package.
 
-## 2. Choose an Ollama mode
+## 2. Choose a provider mode
 
-Wiki Agent speaks to Ollama in one of two modes:
+Wiki Agent supports three provider modes:
 
-- **Local** — talks to a running Ollama server on `http://localhost:11434`. No API key.
-- **Cloud** — talks to Ollama Cloud at `https://ollama.com`. Requires an API key.
+- **Ollama Local** — talks to a running Ollama server on `http://localhost:11434`. No API key.
+- **Ollama Cloud** — talks to Ollama Cloud at `https://ollama.com`. Requires an API key.
+- **OpenAI-compatible** — talks to any OpenAI-compatible endpoint (`https://api.openai.com/v1` by default). Requires an API key. Works with OpenAI, Azure OpenAI, local servers running Ollama's OpenAI-compatible mode, vLLM, LM Studio, etc.
 
 You can configure the mode interactively by running `wiki --init` once, or non-interactively through environment variables and config files. See [Configuration](./configuration.md) for the full priority order.
 
@@ -71,7 +72,7 @@ The first run will create `.wiki/quickstart.md` plus a small set of section page
 
 ## 4. Update from CI
 
-Running `wiki --init` writes `.github/workflows/update-wiki.yml` into your repo. Set `WIKI_OLLAMA_API_KEY` as a secret to enable the scheduled job. By default the generated workflow runs `wiki --update --print --verbose --wiki` and pushes the flattened pages directly to the repository's **GitHub Wiki tab**; it also opens a staging pull request with the `.wiki/` changes in the main repo. Note that the workflow itself hardcodes `--wiki`, so the CI job always attempts wiki publishing; the local `--wiki` flag only controls what is written into the workflow template. See [GitHub Actions](./automation/github-actions.md).
+Running `wiki --init` writes `.github/workflows/update-wiki.yml` into your repo. Set `WIKI_PROVIDER_API_KEY` (or `WIKI_OLLAMA_API_KEY`) as a secret to enable the scheduled job when the workflow mode is `cloud` or `openai`. By default the generated workflow runs `wiki --update --print --verbose --wiki` and pushes the flattened pages directly to the repository's **GitHub Wiki tab**; it also opens a staging pull request with the `.wiki/` changes in the main repo. Note that the workflow itself hardcodes `--wiki`, so the CI job always attempts wiki publishing; the local `--wiki` flag only controls what is written into the workflow template. See [GitHub Actions](./automation/github-actions.md).
 
 ## What gets generated
 

@@ -2,7 +2,7 @@
 type: Reference
 title: GitHub Actions
 description: Scheduled and on-demand wiki updates using the bundled workflow and headless mode.
-tags: [github-actions, ci, automation, cron]
+tags: [github-actions, ci, automation, cron, openai]
 ---
 
 # GitHub Actions
@@ -17,7 +17,7 @@ The workflow:
 2. Checks out the repository with `actions/checkout@v7`.
 3. Sets up Bun with `oven-sh/setup-bun@v2` and Node.js 25 with `actions/setup-node@v7` (the package still supports Node.js 22+ per `package.json`).
 4. Installs Wiki Agent globally from npm with `bun add -g @chronova/wiki-agent`.
-5. Runs `wiki --update --print --verbose --wiki` in headless mode with `WIKI_OLLAMA_MODE=cloud`. The `--verbose` flag makes tool call results appear in the CI log alongside assistant prose. After the run the agent also updates `.wiki/.last-updated.json`, writes `.wiki/.last-update-report.md`, and writes `.wiki/.last-update-title.txt` (when there are changes). Note that the workflow hardcodes `--wiki` at runtime, so the CI job always attempts to flatten and publish to the wiki tab regardless of whether `--wiki` was used during the local `--init` run.
+5. Runs `wiki --update --print --verbose --wiki` in headless mode with `WIKI_PROVIDER_MODE=${{ vars.WIKI_PROVIDER_MODE || 'cloud' }}`, `WIKI_PROVIDER_API_KEY=${{ secrets.WIKI_PROVIDER_API_KEY || secrets.WIKI_OLLAMA_API_KEY }}`, and `WIKI_PROVIDER_BASE_URL=${{ vars.WIKI_PROVIDER_BASE_URL }}`. The `--verbose` flag makes tool call results appear in the CI log alongside assistant prose. After the run the agent also updates `.wiki/.last-updated.json`, writes `.wiki/.last-update-report.md`, and writes `.wiki/.last-update-title.txt` (when there are changes). Note that the workflow hardcodes `--wiki` at runtime, so the CI job always attempts to flatten and publish to the wiki tab regardless of whether `--wiki` was used during the local `--init` run.
 6. Emits repository coordinates (`GITHUB_REPOSITORY` → `owner/repo`) and a timestamp into step outputs.
 7. Checks for content changes under `.wiki/` using `git status --porcelain .wiki`, stripping the status prefix and excluding the run metadata files `.wiki/.last-update-report.md`, `.wiki/.last-update-title.txt`, and `.wiki/.last-updated.json`. If real content files changed, sets `has_changes=true` and streams the report into a `body<<EOF` heredoc on `$GITHUB_OUTPUT` (with an empty `echo ""` before `EOF` so the delimiter sits on its own line). The workflow also emits a `title<<EOF` heredoc read from `.wiki/.last-update-title.txt`, so the staging PR title and commit message reflect the actual run.
 8. **Prevent concurrent wiki update jobs**:
@@ -62,19 +62,21 @@ The repository also gates external pull requests via the **vouch** system. Maint
 
 ## Release pipeline
 
-The same commit that refreshes this wiki can also run the release pipeline. `.github/workflows/release.yml` runs on every push to `main` and, after a passing test job, executes `semantic-release` to bump the version, write `CHANGELOG.md`, create a GitHub release, and publish `@chronova/wiki-agent` to npm. The release job generates a GitHub App token with `actions/create-github-app-token@v3` using `secrets.APP_CLIENT_ID` and `secrets.APP_PRIVATE_KEY`; it does not fall back to `secrets.GITHUB_TOKEN`. After `semantic-release`, the workflow derives the latest tag from the local repo (avoiding API eventual-consistency races), builds a full commit list since the previous tag using `git log --pretty=format:"- %s (%h)" --no-merges`, and edits the release body via `gh release edit` with those notes. If the generated body exceeds 120 000 bytes it is truncated at the last complete line before that limit and a note pointing to `CHANGELOG.md` is appended. The `WIKI_OLLAMA_API_KEY` secret used by the wiki update job is unrelated to the `NPM_TOKEN` secret used by the release job. This is distinct from the wiki publish step above, which pushes to `<repo>.wiki.git`.
+The same commit that refreshes this wiki can also run the release pipeline. `.github/workflows/release.yml` runs on every push to `main` and, after a passing test job, executes `semantic-release` to bump the version, write `CHANGELOG.md`, create a GitHub release, and publish `@chronova/wiki-agent` to npm. The release job generates a GitHub App token with `actions/create-github-app-token@v3` using `secrets.APP_CLIENT_ID` and `secrets.APP_PRIVATE_KEY`; it does not fall back to `secrets.GITHUB_TOKEN`. After `semantic-release`, the workflow derives the latest tag from the local repo (avoiding API eventual-consistency races), builds a full commit list since the previous tag using `git log --pretty=format:"- %s (%h)" --no-merges`, and edits the release body via `gh release edit` with those notes. If the generated body exceeds 120 000 bytes it is truncated at the last complete line before that limit and a note pointing to `CHANGELOG.md` is appended. The `WIKI_PROVIDER_API_KEY`/`WIKI_OLLAMA_API_KEY` secret used by the wiki update job is unrelated to the `NPM_TOKEN` secret used by the release job. This is distinct from the wiki publish step above, which pushes to `<repo>.wiki.git`.
 
 ## Secrets and variables
 
 | Name | Type | Purpose |
 |------|------|---------|
-| `WIKI_OLLAMA_API_KEY` | Secret | Bearer token for Ollama Cloud. Required because the workflow forces cloud mode. This is a different secret from the `OLLAMA_API_KEY` used by the OMP workflows. |
+| `WIKI_PROVIDER_API_KEY` (or `WIKI_OLLAMA_API_KEY`) | Secret | API key for the selected provider mode. Required when the workflow mode is `cloud` or `openai`. `WIKI_PROVIDER_API_KEY` takes precedence when both are set. |
 | `APP_CLIENT_ID` | Secret (optional) | GitHub App client ID for token generation; falls back to `secrets.GITHUB_TOKEN`. |
 | `APP_PRIVATE_KEY` | Secret (optional) | GitHub App private key for token generation. |
+| `WIKI_PROVIDER_MODE` | Variable (optional) | Provider mode override: `"local"`, `"cloud"`, or `"openai"`. Defaults to `"cloud"`. |
+| `WIKI_PROVIDER_BASE_URL` | Variable (optional) | Override the provider base URL. For `openai` mode this is the OpenAI-compatible endpoint; for `cloud` it overrides `https://ollama.com`. |
 | `WIKI_MODEL` | Variable (optional) | Model ID override. Defaults to `kimi-k2.7-code` if unset. |
 | `WIKI_PUSH_TOKEN` | Secret (optional) | PAT with `repo` scope used to push to the wiki repo and open the wiki PR. If unset, the GitHub App token or `GITHUB_TOKEN` is used. Set only if the default token cannot push to the wiki repo. |
 
-The `WIKI_OLLAMA_BASE_URL` environment variable is not set; the agent uses the cloud default `https://ollama.com`. Override it by adding a step that exports the variable if you need a self-hosted endpoint. Note that `GH_TOKEN` must be set for the agent's read-only `gh` tool to perform the staging PR staleness check; the workflow sets it to the generated GitHub App token or `secrets.GITHUB_TOKEN`.
+The workflow no longer hardcodes `WIKI_OLLAMA_MODE` or `WIKI_OLLAMA_API_KEY`; it uses the provider-agnostic `WIKI_PROVIDER_*` variables and falls back to the legacy `WIKI_OLLAMA_*` names only when the provider-prefixed variables are unset. The agent uses the resolved mode's default base URL when `WIKI_PROVIDER_BASE_URL` is empty. Note that `GH_TOKEN` must be set for the agent's read-only `gh` tool to perform the staging PR staleness check; the workflow sets it to the generated GitHub App token or `secrets.GITHUB_TOKEN`.
 
 ## Skipping metadata-only runs
 
@@ -85,9 +87,9 @@ The workflow deliberately skips opening either PR when the only files that chang
 You can reproduce the same event stream locally without opening a PR:
 
 ```bash
-WIKI_OLLAMA_MODE=cloud \
-WIKI_OLLAMA_API_KEY="$WIKI_OLLAMA_API_KEY" \
+WIKI_PROVIDER_MODE=cloud \
+WIKI_PROVIDER_API_KEY="$WIKI_PROVIDER_API_KEY" \
 wiki --update --print --verbose
 ```
 
-If the wiki is already current, the agent emits no edits and the index synchronizer leaves `index.md` files untouched. See [Architecture](./../architecture/overview.md) for how that is detected.
+If the wiki is already current, the agent emits no edits and the index synchronizer leaves `index.md` files untouched. See [Architecture](../architecture/overview.md) for how that is detected.

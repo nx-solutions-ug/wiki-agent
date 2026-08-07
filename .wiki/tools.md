@@ -2,7 +2,7 @@
 type: Reference
 title: Tools
 description: The file and discovery tools exposed to the model, their parameters, and sandboxing rules.
-tags: [tools, filesystem, sandbox]
+tags: [tools, filesystem, sandbox, git, gh]
 ---
 
 # Tools

@@ -2,20 +2,20 @@
 type: Architecture
 title: Architecture Overview
 description: How Wiki Agent is organized — the agent loop, tools, TUI, and post-run index synchronization.
-tags: [architecture, agent, ollama]
+tags: [architecture, agent, ollama, openai]
 ---
 
 # Architecture Overview
 
-Wiki Agent is a small, single-purpose Node.js application. The runtime model is "an LLM with a constrained tool belt that writes markdown into `.wiki/`." There is no LangChain, no vector store, no long-lived memory — just a manual tool-calling loop against the Ollama chat API.
+Wiki Agent is a small, single-purpose Node.js application. The runtime model is "an LLM with a constrained tool belt that writes markdown into `.wiki/`." There is no LangChain, no vector store, no long-lived memory — just a manual tool-calling loop against the configured LLM provider, using either the native Ollama SDK or the official `openai` SDK.
 
 ## Top-level layout
 
 The compiled entrypoint is `dist/cli.js` (declared as the `wiki` binary in `package.json`). Source lives under `src/`:
 
 - `cli.tsx` — argument parsing, TUI vs. headless dispatch
-- `agent.ts` — the agent loop, Ollama tool calling, event stream
-- `config.ts` — global/project config, Ollama client construction
+- `agent.ts` — the agent loop, provider-agnostic tool calling, event stream
+- `config.ts` — global/project config, provider-agnostic LLM client construction
 - `prompt.ts` — system prompt, user message templates, help text; reads `AGENTS.md`/`CLAUDE.md` with `Promise.allSettled`
 - `tools.ts` — file and discovery tools exposed to the model
 - `index-middleware.ts` — post-run regeneration of `index.md`
@@ -29,21 +29,21 @@ See [Configuration](../configuration.md) for the data model, [Tools](../tools.md
 `runAgent` in `agent.ts` implements the entire control flow:
 
 1. Build the system prompt (`createSystemPrompt`) and the user message (`createUserMessage`) for the chosen command — `init` or `update`.
-2. Construct the Ollama `chat` request with the current `messages` array and the tool definitions.
+2. Construct the provider `chat` request with the current `messages` array and the tool definitions (Ollama SDK or OpenAI SDK via a common adapter interface).
 3. Stream or batch the response. Collect `content` and any `tool_calls` returned by the model.
 4. Normalize tool call arguments. Ollama models return arguments as either an object or a JSON string depending on the backend; `normalizeToolCallArgs` handles both and falls back to `{}` on malformed JSON.
-5. Append the assistant message to the history. If there are tool calls, append a `tool` message per call (Ollama associates the result with `tool_name`, not a `tool_call_id`). Successful `write_file`/`edit_file` calls also record a per-file description from the assistant's preceding prose (falling back to the tool result) for the update report; this description and the final report are both passed through `stripThinkingTags` so reasoning blocks do not leak into PR bodies.
+5. Append the assistant message to the history. If there are tool calls, append a `tool` message per call. Ollama associates results with `tool_name`, while OpenAI uses `tool_call_id`; the runtime includes both so either adapter can associate the result. Successful `write_file`/`edit_file` calls also record a per-file description from the assistant's preceding prose (falling back to the tool result) for the update report; this description and the final report are both passed through `stripThinkingTags` so reasoning blocks do not leak into PR bodies.
 6. Loop up to `WIKI_RECURSION_LIMIT` iterations (default `200`). A response with no tool calls ends the loop.
 7. After the loop, call `createWorkflowFile`, `synchronizeWikiIndexes(.wiki)`, write `.wiki/.last-updated.json`, `.wiki/.last-update-report.md` (via `generateUpdateReport`), and `.wiki/.last-update-title.txt` (via `generateUpdateTitle`), then emit a `done` event. The write/edit tools themselves strip reasoning/thinking tags from persisted content before it reaches disk.
 
-Errors from the Ollama SDK are surfaced through the `error` event stream. If the model had already produced content, the loop exits with a `done` summary that includes the error message; otherwise it emits `error` and stops.
+Errors from the underlying SDK are surfaced through the `error` event stream. If the model had already produced content, the loop exits with a `done` summary that includes the error message; otherwise it emits `error` and stops.
 
 ## Streaming and headless
 
 `runAgent` accepts a `stream` option and a `wikiPublish` flag:
 
 - TUI sets `stream: true` and the `RunView` component renders events incrementally. Consecutive assistant chunks are merged into one paragraph; tool calls are suppressed by default and shown only as one-line markers when `--verbose` is set.
-- Headless mode (`--print`) sets `stream: false` and writes assistant content (wrapped in blank lines), tool results (only with `--verbose`), and the final summary to stdout/stderr.
+- Headless mode (`--print`) sets `stream: false` and writes assistant content (wrapped in blank lines), tool results (only with `--verbose`), and the final summary to stdout/stderr. The same loop works with either the Ollama or OpenAI-compatible adapter.
 
 The event shape is fixed (`AgentEvent` in `agent.ts`):
 
@@ -65,7 +65,7 @@ Tool results are truncated at `MAX_TOOL_RESULT_LENGTH` (10 000 characters) befor
 
 `cli.tsx` chooses between two runtimes after parsing args and resolving config:
 
-- If `config.mode === "cloud"` and no API key is present, `App` renders `CredentialsSetup` first. The user selects local vs. cloud, enters the API key (cloud only), and a model ID. The result is persisted to `~/.wiki/config.json` and re-resolved.
+- If `config.mode === "cloud"` or `config.mode === "openai"` and no API key is present, `App` renders `CredentialsSetup` first. The user selects local, cloud, or openai, enters the API key (cloud/openai only), and a model ID. The result is persisted to `~/.wiki/config.json` and re-resolved.
 - Once configured, `App` renders a header and the `RunView` component, which wires the agent's `onEvent` callback to a stateful list of display events. `q` or `Ctrl+C` exits the Ink app at any time.
 
 ## Post-run: index synchronization

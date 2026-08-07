@@ -2,7 +2,7 @@
 type: Reference
 title: CLI Usage
 description: Commands, flags, environment variables, and the headless / TUI dispatch of the wiki binary.
-tags: [cli, commands, flags, environment-variables]
+tags: [cli, commands, flags, environment-variables, openai]
 ---
 
 # CLI Usage
@@ -42,12 +42,17 @@ Environment variables are merged with config files by `resolveConfig` in `config
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `WIKI_OLLAMA_MODE` | `"local"` or `"cloud"` | from `~/.wiki/config.json` |
-| `WIKI_OLLAMA_API_KEY` | API key for cloud mode | from `~/.wiki/config.json` |
-| `WIKI_OLLAMA_BASE_URL` | Override the Ollama server URL | `http://localhost:11434` (local) or `https://ollama.com` (cloud) |
+| `WIKI_PROVIDER_MODE` | `"local"`, `"cloud"`, or `"openai"` | from `~/.wiki/config.json` |
+| `WIKI_PROVIDER_API_KEY` | API key for cloud or openai mode | from `~/.wiki/config.json` |
+| `WIKI_PROVIDER_BASE_URL` | Override provider base URL | mode-specific default |
+| `WIKI_OLLAMA_MODE` | Legacy: `"local"`, `"cloud"`, or `"openai"` | from `~/.wiki/config.json` |
+| `WIKI_OLLAMA_API_KEY` | Legacy: API key for cloud or openai mode | from `~/.wiki/config.json` |
+| `WIKI_OLLAMA_BASE_URL` | Legacy: override the Ollama server URL | mode-specific default |
 | `WIKI_MODEL` | Override model ID | from `~/.wiki/config.json` |
 | `WIKI_RECURSION_LIMIT` | Max agent iterations | `200` |
 | `GH_TOKEN` | GitHub token for the read-only `gh` CLI tool (used in CI for the staging PR staleness check) | from environment |
+
+`WIKI_PROVIDER_*` variables take precedence over their `WIKI_OLLAMA_*` counterparts when both are set.
 
 In headless mode, the model ID is selected as: `--model` flag → `.wiki/config.json` `modelOverride` → `WIKI_MODEL` → `~/.wiki/config.json` `defaultModel` → `kimi-k2.7-code`.
 
@@ -96,5 +101,5 @@ The GitHub Actions workflow created by `wiki --init --wiki` invokes `wiki-flatte
 
 ## Exit codes
 
-- `wiki`: `0` — normal completion (including `--help`); `1` — unhandled exception in `main`, or `WIKI_OLLAMA_API_KEY` missing when the resolved config is cloud mode.
+- `wiki`: `0` — normal completion (including `--help`); `1` — unhandled exception in `main`, or an API key missing when the resolved config requires one (`cloud` or `openai` mode).
 - `wiki-flatten`: `0` — success; `1` — missing arguments or unexpected error.

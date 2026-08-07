@@ -2,7 +2,7 @@
 type: Reference
 title: Development
 description: Build, test, release workflow, and repository automation for the wiki-agent project.
-tags: [development, build, test, release]
+tags: [development, build, test, release, openai]
 ---
 
 # Development
@@ -36,7 +36,7 @@ bun run test
 
 Runs `vitest run` against the test files in `test/`. There are eight Vitest test files:
 
-- `config.test.ts` — global/project config I/O and `resolveConfig` precedence.
+- `config.test.ts` — global/project config I/O, `resolveConfig` precedence, provider-prefixed (`WIKI_PROVIDER_*`) vs. legacy (`WIKI_OLLAMA_*`) environment variable precedence, OpenAI mode client construction, and OpenAI default base URL.
 - `tools.test.ts` — path-safety checks, file read/write/edit, `read_file` streaming behavior, tool definition shape, `git` and `gh` subcommand allowlists, metacharacter guard, `grep`/`glob` command-injection prevention, wildcard restoration, directory exclusions (`node_modules`, `.git`, `dist`, `.wiki`), `ast_grep`/`ast_search` structural matching, `parseArgsStringToArgv`, and reasoning-tag stripping (the four `think`/`thinking`/`reasoning`/`reflection` tag pairs) in `write_file`/`edit_file`.
 - `index-middleware.test.ts` — `index.md` regeneration, exclusions, error propagation for invalid frontmatter, and idempotency.
 - `prompt.test.ts` — system prompt, user message templates, and help text contents.
@@ -105,6 +105,8 @@ The repo uses several GitHub Actions workflows beyond `update-wiki.yml`:
 - `.github/workflows/vouch-pr.yml` — auto-closes PRs from unvouched users and labels vouched/allowed PRs with `vouched`.
 
 Vouched users are tracked in `.github/VOUCHED.td`. Bots and collaborators with write access are automatically allowed. See [Vouch Access Control](../automation/vouch.md) for details.
+
+The README commit that documented the OpenAI-compatible provider (PR #123) also extended `test/config.test.ts` with a `resolveConfig precedence` block covering `WIKI_PROVIDER_*` vs. `WIKI_OLLAMA_*`, `openai` mode default base URL, and `createLLMClient` returning `OpenAIAdapter`/`OllamaAdapter` for the new modes.
 
 `.releaserc.json` configures semantic-release for branches `main`, `beta`, and `alpha`, writes `CHANGELOG.md`, commits `package.json`/`CHANGELOG.md`, creates a GitHub release, and publishes `@chronova/wiki-agent` via the `@semantic-release/npm` plugin. The `releaseBodyTemplate` in `.releaserc.json` also truncates the release notes at 120 000 bytes with a pointer back to `CHANGELOG.md` as a fallback. The release job additionally edits the newly created release body with a full commit-level "What's Changed" section generated locally from `git log`, replacing the default notes; if those generated notes exceed 120 000 bytes they are truncated at a safe line boundary with a pointer back to `CHANGELOG.md`. Renovate is configured with `config:recommended` in `renovate.json`. Because the project uses Bun, `package-lock.json` is not part of the git assets. The project is released under the ISC license (`LICENSE`); `package.json` sets `license: "ISC"`.
 
