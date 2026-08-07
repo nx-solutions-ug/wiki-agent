@@ -1,3 +1,10 @@
+# [1.15.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.14.0...v1.15.0) (2026-08-07)
+
+
+### Features
+
+* add openai compatible provider support ([#120](https://github.com/nx-solutions-ug/wiki-agent/issues/120)) ([ab3d5bc](https://github.com/nx-solutions-ug/wiki-agent/commit/ab3d5bc7d9352545bd7d9088d36e229e579a73c8))
+
 # [1.14.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.13.2...v1.14.0) (2026-07-28)
 
 
