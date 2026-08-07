@@ -2,11 +2,13 @@ import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { Ollama } from "ollama";
+import OpenAI from "openai";
+import { type LLMClient, OpenAIAdapter, OllamaAdapter } from "./llm.js";
 
-export type OllamaMode = "local" | "cloud";
+export type ProviderMode = "local" | "cloud" | "openai";
 
 export interface GlobalConfig {
-  mode: OllamaMode;
+  mode: ProviderMode;
   apiKey?: string;
   baseUrl?: string;
   defaultModel: string;
@@ -18,7 +20,7 @@ export interface ProjectConfig {
 }
 
 export interface ResolvedConfig {
-  mode: OllamaMode;
+  mode: ProviderMode;
   apiKey?: string;
   baseUrl: string;
   model: string;
@@ -84,7 +86,8 @@ export async function saveProjectConfig(
 
 /**
  * Resolves the effective configuration by merging (in priority order):
- * 1. Environment variables (WIKI_OLLAMA_MODE, WIKI_OLLAMA_API_KEY,
+ * 1. Environment variables (WIKI_PROVIDER_MODE, WIKI_PROVIDER_API_KEY,
+ *    WIKI_PROVIDER_BASE_URL, WIKI_OLLAMA_MODE, WIKI_OLLAMA_API_KEY,
  *    WIKI_OLLAMA_BASE_URL, WIKI_MODEL)
  * 2. Global config file (~/.wiki/config.json)
  * 3. Project config (.wiki/config.json modelOverride)
@@ -99,18 +102,20 @@ export async function resolveConfig(
 
   const env = process.env;
 
-  const mode: OllamaMode =
-    env.WIKI_OLLAMA_MODE === "cloud" || env.WIKI_OLLAMA_MODE === "local"
-      ? env.WIKI_OLLAMA_MODE
-      : globalConfig.mode;
+  let mode = globalConfig.mode;
+  if (env.WIKI_PROVIDER_MODE === "cloud" || env.WIKI_PROVIDER_MODE === "local" || env.WIKI_PROVIDER_MODE === "openai") {
+    mode = env.WIKI_PROVIDER_MODE as ProviderMode;
+  } else if (env.WIKI_OLLAMA_MODE === "cloud" || env.WIKI_OLLAMA_MODE === "local" || env.WIKI_OLLAMA_MODE === "openai") {
+    mode = env.WIKI_OLLAMA_MODE as ProviderMode;
+  }
 
   const apiKey =
-    env.WIKI_OLLAMA_API_KEY ?? globalConfig.apiKey;
+    (env.WIKI_PROVIDER_API_KEY || env.WIKI_OLLAMA_API_KEY) ?? globalConfig.apiKey;
 
   const baseUrl =
-    env.WIKI_OLLAMA_BASE_URL ??
+    (env.WIKI_PROVIDER_BASE_URL || env.WIKI_OLLAMA_BASE_URL) ??
     globalConfig.baseUrl ??
-    (mode === "cloud" ? DEFAULT_CLOUD_HOST : DEFAULT_LOCAL_HOST);
+    (mode === "openai" ? "https://api.openai.com/v1" : mode === "cloud" ? DEFAULT_CLOUD_HOST : DEFAULT_LOCAL_HOST);
 
   const model =
     modelOverride ??
@@ -123,17 +128,23 @@ export async function resolveConfig(
 }
 
 /**
- * Creates an Ollama client from resolved config.
+ * Creates an LLM client (Ollama or OpenAI) from resolved config.
  */
-export function createOllamaClient(config: ResolvedConfig): Ollama {
+export function createLLMClient(config: ResolvedConfig): LLMClient {
+  if (config.mode === "openai") {
+    return new OpenAIAdapter(new OpenAI({
+      apiKey: config.apiKey,
+      baseURL: config.baseUrl,
+    }));
+  }
   if (config.mode === "cloud" && config.apiKey) {
-    return new Ollama({
+    return new OllamaAdapter(new Ollama({
       host: config.baseUrl,
       headers: { Authorization: `Bearer ${config.apiKey}` },
-    });
+    }));
   }
 
-  return new Ollama({ host: config.baseUrl });
+  return new OllamaAdapter(new Ollama({ host: config.baseUrl }));
 }
 
 export function truncateResult(result: string): string {

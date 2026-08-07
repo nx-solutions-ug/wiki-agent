@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Box, Text, useApp } from "ink";
 import { runAgent, type AgentEvent } from "../agent.js";
-import { createOllamaClient, type ResolvedConfig } from "../config.js";
+import { createLLMClient, type ResolvedConfig } from "../config.js";
 import type { WikiCommand } from "../prompt.js";
 
 interface RunViewProps {
@@ -34,7 +34,7 @@ export function RunView({
   const { exit } = useApp();
 
   useEffect(() => {
-    const client = createOllamaClient(config);
+    const client = createLLMClient(config);
     let toolCount = 0;
 
     runAgent(client, {

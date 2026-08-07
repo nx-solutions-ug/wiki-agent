@@ -6,7 +6,7 @@ import { createSystemPrompt, createUserMessage, type WikiCommand } from "./promp
 import { createTools, executeTool, stripThinkingTags } from "./tools.js";
 import { synchronizeWikiIndexes } from "./index-middleware.js";
 import { VERSION } from "./version.js";
-import { Ollama } from "ollama";
+import { type LLMClient, type LLMMessage, type LLMToolCall } from "./llm.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -169,23 +169,7 @@ export async function appendWikiAgentFrontmatter(
 }
 
 
-/**
- * Ollama SDK message format. Tool call arguments are objects (not strings),
- * and tool response messages use `tool_name` (not `tool_call_id`).
- */
-interface OllamaMessage {
-  role: string;
-  content: string;
-  tool_calls?: OllamaToolCall[];
-  tool_name?: string;
-}
 
-interface OllamaToolCall {
-  function: {
-    name: string;
-    arguments: Record<string, unknown>;
-  };
-}
 
 export interface RunOptions {
   command: WikiCommand;
@@ -219,35 +203,8 @@ function resolveMaxIterations(): number {
  * arguments as a JSON string or as a parsed object depending on the model —
  * handle both.
  */
-function normalizeToolCallArgs(
-  args: unknown,
-): Record<string, unknown> {
-  if (args === null || args === undefined) {
-    return {};
-  }
-
-  if (typeof args === "string") {
-    try {
-      const parsed = JSON.parse(args);
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        return parsed as Record<string, unknown>;
-      }
-    } catch {
-      // Malformed JSON — return empty so the tool gets called with no args
-      return {};
-    }
-    return {};
-  }
-
-  if (typeof args === "object" && !Array.isArray(args)) {
-    return args as Record<string, unknown>;
-  }
-
-  return {};
-}
-
 export async function runAgent(
-  client: Ollama,
+  client: LLMClient,
   options: RunOptions,
 ): Promise<void> {
   const {
@@ -266,7 +223,7 @@ export async function runAgent(
   const systemPrompt = await createSystemPrompt(projectRoot);
   const userMessage = createUserMessage(command, projectRoot, gitSummary);
 
-  const messages: OllamaMessage[] = [
+  const messages: LLMMessage[] = [
     { role: "system", content: systemPrompt },
     { role: "user", content: userMessage },
   ];
@@ -274,15 +231,15 @@ export async function runAgent(
 
   for (let i = 0; i < maxIter; i++) {
     let assistantContent = "";
-    let toolCalls: OllamaToolCall[] = [];
+    let toolCalls: LLMToolCall[] = [];
 
     try {
       if (stream) {
         const streamResponse = await client.chat({
           model,
-          messages: messages as never,
-          tools: tools.map((t) => t.definition) as never,
-          stream: true,
+          messages,
+          tools: tools.map((t) => t.definition),
+          stream: true as const,
         });
 
         for await (const chunk of streamResponse) {
@@ -292,10 +249,11 @@ export async function runAgent(
           }
 
           if (chunk.message?.tool_calls) {
-            toolCalls.push(...chunk.message.tool_calls.flatMap(tc => tc.function?.name ? [{
+            toolCalls.push(...chunk.message.tool_calls.flatMap((tc: LLMToolCall) => tc.function?.name ? [{
+              id: tc.id,
               function: {
                 name: tc.function.name,
-                arguments: normalizeToolCallArgs(tc.function.arguments),
+                arguments: tc.function.arguments,
               },
             }] : []));
           }
@@ -303,9 +261,9 @@ export async function runAgent(
       } else {
         const result = await client.chat({
           model,
-          messages: messages as never,
-          tools: tools.map((t) => t.definition) as never,
-          stream: false,
+          messages,
+          tools: tools.map((t) => t.definition),
+          stream: false as const,
         });
 
         const msgContent = result.message?.content;
@@ -313,10 +271,11 @@ export async function runAgent(
         onEvent({ type: "assistant", content: assistantContent });
 
         if (result.message?.tool_calls) {
-          toolCalls.push(...result.message.tool_calls.flatMap(tc => tc.function?.name ? [{
+          toolCalls.push(...result.message!.tool_calls!.flatMap((tc: LLMToolCall) => tc.function?.name ? [{
+            id: tc.id,
             function: {
               name: tc.function.name,
-              arguments: normalizeToolCallArgs(tc.function.arguments),
+              arguments: tc.function.arguments,
             },
           }] : []));
         }
@@ -336,7 +295,7 @@ export async function runAgent(
       break;
     }
 
-    const assistantMessage: OllamaMessage = {
+    const assistantMessage: LLMMessage = {
       role: "assistant",
       content: assistantContent,
       ...(toolCalls.length > 0 ? { tool_calls: toolCalls } : {}),
@@ -375,11 +334,12 @@ export async function runAgent(
 
       onEvent({ type: "tool", name: toolName, result });
 
-      // Ollama uses tool_name (not tool_call_id) to associate tool results
+      // Ollama uses tool_name to associate tool results, while OpenAI uses tool_call_id.
       messages.push({
         role: "tool",
         content: result,
         tool_name: toolName,
+        tool_call_id: toolCall.id,
       });
     }
   }
@@ -500,8 +460,9 @@ async function createWorkflowFile(projectRoot: string, wikiPublish: boolean): Pr
     "      - name: Run Wiki Agent",
     `        run: wiki ${runFlags}`,
     "        env:",
-    "          WIKI_OLLAMA_MODE: cloud",
-    '          WIKI_OLLAMA_API_KEY: ${{ secrets.WIKI_OLLAMA_API_KEY }}',
+    "          WIKI_PROVIDER_MODE: ${{ vars.WIKI_PROVIDER_MODE || 'cloud' }}",
+    '          WIKI_PROVIDER_API_KEY: ${{ secrets.WIKI_PROVIDER_API_KEY || secrets.WIKI_OLLAMA_API_KEY }}',
+    '          WIKI_PROVIDER_BASE_URL: ${{ vars.WIKI_PROVIDER_BASE_URL }}',
     "          WIKI_MODEL: ${{ vars.WIKI_MODEL || 'kimi-k2.7-code' }}",
     "          GH_TOKEN: ${{ steps.token.outputs.token || secrets.GITHUB_TOKEN }}",
     "",
