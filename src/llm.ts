@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { Ollama, type Message as OllamaSDKMessage } from "ollama";
+import { Ollama, type Message as OllamaSDKMessage, type Tool as OllamaSDKTool } from "ollama";
 
 
 function parseArgs(args: string | Record<string, unknown>): Record<string, unknown> {
@@ -54,6 +54,7 @@ export interface LLMTool {
       type: string;
       properties: Record<string, unknown>;
       required: string[];
+      [key: string]: any; // Widen to match Ollama SDK Tool without using `as any` cast on the array
     };
   };
 }
@@ -221,7 +222,7 @@ export class OllamaAdapter implements LLMClient {
       const stream = await this.ollama.chat({
         model: options.model,
         messages: messages as OllamaSDKMessage[],
-        ...(options.tools && options.tools.length > 0 ? { tools: options.tools as any } : {}),
+        ...(options.tools && options.tools.length > 0 ? { tools: options.tools.map((t): OllamaSDKTool => ({ type: t.type, function: { name: t.function.name, description: t.function.description, parameters: t.function.parameters as Record<string, unknown> } })) } : {}),
         stream: true,
       });
       return (async function* () {
@@ -238,7 +239,7 @@ export class OllamaAdapter implements LLMClient {
                   id: streamToolCallIds ? streamToolCallIds[idx] : "call_" + Math.random().toString(36).slice(2),
                   function: {
                     name: tc.function.name,
-                    arguments: tc.function.arguments as Record<string, unknown>,
+                    arguments: tc.function.arguments,
                   },
                 })),
               } : {}),
@@ -250,7 +251,7 @@ export class OllamaAdapter implements LLMClient {
       const res = await this.ollama.chat({
         model: options.model,
         messages: messages as OllamaSDKMessage[],
-        ...(options.tools && options.tools.length > 0 ? { tools: options.tools as any } : {}),
+        ...(options.tools && options.tools.length > 0 ? { tools: options.tools.map((t): OllamaSDKTool => ({ type: t.type, function: { name: t.function.name, description: t.function.description, parameters: t.function.parameters as Record<string, unknown> } })) } : {}),
         stream: false,
       });
       return {
@@ -261,7 +262,7 @@ export class OllamaAdapter implements LLMClient {
               id: "call_" + Math.random().toString(36).slice(2),
               function: {
                 name: tc.function.name,
-                arguments: tc.function.arguments as Record<string, unknown>,
+                arguments: tc.function.arguments,
               },
             })),
           } : {}),

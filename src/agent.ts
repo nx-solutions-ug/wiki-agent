@@ -203,33 +203,6 @@ function resolveMaxIterations(): number {
  * arguments as a JSON string or as a parsed object depending on the model —
  * handle both.
  */
-function normalizeToolCallArgs(
-  args: unknown,
-): Record<string, unknown> {
-  if (args === null || args === undefined) {
-    return {};
-  }
-
-  if (typeof args === "string") {
-    try {
-      const parsed = JSON.parse(args);
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        return parsed as Record<string, unknown>;
-      }
-    } catch {
-      // Malformed JSON — return empty so the tool gets called with no args
-      return {};
-    }
-    return {};
-  }
-
-  if (typeof args === "object" && !Array.isArray(args)) {
-    return args as Record<string, unknown>;
-  }
-
-  return {};
-}
-
 export async function runAgent(
   client: LLMClient,
   options: RunOptions,
@@ -361,7 +334,7 @@ export async function runAgent(
 
       onEvent({ type: "tool", name: toolName, result });
 
-      // Ollama uses tool_name (not tool_call_id) to associate tool results
+      // Ollama uses tool_name to associate tool results, while OpenAI uses tool_call_id.
       messages.push({
         role: "tool",
         content: result,
@@ -487,8 +460,9 @@ async function createWorkflowFile(projectRoot: string, wikiPublish: boolean): Pr
     "      - name: Run Wiki Agent",
     `        run: wiki ${runFlags}`,
     "        env:",
-    "          WIKI_OLLAMA_MODE: cloud",
-    '          WIKI_OLLAMA_API_KEY: ${{ secrets.WIKI_OLLAMA_API_KEY }}',
+    "          WIKI_PROVIDER_MODE: ${{ vars.WIKI_PROVIDER_MODE || 'cloud' }}",
+    '          WIKI_PROVIDER_API_KEY: ${{ secrets.WIKI_PROVIDER_API_KEY || secrets.WIKI_OLLAMA_API_KEY }}',
+    '          WIKI_PROVIDER_BASE_URL: ${{ vars.WIKI_PROVIDER_BASE_URL }}',
     "          WIKI_MODEL: ${{ vars.WIKI_MODEL || 'kimi-k2.7-code' }}",
     "          GH_TOKEN: ${{ steps.token.outputs.token || secrets.GITHUB_TOKEN }}",
     "",
