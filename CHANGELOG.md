@@ -1,3 +1,10 @@
+# [1.16.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.15.1...v1.16.0) (2026-08-07)
+
+
+### Features
+
+* **tui:** expose all provider config options in interactive setup ([8d9e19b](https://github.com/nx-solutions-ug/wiki-agent/commit/8d9e19b448c6ae1607f611361ff6778866cefcaf))
+
 ## [1.15.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.15.0...v1.15.1) (2026-08-07)
 
 
