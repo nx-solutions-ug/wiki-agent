@@ -1,3 +1,10 @@
+## [1.15.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.15.0...v1.15.1) (2026-08-07)
+
+
+### Bug Fixes
+
+* **issue-121:** document OpenAI-compatible provider in README ([#123](https://github.com/nx-solutions-ug/wiki-agent/issues/123)) ([754ea78](https://github.com/nx-solutions-ug/wiki-agent/commit/754ea78b70dd655878db9071d4d1088ed54ba420)), closes [#120](https://github.com/nx-solutions-ug/wiki-agent/issues/120)
+
 # [1.15.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.14.0...v1.15.0) (2026-08-07)
 
 
