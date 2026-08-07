@@ -1,14 +1,14 @@
 import React, { useState } from "react";
-import { Box, Text, useApp, useInput } from "ink";
+import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
-import { saveGlobalConfig, type GlobalConfig, type ResolvedConfig, type ProviderMode } from "../config.js";
+import { saveGlobalConfig, defaultBaseUrl, type GlobalConfig, type ResolvedConfig, type ProviderMode } from "../config.js";
 
 interface CredentialsSetupProps {
   cwd: string;
   onConfigSaved: (config: ResolvedConfig) => void;
 }
 
-type SetupStep = "mode-select" | "api-key" | "model" | "saving";
+type SetupStep = "mode-select" | "api-key" | "base-url" | "model" | "saving";
 
 export function CredentialsSetup({
   onConfigSaved,
@@ -16,7 +16,8 @@ export function CredentialsSetup({
   const [step, setStep] = useState<SetupStep>("mode-select");
   const [mode, setMode] = useState<ProviderMode>("local");
   const [apiKey, setApiKey] = useState("");
-  const [model, setModel] = useState("kimi-k2.7-code");
+  const [baseUrl, setBaseUrl] = useState("");
+  const [model, setModel] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   async function handleSave(): Promise<void> {
@@ -24,10 +25,12 @@ export function CredentialsSetup({
     setStep("saving");
 
     try {
+      const effectiveBaseUrl = baseUrl.trim() || defaultBaseUrl(mode);
       const globalConfig: GlobalConfig = {
         mode,
-        defaultModel: model,
+        defaultModel: model.trim() || "kimi-k2.7-code",
         ...((mode === "cloud" || mode === "openai") ? { apiKey } : {}),
+        ...(effectiveBaseUrl !== defaultBaseUrl(mode) ? { baseUrl: effectiveBaseUrl } : {}),
       };
 
       await saveGlobalConfig(globalConfig);
@@ -35,8 +38,8 @@ export function CredentialsSetup({
       const resolved: ResolvedConfig = {
         mode,
         ...((mode === "cloud" || mode === "openai") ? { apiKey } : {}),
-        baseUrl: mode === "openai" ? "https://api.openai.com/v1" : mode === "cloud" ? "https://ollama.com" : "http://localhost:11434",
-        model,
+        baseUrl: effectiveBaseUrl,
+        model: model.trim() || "kimi-k2.7-code",
       };
 
       onConfigSaved(resolved);
@@ -50,7 +53,8 @@ export function CredentialsSetup({
     if (step === "mode-select") {
       if (input === "1") {
         setMode("local");
-        setStep("model");
+        setBaseUrl(defaultBaseUrl("local"));
+        setStep("base-url");
       } else if (input === "2") {
         setMode("cloud");
         setStep("api-key");
@@ -80,7 +84,7 @@ export function CredentialsSetup({
       ),
       React.createElement(Text, null,
         React.createElement(Text, { color: "green" }, "  3. "),
-        "OpenAI API (API key required)",
+        "OpenAI-compatible API (API key required, custom endpoint supported)",
       ),
       React.createElement(Text, { color: "gray" }, "\nPress 1, 2, or 3 to select."),
       error ? React.createElement(Text, { color: "red" }, `Error: ${error}`) : null,
@@ -89,8 +93,8 @@ export function CredentialsSetup({
 
   if (step === "api-key") {
     return React.createElement(Box, { flexDirection: "column" },
-      React.createElement(Text, { bold: true }, mode === "openai" ? "Enter your OpenAI API key:" : "Enter your Ollama Cloud API key:"),
-      React.createElement(Text, { color: "gray" }, mode === "openai" ? "Get your API key from OpenAI platform" : "Get your API key from https://ollama.com"),
+      React.createElement(Text, { bold: true }, mode === "openai" ? "Enter your API key:" : "Enter your Ollama Cloud API key:"),
+      React.createElement(Text, { color: "gray" }, mode === "openai" ? "Paste your API key for your OpenAI-compatible endpoint" : "Get your API key from https://ollama.com"),
       React.createElement(TextInput, {
         value: apiKey,
         onChange: setApiKey,
@@ -99,6 +103,23 @@ export function CredentialsSetup({
             setError("API key is required for this mode.");
             return;
           }
+          setError(null);
+          setBaseUrl(defaultBaseUrl(mode));
+          setStep("base-url");
+        },
+      }),
+      error ? React.createElement(Text, { color: "red" }, `Error: ${error}`) : null,
+    );
+  }
+
+  if (step === "base-url") {
+    return React.createElement(Box, { flexDirection: "column" },
+      React.createElement(Text, { bold: true }, "Enter API base URL:"),
+      React.createElement(Text, { color: "gray" }, `Press Enter to use the default (${defaultBaseUrl(mode)})`),
+      React.createElement(TextInput, {
+        value: baseUrl,
+        onChange: setBaseUrl,
+        onSubmit: () => {
           setError(null);
           setStep("model");
         },

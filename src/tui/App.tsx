@@ -42,7 +42,7 @@ export function App({ command, cwd, config, verbose, wiki }: AppProps): React.Re
       React.createElement(Text, null,
         React.createElement(Text, { bold: true }, `Wiki Agent v${VERSION}`),
         " | ",
-        React.createElement(Text, { color: "cyan" }, `Ollama (${resolvedConfig.mode})`),
+        React.createElement(Text, { color: "cyan" }, `Provider: ${resolvedConfig.mode}`),
         " | ",
         React.createElement(Text, { color: "gray" }, `model: ${resolvedConfig.model}`),
         " | ",

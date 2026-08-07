@@ -130,9 +130,9 @@ async function main() {
   const cwd = process.cwd();
   const config = await resolveConfig(cwd, args.model);
 
-  if (config.mode === "cloud" && !config.apiKey) {
+  if ((config.mode === "cloud" || config.mode === "openai") && !config.apiKey) {
     console.error(
-      "WIKI_OLLAMA_API_KEY is required for cloud mode. Set it via environment variable or run interactively to configure.",
+      "API key is required for cloud or openai mode. Set it via environment variable or run interactively to configure.",
     );
     process.exit(1);
   }

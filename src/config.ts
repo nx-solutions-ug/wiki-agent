@@ -35,7 +35,17 @@ function getGlobalConfigPath(): string {
 
 const DEFAULT_LOCAL_HOST = "http://localhost:11434";
 const DEFAULT_CLOUD_HOST = "https://ollama.com";
+const DEFAULT_OPENAI_HOST = "https://api.openai.com/v1";
 const DEFAULT_MODEL = "kimi-k2.7-code";
+
+/** Returns the default base URL for a given provider mode. */
+export function defaultBaseUrl(mode: ProviderMode): string {
+  switch (mode) {
+    case "openai": return DEFAULT_OPENAI_HOST;
+    case "cloud": return DEFAULT_CLOUD_HOST;
+    default: return DEFAULT_LOCAL_HOST;
+  }
+}
 
 const MAX_TOOL_RESULT_LENGTH = 10_000;
 
@@ -115,7 +125,7 @@ export async function resolveConfig(
   const baseUrl =
     (env.WIKI_PROVIDER_BASE_URL || env.WIKI_OLLAMA_BASE_URL) ??
     globalConfig.baseUrl ??
-    (mode === "openai" ? "https://api.openai.com/v1" : mode === "cloud" ? DEFAULT_CLOUD_HOST : DEFAULT_LOCAL_HOST);
+    defaultBaseUrl(mode);
 
   const model =
     modelOverride ??

@@ -177,13 +177,17 @@ Options
   --print         Run headless (non-interactive, output to stdout)
   --verbose, -v   Show full tool call results (default: assistant prose only)
   --model <id>    Override the model ID
+  --wiki          Update and publish to the GitHub Wiki tab
   --version       Show version
   --help, -h      Show help
 
 Environment variables
-  WIKI_OLLAMA_MODE        "local" or "cloud"
-  WIKI_OLLAMA_API_KEY     API key (required for cloud mode)
-  WIKI_OLLAMA_BASE_URL    Override the Ollama server URL
+  WIKI_PROVIDER_MODE      "local", "cloud", or "openai" (OpenAI-compatible)
+  WIKI_PROVIDER_API_KEY   API key (required for cloud and openai modes)
+  WIKI_PROVIDER_BASE_URL  Override the API base URL
+  WIKI_OLLAMA_MODE        Legacy alias for WIKI_PROVIDER_MODE ("local" or "cloud")
+  WIKI_OLLAMA_API_KEY     Legacy alias for WIKI_PROVIDER_API_KEY
+  WIKI_OLLAMA_BASE_URL    Legacy alias for WIKI_PROVIDER_BASE_URL
   WIKI_MODEL              Override the model ID
   WIKI_RECURSION_LIMIT    Max agent iterations (default: 200)
 
