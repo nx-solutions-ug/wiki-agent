@@ -34,14 +34,15 @@ This runs the `prebuild` cleanup (`rm -rf dist`) and then `tsc -p tsconfig.json`
 bun run test
 ```
 
-Runs `vitest run` against the test files in `test/`. There are eight Vitest test files:
+Runs `vitest run` against the test files in `test/`. There are ten Vitest test files:
 
-- `config.test.ts` — global/project config I/O and `resolveConfig` precedence.
+- `config.test.ts` — global/project config I/O, `resolveConfig` precedence, and `createLLMClient` adapter dispatch.
 - `tools.test.ts` — path-safety checks, file read/write/edit, `read_file` streaming behavior, tool definition shape, `git` and `gh` subcommand allowlists, metacharacter guard, `grep`/`glob` command-injection prevention, wildcard restoration, directory exclusions (`node_modules`, `.git`, `dist`, `.wiki`), `ast_grep`/`ast_search` structural matching, `parseArgsStringToArgv`, and reasoning-tag stripping (the four `think`/`thinking`/`reasoning`/`reflection` tag pairs) in `write_file`/`edit_file`.
 - `index-middleware.test.ts` — `index.md` regeneration, exclusions, error propagation for invalid frontmatter, and idempotency.
 - `prompt.test.ts` — system prompt, user message templates, and help text contents.
 - `report.test.ts` — `generateUpdateReport`: no-op reports, created/edited listings, per-file description blockquotes, truncation, whitespace collapse, and summary counts.
 - `flatten-wiki.test.ts` — filename conversion, link rewriting, frontmatter stripping, sidebar generation, and metadata exclusions.
+- `llm.test.ts` and `llm-ollama.test.ts` — adapter behavior for OpenAI and Ollama clients, including streaming tool-call accumulation and argument normalization.
 - `version.test.ts` — `VERSION` matches `package.json` and is not a stale placeholder.
 - `stream-log.test.ts` — drives `.omp/stream-log.py` as a subprocess and guards the regressions from issue #76: non-dict `args`, null/non-string `text` content, and malformed JSON lines do not crash the OMP pipeline.
 
@@ -55,15 +56,16 @@ The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.H
 bun pm pack
 ```
 
-Produces `wiki-agent-1.13.1.tgz`. The tarball includes `dist/`, `README.md`, and `LICENSE` per the `files` array in `package.json`. The earlier `package.json` `files` entry for `.github/workflows/wiki-update.yml` was removed, since workflows are generated into target repos by `--init`, not shipped in the package.
+Produces `wiki-agent-1.14.0.tgz`. The tarball includes `dist/`, `README.md`, and `LICENSE` per the `files` array in `package.json`. The earlier `package.json` `files` entry for `.github/workflows/wiki-update.yml` was removed, since workflows are generated into target repos by `--init`, not shipped in the package.
 
 ## Project layout
 
 ```
 src/
   cli.tsx              CLI entrypoint, arg parsing, TUI vs. headless
-  agent.ts             Ollama tool-calling loop, workflow/report generation
-  config.ts            Global/project config, Ollama client factory
+  agent.ts             LLM tool-calling loop, workflow/report generation
+  config.ts            Global/project config, LLM client factory
+  llm.ts               Provider-agnostic LLM interface and Ollama/OpenAI adapters
   prompt.ts            System prompt, user message, help text; reads AGENTS.md/CLAUDE.md with Promise.allSettled
   tools.ts             read_file, write_file, edit_file, ls, grep, glob, git, ast_grep, ast_search, gh
   index-middleware.ts  Post-run index.md regeneration
