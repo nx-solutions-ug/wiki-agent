@@ -163,6 +163,34 @@ describe("resolveConfig precedence", () => {
     const config = await resolveConfig("/fake/path");
     expect(config.baseUrl).toBe("https://ollama.com");
   });
+
+  it("prioritizes WIKI_PROVIDER_API_KEY over WIKI_OLLAMA_API_KEY", async () => {
+    process.env.WIKI_PROVIDER_API_KEY = "provider-key";
+    process.env.WIKI_OLLAMA_API_KEY = "ollama-key";
+    const config = await resolveConfig("/fake/path");
+    expect(config.apiKey).toBe("provider-key");
+  });
+
+  it("falls back to WIKI_OLLAMA_API_KEY when WIKI_PROVIDER_API_KEY is missing", async () => {
+    delete process.env.WIKI_PROVIDER_API_KEY;
+    process.env.WIKI_OLLAMA_API_KEY = "ollama-key";
+    const config = await resolveConfig("/fake/path");
+    expect(config.apiKey).toBe("ollama-key");
+  });
+
+  it("prioritizes WIKI_PROVIDER_BASE_URL over WIKI_OLLAMA_BASE_URL", async () => {
+    process.env.WIKI_PROVIDER_BASE_URL = "https://provider.example/v1";
+    process.env.WIKI_OLLAMA_BASE_URL = "https://ollama.example";
+    const config = await resolveConfig("/fake/path");
+    expect(config.baseUrl).toBe("https://provider.example/v1");
+  });
+
+  it("WIKI_OLLAMA_BASE_URL overrides the default Ollama host", async () => {
+    process.env.WIKI_PROVIDER_MODE = "cloud";
+    process.env.WIKI_OLLAMA_BASE_URL = "https://custom-ollama.example";
+    const config = await resolveConfig("/fake/path");
+    expect(config.baseUrl).toBe("https://custom-ollama.example");
+  });
 });
 
 describe("createLLMClient", () => {
