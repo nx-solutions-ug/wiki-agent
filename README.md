@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/banner.png" alt="Wiki Agent — Standalone Ollama Documentation Generator" width="850" />
+  <img src="public/banner.png" alt="Wiki Agent — Standalone Documentation Generator for Ollama and OpenAI-compatible Providers" width="850" />
 </p>
 
 # Wiki Agent
@@ -8,12 +8,12 @@
 [![Release](https://github.com/nx-solutions-ug/wiki-agent/actions/workflows/release.yml/badge.svg)](https://github.com/nx-solutions-ug/wiki-agent/actions/workflows/release.yml)
 [![License: ISC](https://img.shields.io/badge/License-ISC-blue.svg)](https://opensource.org/licenses/ISC)
 
-A standalone Ollama-only documentation agent. It inspects your source code and generates a wiki under `.wiki/` in your project root, with optional publishing to the GitHub Wiki tab.
+A standalone documentation agent that runs against Ollama or any OpenAI-compatible provider. It inspects your source code and generates a wiki under `.wiki/` in your project root, with optional publishing to the GitHub Wiki tab.
 
 ## Features
 
-- **Ollama-only** — uses the native `ollama` SDK, no LangChain dependency
-- **Local or Cloud** — connect to a local Ollama server or Ollama Cloud with an API key
+- **Pluggable LLM provider** — uses the native `ollama` SDK for local/cloud Ollama or the official `openai` SDK for any OpenAI-compatible endpoint (OpenAI, Azure OpenAI, local servers like Ollama's OpenAI-compatible mode, vLLM, LM Studio, etc.). No LangChain dependency.
+- **Local, Cloud, or OpenAI-compatible** — connect to a local Ollama server, Ollama Cloud with an API key, or any OpenAI-compatible endpoint by setting the provider mode and an API key
 - **TUI + Headless** — interactive terminal UI or `--print` for CI/CD
 - **Two commands** — `--init` to create docs from scratch, `--update` to refresh existing docs; `--version` to show the current version
 - **Repo instructions** — reads `AGENTS.md` or `CLAUDE.md` from the project root and follows all conventions documented there. On `--init`, a `## Wiki Agent` section is appended (never prepended) to `AGENTS.md` (or `CLAUDE.md` if only that exists) declaring the project is managed by wiki-agent, with the version and initialization timestamp. If neither file exists, `AGENTS.md` is created. The section is idempotent — subsequent `--init` runs refresh the version/timestamp rather than duplicating it
@@ -56,7 +56,7 @@ cd your-project
 wiki --init
 ```
 
-This launches the TUI where you select Ollama Local or Cloud and enter your API key (if cloud). The default model is `kimi-k2.7-code`.
+This launches the TUI where you select the provider (Ollama Local, Ollama Cloud, or OpenAI-compatible) and enter your API key (required for cloud and OpenAI modes). The default model is `kimi-k2.7-code`.
 
 ### 3. Use
 
@@ -89,9 +89,9 @@ wiki --version
 wiki --init --print --model llama3.2
 ```
 
-## Configuration
-
 ### Global config (`~/.wiki/config.json`)
+
+For local (default — no API key required):
 
 ```json
 {
@@ -107,6 +107,17 @@ For cloud:
   "mode": "cloud",
   "apiKey": "your-api-key",
   "defaultModel": "kimi-k2.7-code"
+}
+```
+
+For OpenAI or any OpenAI-compatible endpoint (OpenAI, Azure OpenAI, local servers like Ollama's OpenAI-compatible mode, vLLM, LM Studio, etc.). `baseUrl` defaults to `https://api.openai.com/v1` when unset:
+
+```json
+{
+  "mode": "openai",
+  "apiKey": "your-openai-api-key",
+  "baseUrl": "https://api.openai.com/v1",
+  "defaultModel": "gpt-4o"
 }
 ```
 
@@ -126,8 +137,11 @@ For cloud:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `WIKI_OLLAMA_MODE` | `"local"` or `"cloud"` | from config |
-| `WIKI_OLLAMA_API_KEY` | API key for cloud mode | from config |
+| `WIKI_PROVIDER_MODE` | `"local"`, `"cloud"`, or `"openai"` (provider-agnostic; takes precedence over `WIKI_OLLAMA_MODE`) | from config |
+| `WIKI_PROVIDER_API_KEY` | API key for cloud or openai mode (takes precedence over `WIKI_OLLAMA_API_KEY`) | from config |
+| `WIKI_PROVIDER_BASE_URL` | Override provider base URL (takes precedence over `WIKI_OLLAMA_BASE_URL`; for `openai` mode this is the OpenAI-compatible endpoint) | `http://localhost:11434` / `https://ollama.com` / `https://api.openai.com/v1` |
+| `WIKI_OLLAMA_MODE` | `"local"`, `"cloud"`, or `"openai"` | from config |
+| `WIKI_OLLAMA_API_KEY` | API key (required for cloud and openai modes) | from config |
 | `WIKI_OLLAMA_BASE_URL` | Override Ollama server URL | `http://localhost:11434` / `https://ollama.com` |
 | `WIKI_MODEL` | Override model ID | from config |
 | `WIKI_RECURSION_LIMIT` | Max agent iterations | `200` |
@@ -150,13 +164,11 @@ Running `wiki --init` (or `wiki --update`) automatically creates `.github/workfl
 
 GitHub wikis must be initialized once through the UI before they can be pushed to programmatically. Open the **Wiki** tab in your repository, create the first page (any content), then run the workflow. Until then the publish step is skipped with a warning; the staging PR still opens so you can inspect the generated content.
 
-The full workflow is written to `.github/workflows/update-wiki.yml` on every run. See that file (or the template in [`src/agent.ts`](src/agent.ts) `createWorkflowFile`) for the authoritative, current definition.
-
 ### Required secrets
 
 | Secret | Required | Description |
 |--------|----------|-------------|
-| `WIKI_OLLAMA_API_KEY` | Yes | Ollama Cloud API key |
+| `WIKI_OLLAMA_API_KEY` (or `WIKI_PROVIDER_API_KEY`) | Yes | API key — required when mode is `cloud` or `openai`. `WIKI_PROVIDER_API_KEY` takes precedence when both are set. |
 | `APP_CLIENT_ID` | No | GitHub App client ID for token generation (falls back to `GITHUB_TOKEN`) |
 | `APP_PRIVATE_KEY` | No | GitHub App private key |
 | `WIKI_PUSH_TOKEN` | No | PAT with `repo` scope used to push to the wiki repo. If unset, the GitHub App token or `GITHUB_TOKEN` is used. Set this only if the default token cannot push to the wiki repo. |
@@ -214,4 +226,4 @@ bun pm pack
 9. In update mode, only pages affected by recent changes are refreshed
 10. With `--wiki`, the workflow flattens the `.wiki/` tree (stripping frontmatter, converting nested paths to flat dash-joined filenames, rewriting links) and publishes to the GitHub Wiki tab by pushing directly to `<repo>.wiki.git` `master`
 
-The agent uses a manual tool-calling loop with the Ollama chat API — no LangChain or LangGraph dependency. The recursion limit prevents infinite loops. There is no general-purpose shell tool; the agent cannot execute arbitrary commands on the host system. The `gh` tool allows read-only inspection (pr list, pr view, repo view, etc.) plus `pr close` and `pr comment` — but only on wiki staging PRs (branches matching `wiki/staging-*`); all other mutating operations are blocked.
+The agent uses a manual tool-calling loop against the resolved LLM provider (Ollama chat API or the OpenAI-compatible chat completions API) — no LangChain or LangGraph dependency. The recursion limit prevents infinite loops. There is no general-purpose shell tool; the agent cannot execute arbitrary commands on the host system. The `gh` tool allows read-only inspection (pr list, pr view, repo view, etc.) plus `pr close` and `pr comment` — but only on wiki staging PRs (branches matching `wiki/staging-*`); all other mutating operations are blocked.
