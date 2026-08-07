@@ -2,7 +2,7 @@
 type: Reference
 title: Terminal UI
 description: The Ink-based interactive terminal UI — credentials wizard, run view, and event rendering.
-tags: [tui, ink, react, interactive]
+tags: [tui, ink, react, interactive, providers]
 ---
 
 # Terminal UI
@@ -13,25 +13,26 @@ When the CLI is launched without `--print`, `cli.tsx` mounts an [Ink](https://gi
 
 `App` receives the parsed command, the current working directory, and a `ResolvedConfig` from `cli.tsx`. It decides which screen to render based on whether the resolved configuration is missing a credential:
 
-- If `config.mode === "cloud"` and no API key is set, it renders `CredentialsSetup`.
-- Otherwise it renders the run view inside a rounded header box that shows the agent version, the Ollama mode, the model, and the project root.
+- If `config.mode` is `"cloud"` or `"openai"` and no API key is set, it renders `CredentialsSetup`.
+- Otherwise it renders the run view inside a rounded header box that shows the agent version, the provider mode, the model, and the project root.
 
 A `useInput` hook listens for `q` or `Ctrl+C` at the top level and calls `useApp().exit()` to leave Ink cleanly. The same key handling is duplicated in each screen so `q` and `Ctrl+C` work everywhere.
 
 ## Credentials setup: `CredentialsSetup.tsx`
 
-A four-step state machine:
+A five-step state machine:
 
-1. `mode-select` — the user picks `1` for Ollama Local or `2` for Ollama Cloud. The TUI does not accept Enter here; key presses drive transitions.
-2. `api-key` — only reached from cloud mode. Uses `ink-text-input` to read the key, validates that it is non-empty on submit.
-3. `model` — defaults to `kimi-k2.7-code` and uses the same text input. The prompt text matches this default.
-4. `saving` — calls `saveGlobalConfig` with the assembled `GlobalConfig`, then calls the parent `onConfigSaved` callback with a synthesized `ResolvedConfig` so the run view can start without re-reading the disk.
+1. `mode-select` — the user picks `1` for Ollama Local, `2` for Ollama Cloud, or `3` for OpenAI-compatible API. The TUI does not accept Enter here; key presses drive transitions.
+2. `api-key` — only reached from cloud or openai mode. Uses `ink-text-input` to read the key, validates that it is non-empty on submit.
+3. `base-url` — lets the user customize the provider base URL; press Enter to keep the mode default (`http://localhost:11434`, `https://ollama.com`, or `https://api.openai.com/v1`).
+4. `model` — defaults to `kimi-k2.7-code` and uses the same text input. The prompt text matches this default.
+5. `saving` — calls `saveGlobalConfig` with the assembled `GlobalConfig` (including `baseUrl` only when it differs from the mode default), then calls the parent `onConfigSaved` callback with a synthesized `ResolvedConfig` so the run view can start without re-reading the disk.
 
 Errors from `saveGlobalConfig` are caught and rendered in red; the wizard drops back to `mode-select` on failure.
 
 ## Run view: `RunView.tsx`
 
-`RunView` creates the Ollama client via `createOllamaClient(config)` and calls `runAgent` with `stream: true` and the `wiki` flag propagated from the CLI. Each `AgentEvent` is translated into a `DisplayEvent` and appended to a ref-backed state list, which Ink re-renders.
+`RunView` creates the LLM client via `createLLMClient(config)` and calls `runAgent` with `stream: true` and the `wiki` flag propagated from the CLI. Each `AgentEvent` is translated into a `DisplayEvent` and appended to a ref-backed state list, which Ink re-renders.
 
 Consecutive `assistant` chunks are merged into a single `DisplayEvent` so streaming does not fragment prose into one line per token. The mapping is:
 
@@ -52,7 +53,7 @@ While the agent is running the footer shows `⏳ Working...`; on completion it s
 |-----|--------|
 | `q` | Exit (from any screen) |
 | `Ctrl+C` | Exit (from any screen) |
-| `1` / `2` | Pick Ollama mode (credentials wizard only) |
+| `1` / `2` / `3` | Pick provider mode (credentials wizard only) |
 | `Enter` | Submit the current text input (credentials wizard only) |
 
 There are no other interactive controls. Cancellation mid-run is not implemented; the agent loop either completes or fails on its own.
