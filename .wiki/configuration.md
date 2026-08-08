@@ -2,16 +2,16 @@
 type: Reference
 title: Configuration
 description: Global and project config files, environment variable overrides, and how the effective configuration is resolved.
-tags: [config, environment-variables, ollama, resolution-order]
+tags: [config, environment-variables, ollama, openai, resolution-order]
 ---
 
 # Configuration
 
 Wiki Agent merges configuration from several sources. The exact precedence is field-specific and is implemented in `resolveConfig(projectRoot, modelOverride?)` in `src/config.ts`:
 
-- `mode`: `WIKI_OLLAMA_MODE` if valid (`"local"` or `"cloud"`) → global config `mode` → built-in `"local"`.
-- `apiKey`: `WIKI_OLLAMA_API_KEY` → global config `apiKey` → unset.
-- `baseUrl`: `WIKI_OLLAMA_BASE_URL` → global config `baseUrl` → mode default (`http://localhost:11434` for local, `https://ollama.com` for cloud).
+- `mode`: `WIKI_PROVIDER_MODE` (or legacy `WIKI_OLLAMA_MODE`) if valid (`"local"`, `"cloud"`, or `"openai"`) → global config `mode` → built-in `"local"`.
+- `apiKey`: `WIKI_PROVIDER_API_KEY` (or legacy `WIKI_OLLAMA_API_KEY`) → global config `apiKey` → unset.
+- `baseUrl`: `WIKI_PROVIDER_BASE_URL` (or legacy `WIKI_OLLAMA_BASE_URL`) → global config `baseUrl` → mode default (see below).
 - `model`: `--model` CLI flag → `.wiki/config.json` `modelOverride` → `WIKI_MODEL` environment variable → `~/.wiki/config.json` `defaultModel` → built-in `kimi-k2.7-code`.
 
 ## Global config: `~/.wiki/config.json`
@@ -31,6 +31,17 @@ For cloud mode:
 {
   "mode": "cloud",
   "apiKey": "your-api-key",
+  "defaultModel": "kimi-k2.7-code"
+}
+```
+
+For an OpenAI-compatible endpoint:
+
+```json
+{
+  "mode": "openai",
+  "apiKey": "your-api-key",
+  "baseUrl": "https://api.openai.com/v1",
   "defaultModel": "kimi-k2.7-code"
 }
 ```
@@ -57,19 +68,30 @@ Lives inside the wiki output directory. Currently only two fields are read:
 
 `resolveConfig` produces a `ResolvedConfig` (`{ mode, apiKey?, baseUrl, model }`):
 
-- `mode` — `WIKI_OLLAMA_MODE` if valid (`"local"` or `"cloud"`), otherwise the global config's `mode`.
-- `apiKey` — `WIKI_OLLAMA_API_KEY` if set, otherwise the global config's `apiKey`.
-- `baseUrl` — `WIKI_OLLAMA_BASE_URL` if set, otherwise the global config's `baseUrl`, otherwise the mode's default.
+- `mode` — `WIKI_PROVIDER_MODE` (or legacy `WIKI_OLLAMA_MODE`) if valid (`"local"`, `"cloud"`, or `"openai"`), otherwise the global config's `mode`.
+- `apiKey` — `WIKI_PROVIDER_API_KEY` (or legacy `WIKI_OLLAMA_API_KEY`) if set, otherwise the global config's `apiKey`.
+- `baseUrl` — `WIKI_PROVIDER_BASE_URL` (or legacy `WIKI_OLLAMA_BASE_URL`) if set, otherwise the global config's `baseUrl`, otherwise the mode's default.
 - `model` — `modelOverride` arg (the `--model` flag) → `projectConfig.modelOverride` → `WIKI_MODEL` → `globalConfig.defaultModel` → `"kimi-k2.7-code"`.
 
-## Ollama client construction
+## Provider client construction
 
-`createOllamaClient` in `config.ts` produces the SDK client used by the agent:
+`createLLMClient` in `config.ts` produces the SDK client used by the agent:
 
-- Cloud mode with an API key: `new Ollama({ host, headers: { Authorization: \`Bearer ${apiKey}\` } })`.
-- Otherwise: `new Ollama({ host })`.
+- `openai` mode: `new OpenAIAdapter(new OpenAI({ apiKey, baseURL: baseUrl }))`.
+- `cloud` mode with an API key: `new OllamaAdapter(new Ollama({ host: baseUrl, headers: { Authorization: \`Bearer ${apiKey}\` } }))`.
+- `local` mode: `new OllamaAdapter(new Ollama({ host: baseUrl }))`.
 
 The TUI and headless runner both use this factory, so there is exactly one code path for building the client.
+
+## Provider defaults
+
+`defaultBaseUrl(mode)` in `config.ts` is the single source of truth for provider-specific base URLs:
+
+| Mode | Default base URL |
+|------|------------------|
+| `"local"` | `http://localhost:11434` |
+| `"cloud"` | `https://ollama.com` |
+| `"openai"` | `https://api.openai.com/v1` |
 
 ## Limits
 

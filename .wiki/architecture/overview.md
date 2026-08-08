@@ -7,7 +7,7 @@ tags: [architecture, agent, ollama]
 
 # Architecture Overview
 
-Wiki Agent is a small, single-purpose Node.js application. The runtime model is "an LLM with a constrained tool belt that writes markdown into `.wiki/`." There is no LangChain, no vector store, no long-lived memory — just a manual tool-calling loop against the Ollama chat API.
+Wiki Agent is a small, single-purpose Node.js application. The runtime model is "an LLM with a constrained tool belt that writes markdown into `.wiki/`." There is no LangChain, no vector store, no long-lived memory — just a manual tool-calling loop against the configured provider's chat API (Ollama or OpenAI-compatible).
 
 ## Top-level layout
 
@@ -15,7 +15,7 @@ The compiled entrypoint is `dist/cli.js` (declared as the `wiki` binary in `pack
 
 - `cli.tsx` — argument parsing, TUI vs. headless dispatch
 - `agent.ts` — the agent loop, Ollama tool calling, event stream
-- `config.ts` — global/project config, Ollama client construction
+- `config.ts` — global/project config, provider client construction
 - `prompt.ts` — system prompt, user message templates, help text; reads `AGENTS.md`/`CLAUDE.md` with `Promise.allSettled`
 - `tools.ts` — file and discovery tools exposed to the model
 - `index-middleware.ts` — post-run regeneration of `index.md`
@@ -65,8 +65,10 @@ Tool results are truncated at `MAX_TOOL_RESULT_LENGTH` (10 000 characters) befor
 
 `cli.tsx` chooses between two runtimes after parsing args and resolving config:
 
-- If `config.mode === "cloud"` and no API key is present, `App` renders `CredentialsSetup` first. The user selects local vs. cloud, enters the API key (cloud only), and a model ID. The result is persisted to `~/.wiki/config.json` and re-resolved.
+- If `config.mode` is `"cloud"` or `"openai"` and no API key is present, `App` renders `CredentialsSetup` first. The user selects local, cloud, or openai-compatible; enters the API key when required; optionally overrides the base URL; and enters a model ID. The result is persisted to `~/.wiki/config.json` and re-resolved.
 - Once configured, `App` renders a header and the `RunView` component, which wires the agent's `onEvent` callback to a stateful list of display events. `q` or `Ctrl+C` exits the Ink app at any time.
+
+See [Terminal UI](../tui.md) for the complete wizard and key bindings.
 
 ## Post-run: index synchronization
 

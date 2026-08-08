@@ -39,12 +39,13 @@ wiki --help
 
 The README uses a hero banner at `public/banner.png`. The npm tarball only includes `dist/`, `README.md`, and `LICENSE` (the `files` array in `package.json`); workflows are generated into target repos by `--init`, not shipped in the package.
 
-## 2. Choose an Ollama mode
+## 2. Choose a provider mode
 
-Wiki Agent speaks to Ollama in one of two modes:
+Wiki Agent speaks to a provider in one of three modes:
 
 - **Local** — talks to a running Ollama server on `http://localhost:11434`. No API key.
 - **Cloud** — talks to Ollama Cloud at `https://ollama.com`. Requires an API key.
+- **OpenAI-compatible** — talks to any OpenAI-compatible endpoint (OpenRouter, vLLM, etc.) at a configurable base URL. Requires an API key.
 
 You can configure the mode interactively by running `wiki --init` once, or non-interactively through environment variables and config files. See [Configuration](./configuration.md) for the full priority order.
 
@@ -71,7 +72,7 @@ The first run will create `.wiki/quickstart.md` plus a small set of section page
 
 ## 4. Update from CI
 
-Running `wiki --init` writes `.github/workflows/update-wiki.yml` into your repo. Set `WIKI_OLLAMA_API_KEY` as a secret to enable the scheduled job. By default the generated workflow runs `wiki --update --print --verbose --wiki` and pushes the flattened pages directly to the repository's **GitHub Wiki tab**; it also opens a staging pull request with the `.wiki/` changes in the main repo. Note that the workflow itself hardcodes `--wiki`, so the CI job always attempts wiki publishing; the local `--wiki` flag only controls what is written into the workflow template. See [GitHub Actions](./automation/github-actions.md).
+Running `wiki --init` writes `.github/workflows/update-wiki.yml` into your repo. Set `WIKI_PROVIDER_API_KEY` (or the legacy `WIKI_OLLAMA_API_KEY`) as a secret to enable the scheduled job for cloud/openai mode. By default the generated workflow runs `wiki --update --print --verbose --wiki` and pushes the flattened pages directly to the repository's **GitHub Wiki tab**; it also opens a staging pull request with the `.wiki/` changes in the main repo. Note that the workflow itself hardcodes `--wiki`, so the CI job always attempts wiki publishing; the local `--wiki` flag only controls what is written into the workflow template. See [GitHub Actions](./automation/github-actions.md).
 
 ## What gets generated
 

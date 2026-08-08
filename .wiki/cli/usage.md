@@ -42,14 +42,19 @@ Environment variables are merged with config files by `resolveConfig` in `config
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `WIKI_OLLAMA_MODE` | `"local"` or `"cloud"` | from `~/.wiki/config.json` |
-| `WIKI_OLLAMA_API_KEY` | API key for cloud mode | from `~/.wiki/config.json` |
-| `WIKI_OLLAMA_BASE_URL` | Override the Ollama server URL | `http://localhost:11434` (local) or `https://ollama.com` (cloud) |
+| `WIKI_PROVIDER_MODE` | `"local"`, `"cloud"`, or `"openai"` | from `~/.wiki/config.json` |
+| `WIKI_PROVIDER_API_KEY` | API key for cloud or openai mode | from `~/.wiki/config.json` |
+| `WIKI_PROVIDER_BASE_URL` | Override the provider base URL | mode default (`http://localhost:11434` / `https://ollama.com` / `https://api.openai.com/v1`) |
+| `WIKI_OLLAMA_MODE` | Legacy alias for `WIKI_PROVIDER_MODE` (still honored) | from `~/.wiki/config.json` |
+| `WIKI_OLLAMA_API_KEY` | Legacy alias for `WIKI_PROVIDER_API_KEY` | from `~/.wiki/config.json` |
+| `WIKI_OLLAMA_BASE_URL` | Legacy alias for `WIKI_PROVIDER_BASE_URL` | mode default |
 | `WIKI_MODEL` | Override model ID | from `~/.wiki/config.json` |
 | `WIKI_RECURSION_LIMIT` | Max agent iterations | `200` |
 | `GH_TOKEN` | GitHub token for the read-only `gh` CLI tool (used in CI for the staging PR staleness check) | from environment |
 
 In headless mode, the model ID is selected as: `--model` flag → `.wiki/config.json` `modelOverride` → `WIKI_MODEL` → `~/.wiki/config.json` `defaultModel` → `kimi-k2.7-code`.
+
+The provider mode, API key, and base URL resolve via `WIKI_PROVIDER_*` env vars (or the legacy `WIKI_OLLAMA_*` aliases) first, then the global config. See [Configuration](../configuration.md) for the full precedence.
 
 ## Headless event format
 
@@ -96,5 +101,5 @@ The GitHub Actions workflow created by `wiki --init --wiki` invokes `wiki-flatte
 
 ## Exit codes
 
-- `wiki`: `0` — normal completion (including `--help`); `1` — unhandled exception in `main`, or `WIKI_OLLAMA_API_KEY` missing when the resolved config is cloud mode.
+- `wiki`: `0` — normal completion (including `--help`); `1` — unhandled exception in `main`, or API key missing when the resolved config is `cloud` or `openai` mode.
 - `wiki-flatten`: `0` — success; `1` — missing arguments or unexpected error.
