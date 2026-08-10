@@ -806,13 +806,23 @@ export function createTools(projectRoot: string): Tool[] {
 /**
  * Execute a tool by name with the given arguments.
  */
+const toolsCache = new Map<string, Map<string, Tool>>();
+
 export async function executeTool(
   toolName: string,
   args: Record<string, unknown>,
   projectRoot: string,
 ): Promise<string> {
-  const tools = createTools(projectRoot);
-  const tool = tools.find((t) => t.definition.function.name === toolName);
+  let projectTools = toolsCache.get(projectRoot);
+  if (!projectTools) {
+    projectTools = new Map();
+    const toolsList = createTools(projectRoot);
+    for (const t of toolsList) {
+      projectTools.set(t.definition.function.name, t);
+    }
+    toolsCache.set(projectRoot, projectTools);
+  }
+  const tool = projectTools.get(toolName);
 
   if (!tool) {
     return `Unknown tool: ${toolName}`;
