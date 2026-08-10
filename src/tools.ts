@@ -803,11 +803,12 @@ export function createTools(projectRoot: string): Tool[] {
   ];
 }
 
+// Memoize tool maps by project root
+const toolsCache = new Map<string, Map<string, Tool>>();
+
 /**
  * Execute a tool by name with the given arguments.
  */
-const toolsCache = new Map<string, Map<string, Tool>>();
-
 export async function executeTool(
   toolName: string,
   args: Record<string, unknown>,
