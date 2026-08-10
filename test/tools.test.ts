@@ -1,10 +1,10 @@
-import { describe, expect, test, beforeEach, afterEach, beforeAll } from "vitest";
+import { describe, expect, test, beforeEach, afterEach, beforeAll, afterAll } from "vitest";
 import { mkdtemp, rm, writeFile, readFile, mkdir } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import os from "node:os";
 import path from "node:path";
-import { createTools, executeTool, parseArgsStringToArgv, stripThinkingTags } from "../src/tools.ts";
+import { createTools, executeTool, parseArgsStringToArgv, stripThinkingTags, _toolsCache, clearToolsCache } from "../src/tools.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -731,5 +731,43 @@ describe("parseArgsStringToArgv", () => {
 
   test("handles quotes inside quotes", () => {
     expect(parseArgsStringToArgv("foo '\"bar\"' \"'baz'\"")).toEqual(["foo", "\"bar\"", "'baz'"]);
+  });
+});
+
+describe("tools caching", () => {
+  let projectRoot: string;
+
+  beforeAll(async () => {
+    projectRoot = await tempDir();
+  });
+
+  afterAll(async () => {
+    await rm(projectRoot, { recursive: true, force: true });
+  });
+
+  beforeEach(() => {
+    clearToolsCache();
+  });
+
+  test("executeTool caches tools per project root", async () => {
+    // Initial execution should populate the cache
+    await executeTool("non_existent_tool_for_test", {}, projectRoot);
+    expect(_toolsCache.size).toBe(1);
+
+    const cachedToolsMap = _toolsCache.get(projectRoot);
+    expect(cachedToolsMap).toBeDefined();
+
+    // Second execution with same root should reuse cache
+    await executeTool("non_existent_tool_for_test_2", {}, projectRoot);
+    expect(_toolsCache.size).toBe(1);
+    expect(_toolsCache.get(projectRoot)).toBe(cachedToolsMap); // Same reference
+
+    // Execution with different root should create a new cache entry
+    const otherRoot = await tempDir();
+    await executeTool("non_existent_tool_for_test_3", {}, otherRoot);
+    expect(_toolsCache.size).toBe(2);
+    expect(_toolsCache.get(otherRoot)).toBeDefined();
+
+    await rm(otherRoot, { recursive: true, force: true });
   });
 });

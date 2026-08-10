@@ -837,3 +837,7 @@ export async function executeTool(
 }
 
 export { MAX_READ_LENGTH, MAX_TOOL_RESULT_LENGTH };
+export const _toolsCache = toolsCache;
+export function clearToolsCache() {
+  toolsCache.clear();
+}

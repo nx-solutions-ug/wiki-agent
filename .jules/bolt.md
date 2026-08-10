@@ -12,3 +12,6 @@
 ## 2024-05-18 - [Optimize Tool Lookup]
 **Learning:** Re-creating arrays of configuration data inside hot loops like command execution causes significant overhead via allocations and GC pressure.
 **Action:** Use a `Map` structure to memoize tool sets by project root and lookup tool definitions in O(1) time.
+## 2024-05-18 - [Add Invalidation and Testing to Tool Caching]
+**Learning:** Even internal cache structures designed for performance optimizations should be properly tested and have invalidation mechanisms to avoid leaking state across tests or environments.
+**Action:** Exported `_toolsCache` and `clearToolsCache` to test the internal caching behavior of `executeTool`.
