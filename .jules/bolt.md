@@ -9,3 +9,7 @@
 ## 2024-11-21 - File Reading Overhead
 **Learning:** Loading the entire contents of a file into a single string in memory via `readFile` (e.g. `const content = await readFile(filePath, "utf8"); content.split("\n")`) just to return a specific small range of lines using an `offset` and `limit` creates major performance bottlenecks on large files (e.g., massive JSON blobs, minified JS or CSV dumps). This bloats memory usage unnecessarily and places significant pressure on garbage collection.
 **Action:** When creating tools that return slices of files, always implement them defensively for massive files by using a stream based approach, e.g., with `createReadStream` and `node:readline`. This allows to lazily loop line-by-line and crucially, call `.destroy()` on the stream the exact moment the `limit` is met to halt disk I/O instantly.
+
+## 2024-08-10 - Cache tool definitions in LLM client calls
+**Learning:** Mapping tools to their definitions on every API call (even when static) results in redundant allocations.
+**Action:** Extract the mapping operation outside the call loops to reuse the pre-calculated array.

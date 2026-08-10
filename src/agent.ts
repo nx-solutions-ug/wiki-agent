@@ -220,6 +220,7 @@ export async function runAgent(
 
   const maxIter = maxIterations ?? resolveMaxIterations();
   const tools = createTools(projectRoot);
+  const toolDefinitions = tools.map((t) => t.definition);
   const systemPrompt = await createSystemPrompt(projectRoot);
   const userMessage = createUserMessage(command, projectRoot, gitSummary);
 
@@ -238,7 +239,7 @@ export async function runAgent(
         const streamResponse = await client.chat({
           model,
           messages,
-          tools: tools.map((t) => t.definition),
+          tools: toolDefinitions,
           stream: true as const,
         });
 
@@ -262,7 +263,7 @@ export async function runAgent(
         const result = await client.chat({
           model,
           messages,
-          tools: tools.map((t) => t.definition),
+          tools: toolDefinitions,
           stream: false as const,
         });
 
