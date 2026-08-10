@@ -185,6 +185,12 @@ Searches code using an inline ast-grep YAML rule (`ast-grep scan --json=compact 
 
 Output and error handling match `ast_grep`.
 
+## Tool dispatch
+
+`executeTool(toolName, args, projectRoot)` in `src/tools.ts` dispatches each model tool call to its handler. Because `createTools(projectRoot)` builds the full tool list and definitions on every call, the runtime memoizes the resulting name→tool map per project root in `toolsCache` (`Map<string, Map<string, Tool>>`). On the first call for a given root it builds the map once; subsequent calls look the tool up by name without rebuilding the list. The cache can be cleared with `clearToolsCache()`, and `_toolsCache` is exported for test introspection.
+
+If the requested tool name is not in the cached map, `executeTool` returns `Unknown tool: <name>`. Otherwise it runs the handler inside a `try/catch`; any thrown error is converted to an `Error: <message>` string and returned to the model so the agent loop never receives an unhandled tool exception.
+
 ## Sandboxing summary
 
 - `read_file`, `ls`, `grep`, `glob`, `git`, `ast_grep`, `ast_search`, `gh` — must stay within the project root.
