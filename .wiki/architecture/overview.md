@@ -11,15 +11,17 @@ Wiki Agent is a small, single-purpose Node.js application. The runtime model is 
 
 ## Top-level layout
 
-The compiled entrypoint is `dist/cli.js` (declared as the `wiki` binary in `package.json`). Source lives under `src/`:
+The compiled entrypoint is `dist/cli.js` (declared as the `wiki` binary in `package.json`). A second binary, `wiki-flatten` (`dist/flatten-wiki.js`), is produced for GitHub Wiki publishing. Source lives under `src/`:
 
 - `cli.tsx` — argument parsing, TUI vs. headless dispatch
-- `agent.ts` — the agent loop, Ollama tool calling, event stream
-- `config.ts` — global/project config, provider client construction
+- `agent.ts` — the agent loop, tool calling, event stream, workflow/report generation
+- `config.ts` — global/project config, provider client factory (`createLLMClient`)
+- `llm.ts` — provider adapter interface plus `OpenAIAdapter` and `OllamaAdapter`
 - `prompt.ts` — system prompt, user message templates, help text; reads `AGENTS.md`/`CLAUDE.md` with `Promise.allSettled`
 - `tools.ts` — file and discovery tools exposed to the model
 - `index-middleware.ts` — post-run regeneration of `index.md`
 - `flatten-wiki.ts` — converts nested `.wiki/` to flat GitHub Wiki format before publish
+- `version.ts` — reads `package.json` version for `--version` and the TUI banner
 - `tui/` — Ink-based terminal UI (`App`, `CredentialsSetup`, `RunView`)
 
 See [Configuration](../configuration.md) for the data model, [Tools](../tools.md) for the agent's toolbelt, and [CLI Usage](../cli/usage.md) for how the `--wiki` and `--print` flags reach the loop.
@@ -28,15 +30,16 @@ See [Configuration](../configuration.md) for the data model, [Tools](../tools.md
 
 `runAgent` in `agent.ts` implements the entire control flow:
 
-1. Build the system prompt (`createSystemPrompt`) and the user message (`createUserMessage`) for the chosen command — `init` or `update`.
-2. Construct the Ollama `chat` request with the current `messages` array and the tool definitions.
+1. Build the system prompt (`createSystemPrompt`) and the user message (`createUserMessage`) for the chosen command — `init` or `update`. `createSystemPrompt` embeds repo instructions from `AGENTS.md`/`CLAUDE.md` if either exists.
+2. Construct the provider `chat` request with the current `messages` array and the tool definitions.
 3. Stream or batch the response. Collect `content` and any `tool_calls` returned by the model.
-4. Normalize tool call arguments. Ollama models return arguments as either an object or a JSON string depending on the backend; `normalizeToolCallArgs` handles both and falls back to `{}` on malformed JSON.
-5. Append the assistant message to the history. If there are tool calls, append a `tool` message per call (Ollama associates the result with `tool_name`, not a `tool_call_id`). Successful `write_file`/`edit_file` calls also record a per-file description from the assistant's preceding prose (falling back to the tool result) for the update report; this description and the final report are both passed through `stripThinkingTags` so reasoning blocks do not leak into PR bodies.
-6. Loop up to `WIKI_RECURSION_LIMIT` iterations (default `200`). A response with no tool calls ends the loop.
-7. After the loop, call `createWorkflowFile`, `synchronizeWikiIndexes(.wiki)`, write `.wiki/.last-updated.json`, `.wiki/.last-update-report.md` (via `generateUpdateReport`), and `.wiki/.last-update-title.txt` (via `generateUpdateTitle`), then emit a `done` event. The write/edit tools themselves strip reasoning/thinking tags from persisted content before it reaches disk.
+4. Append the assistant message to the history. If there are tool calls, append a `tool` message per call; Ollama uses `tool_name`, while OpenAI uses `tool_call_id`.
+5. Loop up to `WIKI_RECURSION_LIMIT` iterations (default `200`). A response with no tool calls ends the loop.
+6. After the loop, call `createWorkflowFile`, `synchronizeWikiIndexes(.wiki)`, write `.wiki/.last-updated.json`, `.wiki/.last-update-report.md` (via `generateUpdateReport`), and `.wiki/.last-update-title.txt` (via `generateUpdateTitle`), then emit a `done` event. The write/edit tools themselves strip reasoning/thinking tags from persisted content before it reaches disk. On `init`, the loop also appends/updates a wiki-agent section in `AGENTS.md`/`CLAUDE.md` via `appendWikiAgentFrontmatter`.
 
-Errors from the Ollama SDK are surfaced through the `error` event stream. If the model had already produced content, the loop exits with a `done` summary that includes the error message; otherwise it emits `error` and stops.
+Errors from the LLM SDK are surfaced through the `error` event stream. If the model had already produced content, the loop exits with a `done` summary that includes the error message; otherwise it emits `error` and stops.
+
+`runAgent` also writes `.wiki/.gitignore` on every run so run-metadata files (`/.last-updated.json`, `/.last-update-report.md`, `/.last-update-title.txt`) stay out of git history, and it untracks any of those files that were already committed in legacy repos.
 
 ## Streaming and headless
 

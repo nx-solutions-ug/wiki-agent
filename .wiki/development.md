@@ -12,7 +12,7 @@ This page covers the day-to-day commands for hacking on Wiki Agent itself, not o
 ## Prerequisites
 
 - Node.js 22+ (declared in `package.json` `engines.node`). The CI workflows set `node-version: "25"` for the build/release jobs, while the package still supports Node.js 22 and later.
-- Bun — used as the package manager and packer. The `prebuild` script uses `bun run clean` and `bun pm pack` produces the tarball. If you do not have bun, run `tsc` directly and use `npm pack`.
+- Bun — used as the package manager and packer. `bun install` installs dependencies (recorded in `bun.lock`), `prebuild` runs `bun run clean`, and `bun pm pack` produces the tarball. If you do not have bun, run `tsc` directly and use `npm pack`. Do not introduce a `package-lock.json` or `yarn.lock`.
 
 ## Install
 
@@ -34,10 +34,12 @@ This runs the `prebuild` cleanup (`rm -rf dist`) and then `tsc -p tsconfig.json`
 bun run test
 ```
 
-Runs `vitest run` against the test files in `test/`. There are eight Vitest test files:
+Runs `vitest run` against the test files in `test/`. There are ten Vitest test files:
 
 - `config.test.ts` — global/project config I/O and `resolveConfig` precedence.
 - `tools.test.ts` — path-safety checks, file read/write/edit, `read_file` streaming behavior, tool definition shape, `git` and `gh` subcommand allowlists, metacharacter guard, `grep`/`glob` command-injection prevention, wildcard restoration, directory exclusions (`node_modules`, `.git`, `dist`, `.wiki`), `ast_grep`/`ast_search` structural matching, `parseArgsStringToArgv`, and reasoning-tag stripping (the four `think`/`thinking`/`reasoning`/`reflection` tag pairs) in `write_file`/`edit_file`.
+- `llm.test.ts` — `OpenAIAdapter` streaming and non-streaming behavior.
+- `llm-ollama.test.ts` — `OllamaAdapter` streaming and non-streaming behavior.
 - `index-middleware.test.ts` — `index.md` regeneration, exclusions, error propagation for invalid frontmatter, and idempotency.
 - `prompt.test.ts` — system prompt, user message templates, and help text contents.
 - `report.test.ts` — `generateUpdateReport`: no-op reports, created/edited listings, per-file description blockquotes, truncation, whitespace collapse, and summary counts.
@@ -55,15 +57,16 @@ The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.H
 bun pm pack
 ```
 
-Produces `wiki-agent-1.13.1.tgz`. The tarball includes `dist/`, `README.md`, and `LICENSE` per the `files` array in `package.json`. The earlier `package.json` `files` entry for `.github/workflows/wiki-update.yml` was removed, since workflows are generated into target repos by `--init`, not shipped in the package.
+Produces `wiki-agent-1.16.0.tgz`. The tarball includes `dist/`, `README.md`, and `LICENSE` per the `files` array in `package.json`. The earlier `package.json` `files` entry for `.github/workflows/wiki-update.yml` was removed, since workflows are generated into target repos by `--init`, not shipped in the package.
 
 ## Project layout
 
 ```
 src/
   cli.tsx              CLI entrypoint, arg parsing, TUI vs. headless
-  agent.ts             Ollama tool-calling loop, workflow/report generation
-  config.ts            Global/project config, Ollama client factory
+  agent.ts             LLM tool-calling loop, workflow/report generation
+  config.ts            Global/project config, provider client factory
+  llm.ts               Provider adapter interface plus OpenAIAdapter and OllamaAdapter
   prompt.ts            System prompt, user message, help text; reads AGENTS.md/CLAUDE.md with Promise.allSettled
   tools.ts             read_file, write_file, edit_file, ls, grep, glob, git, ast_grep, ast_search, gh
   index-middleware.ts  Post-run index.md regeneration
@@ -86,6 +89,7 @@ assets/                Generated README banner images (FLUX 2 Max)
 .github/VOUCHED.td
 .omp/                  OMP agent config, command prompts, and stream-log.py
 .releaserc.json
+renovate.json
 ```
 
 Two binaries are produced by the build: `wiki` (`dist/cli.js`) and `wiki-flatten` (`dist/flatten-wiki.js`), both declared in `package.json` `bin`.
@@ -113,6 +117,7 @@ Vouched users are tracked in `.github/VOUCHED.td`. Bots and collaborators with w
 - **Workflow filename mismatch**: `package.json` `files` used to list `.github/workflows/wiki-update.yml`, but `src/agent.ts:createWorkflowFile` writes `.github/workflows/update-wiki.yml`. As of v1.13.0 the `files` array only includes `dist`, `README.md`, and `LICENSE`, so this discrepancy no longer appears in published tarballs.
 - **OMP workflows**: the `.github/workflows/omp*.yml` files and `.omp/` directory live in this repo's source but are unrelated to the `wiki-agent` package; they automate the project's own issue/PR management via OMP.
 - **OMP review flow mismatch**: `omp-ci.yml` computes a `review-type` prefix (`dep:`, `bot:`, or empty) from the PR author, but the output step is not used in the actual OMP invocation; the review type is determined by `review-pr.md` from the PR author instead.
+- **Staleness check is in system prompt only**: the update-mode staging PR staleness check is documented in the system prompt and implemented by the running agent; there is no dedicated source function for it.
 
 ## Release checklist
 
