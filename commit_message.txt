@@ -1,0 +1,5 @@
+🧪 [testing improvement] Add tests for runAgent
+
+🎯 **What:** `src/agent.ts:206` was missing tests for the `runAgent` function, leaving a gap in coverage for the core agent loop.
+📊 **Coverage:** Covered non-streaming, streaming, tool executions, PR metadata generation, agent initialization, error handling, and max iteration limits logic in `runAgent`.
+✨ **Result:** Improved test coverage for `src/agent.ts`, providing a safety net for future refactoring and ensuring the agent loop logic behaves as expected.
