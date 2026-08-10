@@ -803,6 +803,9 @@ export function createTools(projectRoot: string): Tool[] {
   ];
 }
 
+// Memoize tool maps by project root
+const toolsCache = new Map<string, Map<string, Tool>>();
+
 /**
  * Execute a tool by name with the given arguments.
  */
@@ -811,8 +814,16 @@ export async function executeTool(
   args: Record<string, unknown>,
   projectRoot: string,
 ): Promise<string> {
-  const tools = createTools(projectRoot);
-  const tool = tools.find((t) => t.definition.function.name === toolName);
+  let projectTools = toolsCache.get(projectRoot);
+  if (!projectTools) {
+    projectTools = new Map();
+    const toolsList = createTools(projectRoot);
+    for (const t of toolsList) {
+      projectTools.set(t.definition.function.name, t);
+    }
+    toolsCache.set(projectRoot, projectTools);
+  }
+  const tool = projectTools.get(toolName);
 
   if (!tool) {
     return `Unknown tool: ${toolName}`;
@@ -827,3 +838,7 @@ export async function executeTool(
 }
 
 export { MAX_READ_LENGTH, MAX_TOOL_RESULT_LENGTH };
+export const _toolsCache = toolsCache;
+export function clearToolsCache() {
+  toolsCache.clear();
+}

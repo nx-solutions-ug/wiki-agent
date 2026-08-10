@@ -9,3 +9,9 @@
 ## 2024-11-21 - File Reading Overhead
 **Learning:** Loading the entire contents of a file into a single string in memory via `readFile` (e.g. `const content = await readFile(filePath, "utf8"); content.split("\n")`) just to return a specific small range of lines using an `offset` and `limit` creates major performance bottlenecks on large files (e.g., massive JSON blobs, minified JS or CSV dumps). This bloats memory usage unnecessarily and places significant pressure on garbage collection.
 **Action:** When creating tools that return slices of files, always implement them defensively for massive files by using a stream based approach, e.g., with `createReadStream` and `node:readline`. This allows to lazily loop line-by-line and crucially, call `.destroy()` on the stream the exact moment the `limit` is met to halt disk I/O instantly.
+## 2024-05-18 - [Optimize Tool Lookup]
+**Learning:** Re-creating arrays of configuration data inside hot loops like command execution causes significant overhead via allocations and GC pressure.
+**Action:** Use a `Map` structure to memoize tool sets by project root and lookup tool definitions in O(1) time.
+## 2024-05-18 - [Add Invalidation and Testing to Tool Caching]
+**Learning:** Even internal cache structures designed for performance optimizations should be properly tested and have invalidation mechanisms to avoid leaking state across tests or environments.
+**Action:** Exported `_toolsCache` and `clearToolsCache` to test the internal caching behavior of `executeTool`.
