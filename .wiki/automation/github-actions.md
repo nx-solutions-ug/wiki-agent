@@ -17,7 +17,7 @@ The workflow:
 2. Checks out the repository with `actions/checkout@v7`.
 3. Sets up Bun with `oven-sh/setup-bun@v2` and Node.js 25 with `actions/setup-node@v7` (the package still supports Node.js 22+ per `package.json`).
 4. Installs Wiki Agent globally from npm with `bun add -g @chronova/wiki-agent`.
-5. Runs `wiki --update --print --verbose --wiki` in headless mode with `WIKI_OLLAMA_MODE=cloud`. The `--verbose` flag makes tool call results appear in the CI log alongside assistant prose. After the run the agent also updates `.wiki/.last-updated.json`, writes `.wiki/.last-update-report.md`, and writes `.wiki/.last-update-title.txt` (when there are changes). Note that the workflow hardcodes `--wiki` at runtime, so the CI job always attempts to flatten and publish to the wiki tab regardless of whether `--wiki` was used during the local `--init` run.
+5. Runs `wiki --update --print --verbose --wiki` in headless mode with `WIKI_PROVIDER_MODE=cloud` (legacy `WIKI_OLLAMA_MODE` is also accepted). The `--verbose` flag makes tool call results appear in the CI log alongside assistant prose. After the run the agent also updates `.wiki/.last-updated.json`, writes `.wiki/.last-update-report.md`, and writes `.wiki/.last-update-title.txt` (when there are changes). Note that the workflow hardcodes `--wiki` at runtime, so the CI job always attempts to flatten and publish to the wiki tab regardless of whether `--wiki` was used during the local `--init` run.
 6. Emits repository coordinates (`GITHUB_REPOSITORY` → `owner/repo`) and a timestamp into step outputs.
 7. Checks for content changes under `.wiki/` using `git status --porcelain .wiki`, stripping the status prefix and excluding the run metadata files `.wiki/.last-update-report.md`, `.wiki/.last-update-title.txt`, and `.wiki/.last-updated.json`. If real content files changed, sets `has_changes=true` and streams the report into a `body<<EOF` heredoc on `$GITHUB_OUTPUT` (with an empty `echo ""` before `EOF` so the delimiter sits on its own line). The workflow also emits a `title<<EOF` heredoc read from `.wiki/.last-update-title.txt`, so the staging PR title and commit message reflect the actual run.
 8. **Prevent concurrent wiki update jobs**:
@@ -68,7 +68,7 @@ The same commit that refreshes this wiki can also run the release pipeline. `.gi
 
 | Name | Type | Purpose |
 |------|------|---------|
-| `WIKI_OLLAMA_API_KEY` | Secret | Bearer token for Ollama Cloud. Required because the workflow forces cloud mode. This is a different secret from the `OLLAMA_API_KEY` used by the OMP workflows. |
+| `WIKI_PROVIDER_API_KEY` | Secret | Bearer token for the configured provider. Required because the workflow forces cloud mode. The legacy `WIKI_OLLAMA_API_KEY` alias is also honored. This is a different secret from the `OLLAMA_API_KEY` used by the OMP workflows. |
 | `APP_CLIENT_ID` | Secret (optional) | GitHub App client ID for token generation; falls back to `secrets.GITHUB_TOKEN`. |
 | `APP_PRIVATE_KEY` | Secret (optional) | GitHub App private key for token generation. |
 | `WIKI_MODEL` | Variable (optional) | Model ID override. Defaults to `kimi-k2.7-code` if unset. |

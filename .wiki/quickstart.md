@@ -7,7 +7,7 @@ tags: [quickstart, install, setup]
 
 # Quickstart
 
-Wiki Agent is a standalone documentation agent that uses Ollama (local or cloud) to inspect a repository and produce a wiki under `.wiki/`. It exposes a small CLI plus an interactive TUI and ships a GitHub Actions workflow for scheduled updates.
+Wiki Agent is a standalone documentation agent that runs against Ollama (local or cloud) or any OpenAI-compatible provider. It inspects a repository and produces a wiki under `.wiki/`, with an optional interactive TUI and a headless `--print` mode for CI.
 
 ## 1. Install
 
@@ -25,7 +25,7 @@ cd wiki-agent
 bun install
 bun run build
 bun pm pack
-cd ~/.bun/install/global && bun add /path/to/wiki-agent/wiki-agent-1.13.1.tgz
+cd ~/.bun/install/global && bun add /path/to/wiki-agent/wiki-agent-1.16.0.tgz
 ```
 
 After install, the `wiki` command is on `PATH` (entrypoint: `dist/cli.js`, declared as the `bin` in `package.json`).
@@ -39,15 +39,15 @@ wiki --help
 
 The README uses a hero banner at `public/banner.png`. The npm tarball only includes `dist/`, `README.md`, and `LICENSE` (the `files` array in `package.json`); workflows are generated into target repos by `--init`, not shipped in the package.
 
-## 2. Choose a provider mode
+## 2. Configure the provider
 
-Wiki Agent speaks to a provider in one of three modes:
+Wiki Agent supports three provider modes:
 
 - **Local** — talks to a running Ollama server on `http://localhost:11434`. No API key.
 - **Cloud** — talks to Ollama Cloud at `https://ollama.com`. Requires an API key.
-- **OpenAI-compatible** — talks to any OpenAI-compatible endpoint (OpenRouter, vLLM, etc.) at a configurable base URL. Requires an API key.
+- **OpenAI-compatible** — talks to any OpenAI-compatible endpoint (OpenRouter, Azure OpenAI, vLLM, LM Studio, Ollama's OpenAI-compatible mode, etc.) at a configurable base URL. Requires an API key.
 
-You can configure the mode interactively by running `wiki --init` once, or non-interactively through environment variables and config files. See [Configuration](./configuration.md) for the full priority order.
+Run `wiki --init` once to configure the mode and API key interactively, or set environment variables and config files. On `--init`, the agent also appends a `## Wiki Agent` section to `AGENTS.md` (or `CLAUDE.md` if only that exists) declaring that the project is managed by wiki-agent, with the current version and initialization timestamp. If neither file exists, it creates `AGENTS.md`. See [Configuration](./configuration.md) for precedence.
 
 ## 3. Run the agent
 
