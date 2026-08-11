@@ -10,6 +10,7 @@ import {
   resolveConfig,
   createLLMClient,
   type GlobalConfig,
+  getGlobalConfigDir,
 } from "../src/config.js";
 import { OllamaAdapter, OpenAIAdapter } from "../src/llm.js";
 
@@ -54,12 +55,23 @@ describe("config", () => {
       expect(loaded.apiKey).toBe("test-key");
       expect(loaded.defaultModel).toBe("llama3.2");
     });
+
+    test("returns default config when file contains invalid JSON", async () => {
+      const dir = getGlobalConfigDir();
+      await mkdir(dir, { recursive: true });
+      const configPath = path.join(dir, "config.json");
+      await writeFile(configPath, "this is not valid json", "utf8");
+
+      const config = await loadGlobalConfig();
+      expect(config.mode).toBe("local");
+      expect(config.defaultModel).toBe("kimi-k2.7-code");
+    });
   });
 
   describe("saveGlobalConfig", () => {
     test("creates directory and writes config with 0o600 permissions", async () => {
       await saveGlobalConfig({ mode: "local", defaultModel: "kimi-k2.7-code" });
-      const configPath = path.join(tempHome, ".wiki", "config.json");
+      const configPath = path.join(getGlobalConfigDir(), "config.json");
       const content = await readFile(configPath, "utf8");
       expect(JSON.parse(content).mode).toBe("local");
     });
