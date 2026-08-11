@@ -229,6 +229,8 @@ export async function runAgent(
   ];
   const changedFiles: { action: string; path: string; description: string }[] = [];
 
+  const toolDefinitions = tools.map((t) => t.definition);
+
   for (let i = 0; i < maxIter; i++) {
     let assistantContent = "";
     let toolCalls: LLMToolCall[] = [];
@@ -238,7 +240,7 @@ export async function runAgent(
         const streamResponse = await client.chat({
           model,
           messages,
-          tools: tools.map((t) => t.definition),
+          tools: toolDefinitions,
           stream: true as const,
         });
 
@@ -262,7 +264,7 @@ export async function runAgent(
         const result = await client.chat({
           model,
           messages,
-          tools: tools.map((t) => t.definition),
+          tools: toolDefinitions,
           stream: false as const,
         });
 
