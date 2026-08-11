@@ -31,11 +31,12 @@ See [Configuration](../configuration.md) for the data model, [Tools](../tools.md
 `runAgent` in `agent.ts` implements the entire control flow:
 
 1. Build the system prompt (`createSystemPrompt`) and the user message (`createUserMessage`) for the chosen command — `init` or `update`. `createSystemPrompt` embeds repo instructions from `AGENTS.md`/`CLAUDE.md` if either exists.
-2. Construct the provider `chat` request with the current `messages` array and the tool definitions.
-3. Stream or batch the response. Collect `content` and any `tool_calls` returned by the model.
-4. Append the assistant message to the history. If there are tool calls, append a `tool` message per call; Ollama uses `tool_name`, while OpenAI uses `tool_call_id`.
-5. Loop up to `WIKI_RECURSION_LIMIT` iterations (default `200`). A response with no tool calls ends the loop.
-6. After the loop, call `createWorkflowFile`, `synchronizeWikiIndexes(.wiki)`, write `.wiki/.last-updated.json`, `.wiki/.last-update-report.md` (via `generateUpdateReport`), and `.wiki/.last-update-title.txt` (via `generateUpdateTitle`), then emit a `done` event. The write/edit tools themselves strip reasoning/thinking tags from persisted content before it reaches disk. On `init`, the loop also appends/updates a wiki-agent section in `AGENTS.md`/`CLAUDE.md` via `appendWikiAgentFrontmatter`.
+2. Pre-calculate the tool definitions array once (`tools.map((t) => t.definition)`) and reuse it on every iteration, so the JSON serialization and array allocation is not repeated per LLM turn.
+3. Construct the provider `chat` request with the current `messages` array and the pre-calculated tool definitions.
+4. Stream or batch the response. Collect `content` and any `tool_calls` returned by the model.
+5. Append the assistant message to the history. If there are tool calls, append a `tool` message per call; Ollama uses `tool_name`, while OpenAI uses `tool_call_id`.
+6. Loop up to `WIKI_RECURSION_LIMIT` iterations (default `200`). A response with no tool calls ends the loop.
+7. After the loop, call `createWorkflowFile`, `synchronizeWikiIndexes(.wiki)`, write `.wiki/.last-updated.json`, `.wiki/.last-update-report.md` (via `generateUpdateReport`), and `.wiki/.last-update-title.txt` (via `generateUpdateTitle`), then emit a `done` event. The write/edit tools themselves strip reasoning/thinking tags from persisted content before it reaches disk. On `init`, the loop also appends/updates a wiki-agent section in `AGENTS.md`/`CLAUDE.md` via `appendWikiAgentFrontmatter`.
 
 Errors from the LLM SDK are surfaced through the `error` event stream. If the model had already produced content, the loop exits with a `done` summary that includes the error message; otherwise it emits `error` and stops.
 
