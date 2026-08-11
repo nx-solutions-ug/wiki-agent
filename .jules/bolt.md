@@ -15,4 +15,7 @@
 ## 2024-05-18 - [Add Invalidation and Testing to Tool Caching]
 **Learning:** Even internal cache structures designed for performance optimizations should be properly tested and have invalidation mechanisms to avoid leaking state across tests or environments.
 **Action:** Exported `_toolsCache` and `clearToolsCache` to test the internal caching behavior of `executeTool`.
-## 2024-05-16 - Pre-calculate arrays outside tight loops\n**Learning:** Mapping over arrays inside a tight execution loop forces repeated array allocations and iterations, drastically impacting performance.\n**Action:** When working in tight loops (like the `runAgent` loop calling chat completion), extract static map operations (e.g. `tools.map(t => t.definition)`) to a variable outside the loop.
+
+## 2024-05-16 - Pre-calculate arrays outside tight loops
+**Learning:** Mapping over arrays inside a tight execution loop forces repeated array allocations and iterations, drastically impacting performance.
+**Action:** When working in tight loops (like the `runAgent` loop calling chat completion), extract static map operations (e.g. `tools.map(t => t.definition)`) to a variable outside the loop.
