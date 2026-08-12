@@ -36,7 +36,7 @@ bun run test
 
 Runs `vitest run` against the test files in `test/`. There are ten Vitest test files:
 
-- `config.test.ts` — global/project config I/O and `resolveConfig` precedence.
+- `config.test.ts` — global/project config I/O, `loadGlobalConfig` fallback on invalid JSON, and `resolveConfig` precedence.
 - `tools.test.ts` — path-safety checks, file read/write/edit, `read_file` streaming behavior, tool definition shape, `git` and `gh` subcommand allowlists, metacharacter guard, `grep`/`glob` command-injection prevention, wildcard restoration, directory exclusions (`node_modules`, `.git`, `dist`, `.wiki`), `ast_grep`/`ast_search` structural matching, `parseArgsStringToArgv`, and reasoning-tag stripping (the four `think`/`thinking`/`reasoning`/`reflection` tag pairs) in `write_file`/`edit_file`.
 - `llm.test.ts` — `OpenAIAdapter` streaming and non-streaming behavior.
 - `llm-ollama.test.ts` — `OllamaAdapter` streaming and non-streaming behavior.
