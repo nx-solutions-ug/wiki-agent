@@ -7,7 +7,7 @@ tags: [github-actions, ci, automation, cron]
 
 # GitHub Actions
 
-Running `wiki --init` creates `.github/workflows/update-wiki.yml` (via `src/agent.ts:createWorkflowFile`). When `--wiki` is passed to `--init`, the workflow also publishes the generated pages to the repository's **GitHub Wiki tab** (via the separate `<repo>.wiki.git` Git remote), pushing directly to `master`. In all cases it opens a staging PR with the `.wiki/` changes in the main repo. The workflow can be triggered manually via `workflow_dispatch`, on every push to `main`, or daily at 08:00 UTC.
+Running `wiki --init` creates `.github/workflows/update-wiki.yml` (via `src/workflow.ts:createWorkflowFile`). When `--wiki` is passed to `--init`, the workflow also publishes the generated pages to the repository's **GitHub Wiki tab** (via the separate `<repo>.wiki.git` Git remote), pushing directly to `master`. In all cases it opens a staging PR with the `.wiki/` changes in the main repo. The workflow can be triggered manually via `workflow_dispatch`, on every push to `main`, or daily at 08:00 UTC.
 
 ## What the workflow does
 
