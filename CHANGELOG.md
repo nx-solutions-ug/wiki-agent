@@ -1,3 +1,10 @@
+# [1.17.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.16.0...v1.17.0) (2026-08-18)
+
+
+### Features
+
+* add MCP server with streamable stdio transport and embeddings database ([#138](https://github.com/nx-solutions-ug/wiki-agent/issues/138)) ([ec30bd0](https://github.com/nx-solutions-ug/wiki-agent/commit/ec30bd01347cb694657c5588c617fbc99805235a))
+
 # [1.16.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.15.1...v1.16.0) (2026-08-07)
 
 
