@@ -1,3 +1,10 @@
+## [1.17.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.17.0...v1.17.1) (2026-08-18)
+
+
+### Bug Fixes
+
+* restore CLI entrypoint guard to prevent silent exit on import ([#140](https://github.com/nx-solutions-ug/wiki-agent/issues/140)) ([44dafc2](https://github.com/nx-solutions-ug/wiki-agent/commit/44dafc28a47981f319f77cd5bbee2355e2670fb8))
+
 # [1.17.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.16.0...v1.17.0) (2026-08-18)
 
 
