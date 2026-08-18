@@ -24,13 +24,18 @@
   },
   "dependencies": {
     "@ast-grep/cli": "^0.45.0",
+    "@huggingface/transformers": "^4.2.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "better-sqlite3": "^13.0.3",
     "ink": "^7.0.0",
     "ink-text-input": "^6.0.0",
     "marked": "^18.0.0",
     "ollama": "^0.6.3",
     "openai": "^7.4.0",
     "react": "^19.1.0",
-    "yaml": "^2.7.1"
+    "sqlite-vec": "^0.1.9",
+    "yaml": "^2.7.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@semantic-release/changelog": "^7.0.0",
@@ -39,6 +44,7 @@
     "@semantic-release/github": "^12.0.0",
     "@semantic-release/npm": "^13.0.0",
     "@semantic-release/release-notes-generator": "^14.0.3",
+    "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.1.1",
     "@types/react": "^19.1.0",
     "semantic-release": "^25.0.0",

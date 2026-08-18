@@ -1,8 +1,8 @@
 #!/usr/bin/env node
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import React from "react";
 import { render as inkRender } from "ink";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import { runAgent } from "./agent.js";
 import {
   resolveConfig,
@@ -11,19 +11,24 @@ import {
 import { getHelpText } from "./prompt.js";
 import { VERSION } from "./version.js";
 import { App } from "./tui/App.js";
+import { getGitSummary } from "./cli-helpers.js";
 
-const execFileAsync = promisify(execFile);
+
+type McpTransport = "stdio";
+
 interface CliArgs {
   command: "init" | "update" | null;
   print: boolean;
   verbose: boolean;
   model?: string;
   wiki: boolean;
+  mcp: McpTransport | null;
   help: boolean;
   version: boolean;
 }
-function parseArgs(argv: string[]): CliArgs {
-  const args: CliArgs = { command: null, print: false, verbose: false, wiki: false, help: false, version: false };
+
+export function parseArgs(argv: string[]): CliArgs {
+  const args: CliArgs = { command: null, print: false, verbose: false, wiki: false, mcp: null, help: false, version: false };
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
 
@@ -44,6 +49,14 @@ function parseArgs(argv: string[]): CliArgs {
       case "--wiki":
         args.wiki = true;
         break;
+      case "--mcp": {
+        const transport = argv[++i];
+        if (transport !== "stdio") {
+          throw new Error(`Unknown MCP transport: ${transport}. Supported: stdio`);
+        }
+        args.mcp = transport;
+        break;
+      }
       case "--model":
         args.model = argv[++i];
         break;
@@ -58,18 +71,6 @@ function parseArgs(argv: string[]): CliArgs {
   }
 
   return args;
-}
-
-async function getGitSummary(cwd: string): Promise<string> {
-  try {
-    const { stdout } = await execFileAsync("git", ["log", "--oneline", "-30"], {
-      cwd,
-      maxBuffer: 1024 * 1024,
-    });
-    return stdout.trim();
-  } catch {
-    return "(git not available or not a git repository)";
-  }
 }
 
 async function runHeadless(
@@ -121,6 +122,16 @@ async function main() {
     process.exit(0);
   }
 
+  // --mcp stdio: start MCP server (no --init/--update required)
+  if (args.mcp === "stdio") {
+    const cwd = process.cwd();
+    // Dynamic import: only load MCP SDK + native sqlite/transformers deps
+    // when --mcp is actually used, so normal --init/--update stays lightweight.
+    const { startMcpStdioServer } = await import("./mcp-server.js");
+    await startMcpStdioServer(cwd);
+    return;
+  }
+
   if (args.help || args.command === null) {
     console.log(getHelpText());
     process.exit(0);
@@ -153,7 +164,9 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  });
+}
