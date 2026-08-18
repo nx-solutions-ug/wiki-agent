@@ -164,9 +164,21 @@ async function main() {
   }
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+// Only run main() when this file is the entry point (not when imported by tests).
+// Compares the resolved main module path against this file's URL.
+const isMainEntry = (() => {
+  if (!process.argv[1]) return false;
+  try {
+    return path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+  } catch {
+    return false;
+  }
+})();
+
+if (isMainEntry) {
   main().catch((error) => {
     console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
   });
 }
+
