@@ -1,5 +1,7 @@
+import { pathToFileURL } from "node:url";
+import path from "node:path";
 import { describe, expect, test } from "vitest";
-import { parseArgs } from "../src/cli.js";
+import { parseArgs, isMainModule } from "../src/cli.js";
 
 describe("parseArgs", () => {
   test("parses --init command", () => {
@@ -49,3 +51,39 @@ describe("parseArgs", () => {
     expect(versionArgs.version).toBe(true);
   });
 });
+
+describe("isMainModule", () => {
+  test("returns false when argv[1] is undefined or empty", () => {
+    expect(isMainModule(undefined)).toBe(false);
+    expect(isMainModule("")).toBe(false);
+  });
+
+  test("returns false for test runners and unrelated scripts", () => {
+    expect(isMainModule("/path/to/node_modules/vitest/dist/cli.mjs")).toBe(false);
+    expect(isMainModule("/usr/local/bin/vitest")).toBe(false);
+    expect(isMainModule("/path/to/setup-cli.js")).toBe(false);
+    expect(isMainModule("/path/to/my-cli.tsx")).toBe(false);
+    expect(isMainModule("/path/to/cli.jsx")).toBe(false);
+    expect(isMainModule("/path/to/other-script.js")).toBe(false);
+  });
+
+  test("returns true for exact path match with file URL", () => {
+    const filePath = path.resolve("/some/project/dist/cli.js");
+    const fileUrl = pathToFileURL(filePath).href;
+    expect(isMainModule(filePath, fileUrl)).toBe(true);
+  });
+
+  test("returns true for supported binary names and entry filenames", () => {
+    expect(isMainModule("/usr/local/bin/wiki")).toBe(true);
+    expect(isMainModule("~/.bun/bin/wiki")).toBe(true);
+    expect(isMainModule("/usr/local/bin/wiki-agent")).toBe(true);
+    expect(isMainModule("/path/to/dist/cli.js")).toBe(true);
+    expect(isMainModule("/path/to/src/cli.tsx")).toBe(true);
+  });
+
+  test("returns false when imported during test execution", () => {
+    // When executing within vitest, process.argv[1] is the vitest runner, so isMainModule() evaluates to false
+    expect(isMainModule(process.argv[1])).toBe(false);
+  });
+});
+

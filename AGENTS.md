@@ -113,11 +113,12 @@ try {
 **Result truncation**: all tool results are truncated to `MAX_TOOL_RESULT_LENGTH = 10_000` chars (`truncateResult`); file reads also cap at `MAX_READ_LENGTH = 50_000`.
 
 **Config resolution precedence** (`config.ts:resolveConfig`), highest first:
-1. Env vars: `WIKI_OLLAMA_MODE`, `WIKI_OLLAMA_API_KEY`, `WIKI_OLLAMA_BASE_URL`, `WIKI_MODEL`
+1. Env vars: `WIKI_PROVIDER_MODE` (or legacy `WIKI_OLLAMA_MODE`), `WIKI_PROVIDER_API_KEY` (or legacy `WIKI_OLLAMA_API_KEY`), `WIKI_PROVIDER_BASE_URL` (or legacy `WIKI_OLLAMA_BASE_URL`), `WIKI_MODEL`, `WIKI_EMBEDDING_PROVIDER`, `WIKI_EMBEDDING_MODEL`, `WIKI_EMBEDDING_HOST`
 2. CLI `--model` flag
 3. Project config `.wiki/config.json` (`modelOverride`)
 4. Global config `~/.wiki/config.json`
-5. Built-in defaults (`mode: "local"`, `model: "kimi-k2.7-code"`, local `http://localhost:11434`, cloud `https://ollama.com`)
+5. Built-in defaults (`mode: "local"`, `model: "kimi-k2.7-code"`, local `http://localhost:11434`, cloud `https://ollama.com`, openai `https://api.openai.com/v1`)
+
 
 Note: `resolveConfig` reads env vars and global config in the same pass — env wins over global for each field independently.
 
@@ -200,7 +201,7 @@ Documentation is generated under `.wiki/` and kept in sync via `wiki --update`.
 Do not hand-edit files under `.wiki/` — regenerate them with `wiki --update` instead.
 
 ```yaml
-version: 1.16.0
+version: 1.17.0
 wiki-path: .wiki/
 initialized: 2026-08-18T07:10:20.443Z
 ```

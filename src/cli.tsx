@@ -164,26 +164,33 @@ async function main() {
   }
 }
 
-// Only run main() when this file is the entry point (not when imported by tests).
-// Compares the resolved main module path against this file's URL.
-const isMainEntry = (() => {
-  if (!process.argv[1]) return false;
-  const entry = process.argv[1];
+/**
+ * Determines whether the current module is the CLI entrypoint.
+ * Compares the resolved argv[1] against import.meta.url, with a basename
+ * fallback for symlinks, bunx wrappers, and package manager aliases.
+ */
+export function isMainModule(
+  argvEntry: string | undefined = process.argv[1],
+  importMetaUrl: string = import.meta.url,
+): boolean {
+  if (!argvEntry) return false;
   try {
-    // Exact path match (handles direct node invocations)
-    if (path.resolve(entry) === fileURLToPath(import.meta.url)) return true;
+    // Exact path match (handles direct node/bun invocations)
+    if (path.resolve(argvEntry) === fileURLToPath(importMetaUrl)) return true;
   } catch {
     // ignore
   }
   // Fallback: match by filename — handles global installs via symlinks,
   // bunx wrappers, and package managers that alias the binary path.
-  return entry.endsWith("cli.js") || entry.endsWith("cli.tsx");
-})();
+  const base = path.basename(argvEntry);
+  return base === "cli.js" || base === "cli.tsx" || base === "wiki" || base === "wiki-agent";
+}
 
-if (isMainEntry) {
+if (isMainModule()) {
   main().catch((error) => {
     console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
   });
 }
+
 
