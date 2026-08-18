@@ -4,6 +4,7 @@ import os from "node:os";
 import { Ollama } from "ollama";
 import OpenAI from "openai";
 import { type LLMClient, OpenAIAdapter, OllamaAdapter } from "./llm.js";
+import type { EmbeddingProvider, EmbeddingConfig } from "./embeddings.js";
 
 export type ProviderMode = "local" | "cloud" | "openai";
 
@@ -12,6 +13,9 @@ export interface GlobalConfig {
   apiKey?: string;
   baseUrl?: string;
   defaultModel: string;
+  embeddingProvider?: EmbeddingProvider;
+  embeddingModel?: string;
+  embeddingHost?: string;
 }
 
 export interface ProjectConfig {
@@ -24,6 +28,9 @@ export interface ResolvedConfig {
   apiKey?: string;
   baseUrl: string;
   model: string;
+  embeddingProvider: EmbeddingProvider;
+  embeddingModel: string;
+  embeddingHost: string;
 }
 
 function getGlobalConfigDir(): string {
@@ -37,6 +44,7 @@ const DEFAULT_LOCAL_HOST = "http://localhost:11434";
 const DEFAULT_CLOUD_HOST = "https://ollama.com";
 const DEFAULT_OPENAI_HOST = "https://api.openai.com/v1";
 const DEFAULT_MODEL = "kimi-k2.7-code";
+const DEFAULT_EMBEDDING_MODEL = "nomic-embed-text";
 
 /** Returns the default base URL for a given provider mode. */
 export function defaultBaseUrl(mode: ProviderMode): string {
@@ -50,7 +58,7 @@ export function defaultBaseUrl(mode: ProviderMode): string {
 const MAX_TOOL_RESULT_LENGTH = 10_000;
 
 function defaultGlobalConfig(): GlobalConfig {
-  return { mode: "local", defaultModel: DEFAULT_MODEL };
+  return { mode: "local", defaultModel: DEFAULT_MODEL, embeddingProvider: "local", embeddingModel: DEFAULT_EMBEDDING_MODEL, embeddingHost: DEFAULT_LOCAL_HOST };
 }
 
 export { getGlobalConfigDir };
@@ -98,7 +106,8 @@ export async function saveProjectConfig(
  * Resolves the effective configuration by merging (in priority order):
  * 1. Environment variables (WIKI_PROVIDER_MODE, WIKI_PROVIDER_API_KEY,
  *    WIKI_PROVIDER_BASE_URL, WIKI_OLLAMA_MODE, WIKI_OLLAMA_API_KEY,
- *    WIKI_OLLAMA_BASE_URL, WIKI_MODEL)
+ *    WIKI_OLLAMA_BASE_URL, WIKI_MODEL, WIKI_EMBEDDING_PROVIDER,
+ *    WIKI_EMBEDDING_MODEL, WIKI_EMBEDDING_HOST)
  * 2. Global config file (~/.wiki/config.json)
  * 3. Project config (.wiki/config.json modelOverride)
  * 4. Built-in defaults
@@ -134,7 +143,23 @@ export async function resolveConfig(
     globalConfig.defaultModel ??
     DEFAULT_MODEL;
 
-  return { mode, apiKey, baseUrl, model };
+  // Embedding configuration
+  let embeddingProvider = globalConfig.embeddingProvider ?? "local";
+  if (env.WIKI_EMBEDDING_PROVIDER === "local" || env.WIKI_EMBEDDING_PROVIDER === "ollama") {
+    embeddingProvider = env.WIKI_EMBEDDING_PROVIDER;
+  }
+
+  const embeddingModel =
+    env.WIKI_EMBEDDING_MODEL ??
+    globalConfig.embeddingModel ??
+    DEFAULT_EMBEDDING_MODEL;
+
+  const embeddingHost =
+    env.WIKI_EMBEDDING_HOST ??
+    globalConfig.embeddingHost ??
+    DEFAULT_LOCAL_HOST;
+
+  return { mode, apiKey, baseUrl, model, embeddingProvider, embeddingModel, embeddingHost };
 }
 
 /**
@@ -157,6 +182,17 @@ export function createLLMClient(config: ResolvedConfig): LLMClient {
   return new OllamaAdapter(new Ollama({ host: config.baseUrl }));
 }
 
+/**
+ * Extracts embedding-specific configuration from a resolved config.
+ */
+export function createEmbeddingConfig(config: ResolvedConfig): EmbeddingConfig {
+  return {
+    provider: config.embeddingProvider,
+    ollamaModel: config.embeddingModel,
+    ollamaHost: config.embeddingHost,
+  };
+}
+
 export function truncateResult(result: string): string {
   if (result.length <= MAX_TOOL_RESULT_LENGTH) {
     return result;
@@ -165,4 +201,4 @@ export function truncateResult(result: string): string {
   return result.slice(0, MAX_TOOL_RESULT_LENGTH) + "\n... (truncated)";
 }
 
-export { DEFAULT_MODEL, MAX_TOOL_RESULT_LENGTH };
+export { DEFAULT_MODEL, DEFAULT_EMBEDDING_MODEL, MAX_TOOL_RESULT_LENGTH };

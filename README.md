@@ -23,6 +23,8 @@ A standalone documentation agent that runs against Ollama or any OpenAI-compatib
 - **Restricted toolset** — the agent can only read files, write under `.wiki/`, run read-only git subcommands, and use a `gh` CLI tool for inspecting pull requests and closing stale wiki staging PRs; there is no shell tool
 - **Staging PR staleness check** — before writing in update mode, the agent checks for open wiki staging PRs, abandons the update if a newer one already exists, and closes stale ones with a comment ("This branch is from an earlier staging run and is stale. Closing")
 - **Frontmatter stripping** — YAML frontmatter is stripped before publishing to the GitHub Wiki tab, since GitHub Wiki renders frontmatter as literal text
+- **MCP server** — `wiki --mcp stdio` starts a streamable MCP server exposing wiki tools to AI assistants: read pages, list pages, semantic search, trigger updates, and rebuild the embeddings index
+- **Embeddings database** — builds a SQLite vector store (`.wiki/wiki.db`) using sqlite-vec for semantic search over wiki content. Supports local embeddings via Hugging Face Transformers.js (all-MiniLM-L6-v2, on-device) or Ollama embeddings (nomic-embed-text). Configurable via the TUI or environment variables
 
 ## Quickstart
 
@@ -89,6 +91,32 @@ wiki --version
 wiki --init --print --model llama3.2
 ```
 
+### 4. MCP Server (optional)
+
+Run wiki-agent as a streamable MCP server for AI assistants to read and update your wiki:
+
+```bash
+# Start MCP server on stdio
+wiki --mcp stdio
+```
+
+This exposes 5 tools to MCP clients (e.g. Claude Desktop, Cursor, any MCP-compatible assistant):
+
+| Tool | Description |
+|------|-------------|
+| `read_wiki_page` | Read a wiki page by relative path |
+| `list_wiki_pages` | List all wiki pages |
+| `search_wiki` | Semantic search over wiki content using embeddings |
+| `update_wiki` | Trigger a wiki-agent update run |
+| `rebuild_embeddings` | Rebuild the embeddings database from wiki content |
+
+The embeddings database (`.wiki/wiki.db`) uses SQLite + sqlite-vec for vector search. Two embedding backends are supported:
+
+- **Local** (default): Hugging Face Transformers.js with `all-MiniLM-L6-v2` (384-dim, runs on-device, no server needed)
+- **Ollama**: Uses your Ollama server with a configurable embedding model (default: `nomic-embed-text`)
+
+Configure the embedding provider in the interactive TUI setup wizard, via environment variables, or in `~/.wiki/config.json`.
+
 ### Global config (`~/.wiki/config.json`)
 
 For local (default — no API key required):
@@ -96,7 +124,10 @@ For local (default — no API key required):
 ```json
 {
   "mode": "local",
-  "defaultModel": "kimi-k2.7-code"
+  "defaultModel": "kimi-k2.7-code",
+  "embeddingProvider": "local",
+  "embeddingModel": "nomic-embed-text",
+  "embeddingHost": "http://localhost:11434"
 }
 ```
 
@@ -106,7 +137,10 @@ For cloud:
 {
   "mode": "cloud",
   "apiKey": "your-api-key",
-  "defaultModel": "kimi-k2.7-code"
+  "defaultModel": "kimi-k2.7-code",
+  "embeddingProvider": "local",
+  "embeddingModel": "nomic-embed-text",
+  "embeddingHost": "http://localhost:11434"
 }
 ```
 
@@ -117,9 +151,13 @@ For OpenAI or any OpenAI-compatible endpoint (OpenAI, Azure OpenAI, local server
   "mode": "openai",
   "apiKey": "your-openai-api-key",
   "baseUrl": "https://api.openai.com/v1",
-  "defaultModel": "gpt-4o"
+  "defaultModel": "gpt-4o",
+  "embeddingProvider": "local",
+  "embeddingModel": "nomic-embed-text",
+  "embeddingHost": "http://localhost:11434"
 }
 ```
+
 
 ### Project config (`.wiki/config.json`)
 
@@ -145,6 +183,9 @@ For OpenAI or any OpenAI-compatible endpoint (OpenAI, Azure OpenAI, local server
 | `WIKI_OLLAMA_BASE_URL` | Override Ollama server URL | `http://localhost:11434` / `https://ollama.com` |
 | `WIKI_MODEL` | Override model ID | from config |
 | `WIKI_RECURSION_LIMIT` | Max agent iterations | `200` |
+| `WIKI_EMBEDDING_PROVIDER` | Embedding provider: `"local"` (Transformers.js, on-device) or `"ollama"` | `local` |
+| `WIKI_EMBEDDING_MODEL` | Ollama embedding model (only used when provider is `ollama`) | `nomic-embed-text` |
+| `WIKI_EMBEDDING_HOST` | Ollama server URL for embeddings | `http://localhost:11434` |
 | `GH_TOKEN` | GitHub token for the `gh` CLI tool (read-only inspection plus staging PR close/comment; used in CI for the staging PR staleness check) | from environment |
 
 Environment variables take priority over config files.

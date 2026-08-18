@@ -2,13 +2,26 @@ import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
 import { saveGlobalConfig, defaultBaseUrl, type GlobalConfig, type ResolvedConfig, type ProviderMode } from "../config.js";
+import type { EmbeddingProvider } from "../embeddings.js";
 
 interface CredentialsSetupProps {
   cwd: string;
   onConfigSaved: (config: ResolvedConfig) => void;
 }
 
-type SetupStep = "mode-select" | "api-key" | "base-url" | "model" | "saving";
+type SetupStep =
+  | "mode-select"
+  | "api-key"
+  | "base-url"
+  | "model"
+  | "embedding-select"
+  | "embedding-model"
+  | "embedding-host"
+  | "saving";
+
+const DEFAULT_LLM_MODEL = "kimi-k2.7-code";
+const DEFAULT_EMBEDDING_MODEL = "nomic-embed-text";
+const DEFAULT_OLLAMA_HOST = "http://localhost:11434";
 
 export function CredentialsSetup({
   onConfigSaved,
@@ -18,6 +31,9 @@ export function CredentialsSetup({
   const [apiKey, setApiKey] = useState("");
   const [baseUrl, setBaseUrl] = useState("");
   const [model, setModel] = useState("");
+  const [embeddingProvider, setEmbeddingProvider] = useState<EmbeddingProvider>("local");
+  const [embeddingModel, setEmbeddingModel] = useState("");
+  const [embeddingHost, setEmbeddingHost] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   async function handleSave(): Promise<void> {
@@ -26,11 +42,16 @@ export function CredentialsSetup({
 
     try {
       const effectiveBaseUrl = baseUrl.trim() || defaultBaseUrl(mode);
+      const effectiveEmbeddingHost = embeddingHost.trim() || effectiveBaseUrl;
+
       const globalConfig: GlobalConfig = {
         mode,
-        defaultModel: model.trim() || "kimi-k2.7-code",
+        defaultModel: model.trim() || DEFAULT_LLM_MODEL,
         ...((mode === "cloud" || mode === "openai") ? { apiKey } : {}),
         ...(effectiveBaseUrl !== defaultBaseUrl(mode) ? { baseUrl: effectiveBaseUrl } : {}),
+        embeddingProvider,
+        embeddingModel: embeddingModel.trim() || DEFAULT_EMBEDDING_MODEL,
+        ...(effectiveEmbeddingHost !== defaultBaseUrl(mode) ? { embeddingHost: effectiveEmbeddingHost } : {}),
       };
 
       await saveGlobalConfig(globalConfig);
@@ -39,7 +60,10 @@ export function CredentialsSetup({
         mode,
         ...((mode === "cloud" || mode === "openai") ? { apiKey } : {}),
         baseUrl: effectiveBaseUrl,
-        model: model.trim() || "kimi-k2.7-code",
+        model: model.trim() || DEFAULT_LLM_MODEL,
+        embeddingProvider,
+        embeddingModel: embeddingModel.trim() || DEFAULT_EMBEDDING_MODEL,
+        embeddingHost: effectiveEmbeddingHost,
       };
 
       onConfigSaved(resolved);
@@ -61,6 +85,14 @@ export function CredentialsSetup({
       } else if (input === "3") {
         setMode("openai");
         setStep("api-key");
+      }
+    } else if (step === "embedding-select") {
+      if (input === "1") {
+        setEmbeddingProvider("local");
+        setStep("model");
+      } else if (input === "2") {
+        setEmbeddingProvider("ollama");
+        setStep("embedding-model");
       }
     }
   });
@@ -121,6 +153,55 @@ export function CredentialsSetup({
         onChange: setBaseUrl,
         onSubmit: () => {
           setError(null);
+          setStep("embedding-select");
+        },
+      }),
+      error ? React.createElement(Text, { color: "red" }, `Error: ${error}`) : null,
+    );
+  }
+
+  if (step === "embedding-select") {
+    return React.createElement(Box, { flexDirection: "column" },
+      React.createElement(Text, { bold: true }, "Select embedding provider for wiki search:"),
+      React.createElement(Text, null,
+        React.createElement(Text, { color: "green" }, "  1. "),
+        "Local (Transformers.js — all-MiniLM-L6-v2, runs on-device, no server needed)",
+      ),
+      React.createElement(Text, null,
+        React.createElement(Text, { color: "green" }, "  2. "),
+        "Ollama (uses your Ollama server for embeddings, e.g. nomic-embed-text)",
+      ),
+      React.createElement(Text, { color: "gray" }, "\nPress 1 or 2 to select. Used by 'wiki --mcp stdio' for semantic search."),
+      error ? React.createElement(Text, { color: "red" }, `Error: ${error}`) : null,
+    );
+  }
+
+  if (step === "embedding-model") {
+    return React.createElement(Box, { flexDirection: "column" },
+      React.createElement(Text, { bold: true }, "Enter Ollama embedding model:"),
+      React.createElement(Text, { color: "gray" }, `Press Enter to use the default (${DEFAULT_EMBEDDING_MODEL})`),
+      React.createElement(TextInput, {
+        value: embeddingModel,
+        onChange: setEmbeddingModel,
+        onSubmit: () => {
+          setError(null);
+          setStep("embedding-host");
+        },
+      }),
+      error ? React.createElement(Text, { color: "red" }, `Error: ${error}`) : null,
+    );
+  }
+
+  if (step === "embedding-host") {
+    const defaultHost = baseUrl.trim() || defaultBaseUrl(mode);
+    return React.createElement(Box, { flexDirection: "column" },
+      React.createElement(Text, { bold: true }, "Enter Ollama server URL for embeddings:"),
+      React.createElement(Text, { color: "gray" }, `Press Enter to use the default (${defaultHost})`),
+      React.createElement(TextInput, {
+        value: embeddingHost,
+        onChange: setEmbeddingHost,
+        onSubmit: () => {
+          setError(null);
           setStep("model");
         },
       }),
@@ -128,10 +209,10 @@ export function CredentialsSetup({
     );
   }
 
-  // model step
+  // model step (LLM model)
   return React.createElement(Box, { flexDirection: "column" },
     React.createElement(Text, { bold: true }, "Enter default model ID:"),
-    React.createElement(Text, { color: "gray" }, "Press Enter to use the default (kimi-k2.7-code)"),
+    React.createElement(Text, { color: "gray" }, `Press Enter to use the default (${DEFAULT_LLM_MODEL})`),
     React.createElement(TextInput, {
       value: model,
       onChange: setModel,

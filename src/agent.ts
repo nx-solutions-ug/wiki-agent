@@ -30,8 +30,23 @@ const RUN_METADATA_FILES = [
   ".last-update-title.txt",
 ] as const;
 
+// SQLite database and its sidecar files (journal, WAL, shared-memory).
+// The embeddings database is binary and should be rebuilt locally, not
+// committed or published.
+const SQLITE_DB_FILES = [
+  "wiki.db",
+  "wiki.db-journal",
+  "wiki.db-wal",
+  "wiki.db-shm",
+] as const;
+
+// Files excluded from git tracking under .wiki/.  Run-metadata files are
+// transient; wiki.db (+ sidecars) is a binary embeddings database that
+// should be rebuilt locally, not committed or published.
 export const WIKI_GITIGNORE =
-  RUN_METADATA_FILES.map((f) => `/${f}`).join("\n") + "\n";
+  RUN_METADATA_FILES.map((f) => `/${f}`).join("\n") + "\n" +
+  SQLITE_DB_FILES.map((f) => `/${f}`).join("\n") + "\n" +
+  "/model-cache/\n";
 
 /**
  * Filters a changed-files list for report generation: drops run-metadata
@@ -62,7 +77,10 @@ export function filterReportFiles(
 export async function untrackRunMetadataFiles(
   projectRoot: string,
 ): Promise<string[]> {
-  const metadataPaths = RUN_METADATA_FILES.map((f) => path.join(".wiki", f));
+  const metadataPaths = [
+    ...RUN_METADATA_FILES.map((f) => path.join(".wiki", f)),
+    ...SQLITE_DB_FILES.map((f) => path.join(".wiki", f)),
+  ];
   try {
     const { stdout } = await execFileAsync("git", ["ls-files", ...metadataPaths], {
       cwd: projectRoot,

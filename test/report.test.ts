@@ -194,6 +194,13 @@ describe("WIKI_GITIGNORE", () => {
     expect(WIKI_GITIGNORE).toContain("/.last-update-report.md");
     expect(WIKI_GITIGNORE).toContain("/.last-update-title.txt");
   });
+
+  test("contains entries for SQLite database and sidecar files", () => {
+    expect(WIKI_GITIGNORE).toContain("/wiki.db");
+    expect(WIKI_GITIGNORE).toContain("/wiki.db-journal");
+    expect(WIKI_GITIGNORE).toContain("/wiki.db-wal");
+    expect(WIKI_GITIGNORE).toContain("/wiki.db-shm");
+  });
 });
 
 describe("untrackRunMetadataFiles", () => {

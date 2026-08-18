@@ -168,32 +168,38 @@ Usage
   wiki --init --print --model <id>   Specify model
   wiki --update --print --verbose    Headless update with full tool logs
   wiki --update --print --wiki       Update and publish to the GitHub Wiki tab
+  wiki --mcp stdio               Start MCP server on stdio (streamable)
   wiki --version                  Show version
   wiki --help                     Show this help
 
 Options
-  --init          Initialize documentation for the current repository
-  --update        Update existing documentation
-  --print         Run headless (non-interactive, output to stdout)
-  --verbose, -v   Show full tool call results (default: assistant prose only)
-  --model <id>    Override the model ID
-  --wiki          Update and publish to the GitHub Wiki tab
-  --version       Show version
-  --help, -h      Show help
+  --init            Initialize documentation for the current repository
+  --update          Update existing documentation
+  --print           Run headless (non-interactive, output to stdout)
+  --verbose, -v     Show full tool call results (default: assistant prose only)
+  --model <id>      Override the model ID
+  --wiki             Update and publish to the GitHub Wiki tab
+  --mcp <transport>  Start as MCP server (supports: stdio)
+  --version         Show version
+  --help, -h        Show help
 
 Environment variables
-  WIKI_PROVIDER_MODE      "local", "cloud", or "openai" (OpenAI-compatible)
-  WIKI_PROVIDER_API_KEY   API key (required for cloud and openai modes)
-  WIKI_PROVIDER_BASE_URL  Override the API base URL
-  WIKI_OLLAMA_MODE        Legacy alias for WIKI_PROVIDER_MODE ("local" or "cloud")
-  WIKI_OLLAMA_API_KEY     Legacy alias for WIKI_PROVIDER_API_KEY
-  WIKI_OLLAMA_BASE_URL    Legacy alias for WIKI_PROVIDER_BASE_URL
-  WIKI_MODEL              Override the model ID
-  WIKI_RECURSION_LIMIT    Max agent iterations (default: 200)
+  WIKI_PROVIDER_MODE        "local", "cloud", or "openai" (OpenAI-compatible)
+  WIKI_PROVIDER_API_KEY     API key (required for cloud and openai modes)
+  WIKI_PROVIDER_BASE_URL    Override the API base URL
+  WIKI_OLLAMA_MODE          Legacy alias for WIKI_PROVIDER_MODE ("local" or "cloud")
+  WIKI_OLLAMA_API_KEY       Legacy alias for WIKI_PROVIDER_API_KEY
+  WIKI_OLLAMA_BASE_URL      Legacy alias for WIKI_PROVIDER_BASE_URL
+  WIKI_MODEL                Override the model ID
+  WIKI_RECURSION_LIMIT      Max agent iterations (default: 200)
+  WIKI_EMBEDDING_PROVIDER   Embedding provider: "local" (Transformers.js) or "ollama"
+  WIKI_EMBEDDING_MODEL      Ollama embedding model (default: nomic-embed-text)
+  WIKI_EMBEDDING_HOST       Ollama server URL for embeddings (default: http://localhost:11434)
 
 Configuration
-  Global:    ~/.wiki/config.json
-  Project:   .wiki/config.json
-  Output:    .wiki/ (in the project root)
+  Global:       ~/.wiki/config.json
+  Project:      .wiki/config.json
+  Output:       .wiki/ (in the project root)
+  Embeddings DB: .wiki/wiki.db
 `.trim();
 }
