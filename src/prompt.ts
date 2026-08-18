@@ -161,27 +161,27 @@ export function getHelpText(): string {
   v${VERSION}
 
 Usage
-  wiki --init                    Initialize wiki documentation (interactive)
-  wiki --update                  Update existing wiki documentation (interactive)
-  wiki --init --print            Headless init (non-interactive)
-  wiki --update --print          Headless update (non-interactive)
-  wiki --init --print --model <id>   Specify model
-  wiki --update --print --verbose    Headless update with full tool logs
-  wiki --update --print --wiki       Update and publish to the GitHub Wiki tab
-  wiki --mcp stdio               Start MCP server on stdio (streamable)
-  wiki --version                  Show version
-  wiki --help                     Show this help
+  wiki --init                         Initialize wiki documentation (interactive)
+  wiki --update                       Update existing wiki documentation (interactive)
+  wiki --init --print                 Headless init (non-interactive)
+  wiki --update --print               Headless update (non-interactive)
+  wiki --init --print --model <id>    Specify model
+  wiki --update --print --verbose     Headless update with full tool logs
+  wiki --update --print --wiki        Update and publish to the GitHub Wiki tab
+  wiki --mcp stdio                    Start MCP server on stdio (streamable)
+  wiki --version                      Show version
+  wiki --help                         Show this help
 
 Options
-  --init            Initialize documentation for the current repository
-  --update          Update existing documentation
-  --print           Run headless (non-interactive, output to stdout)
-  --verbose, -v     Show full tool call results (default: assistant prose only)
-  --model <id>      Override the model ID
+  --init             Initialize documentation for the current repository
+  --update           Update existing documentation
+  --print            Run headless (non-interactive, output to stdout)
+  --verbose, -v      Show full tool call results (default: assistant prose only)
+  --model <id>       Override the model ID
   --wiki             Update and publish to the GitHub Wiki tab
   --mcp <transport>  Start as MCP server (supports: stdio)
-  --version         Show version
-  --help, -h        Show help
+  --version          Show version
+  --help, -h         Show help
 
 Environment variables
   WIKI_PROVIDER_MODE        "local", "cloud", or "openai" (OpenAI-compatible)

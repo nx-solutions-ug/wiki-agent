@@ -2,7 +2,15 @@ import { describe, expect, test, beforeEach, afterEach } from "vitest";
 import { mkdtemp, rm, writeFile, mkdir } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { readWikiPage, listWikiPages } from "../src/mcp-server.js";
+import {
+  readWikiPage,
+  listWikiPages,
+  createMcpServer,
+  getCachedEmbedder,
+  clearEmbedderCache,
+  rebuildEmbeddings,
+  syncEmbeddingsTool,
+} from "../src/mcp-server.js";
 import {
   indexWiki,
   VectorStore,
@@ -122,6 +130,36 @@ describe("MCP server tools", () => {
       expect(searchResults[0].path).toBe("quickstart.md");
 
       store.close();
+    });
+  });
+
+  describe("getCachedEmbedder", () => {
+    afterEach(() => {
+      clearEmbedderCache();
+    });
+
+    test("caches embedder per projectRoot", async () => {
+      const embedderPromise1 = getCachedEmbedder(projectRoot);
+      const embedderPromise2 = getCachedEmbedder(projectRoot);
+      expect(embedderPromise1).toBe(embedderPromise2);
+
+      const embedder1 = await embedderPromise1;
+      const embedder2 = await embedderPromise2;
+      expect(embedder1).toBe(embedder2);
+    });
+
+    test("clearEmbedderCache resets cached instances", async () => {
+      const embedderPromise1 = getCachedEmbedder(projectRoot);
+      clearEmbedderCache();
+      const embedderPromise2 = getCachedEmbedder(projectRoot);
+      expect(embedderPromise1).not.toBe(embedderPromise2);
+    });
+  });
+
+  describe("createMcpServer", () => {
+    test("creates server instance successfully", () => {
+      const server = createMcpServer({ projectRoot });
+      expect(server).toBeDefined();
     });
   });
 });

@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import React from "react";
 import { render as inkRender } from "ink";
 import { runAgent } from "./agent.js";
@@ -25,7 +27,7 @@ interface CliArgs {
   version: boolean;
 }
 
-function parseArgs(argv: string[]): CliArgs {
+export function parseArgs(argv: string[]): CliArgs {
   const args: CliArgs = { command: null, print: false, verbose: false, wiki: false, mcp: null, help: false, version: false };
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
@@ -47,9 +49,14 @@ function parseArgs(argv: string[]): CliArgs {
       case "--wiki":
         args.wiki = true;
         break;
-      case "--mcp":
-        args.mcp = "stdio";
+      case "--mcp": {
+        const transport = argv[++i];
+        if (transport !== "stdio") {
+          throw new Error(`Unknown MCP transport: ${transport}. Supported: stdio`);
+        }
+        args.mcp = transport;
         break;
+      }
       case "--model":
         args.model = argv[++i];
         break;
@@ -157,7 +164,9 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
-});
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  });
+}

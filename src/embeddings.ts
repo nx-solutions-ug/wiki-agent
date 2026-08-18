@@ -61,17 +61,22 @@ type FeatureExtractionPipeline = (
   options?: Record<string, unknown>,
 ) => Promise<{ data: Float32Array | number[] }>;
 
+export function defaultModelCacheDir(): string {
+  return path.join(
+    process.env.HOME || process.env.USERPROFILE || process.cwd(),
+    ".wiki",
+    "model-cache",
+  );
+}
+
 export class LocalEmbedder implements Embedder {
   private pipelinePromise: Promise<FeatureExtractionPipeline> | null = null;
 
   constructor() {
-    // Set cache dir to a user-level location so models persist across projects
+    // Set cache dir to a user-level location so models persist across projects.
+    // Only set if the user has not already configured one.
     if (!process.env.TRANSFORMERS_CACHE) {
-      process.env.TRANSFORMERS_CACHE = path.join(
-        process.env.HOME || process.env.USERPROFILE || ".",
-        ".wiki",
-        "model-cache",
-      );
+      process.env.TRANSFORMERS_CACHE = defaultModelCacheDir();
     }
   }
 
@@ -109,26 +114,16 @@ export class LocalEmbedder implements Embedder {
 export class OllamaEmbedder implements Embedder {
   private ollama: Ollama;
   private model: string;
-  private _dimension: number | null = null;
+  private readonly dim: number;
 
-  constructor(model: string, host: string) {
+  constructor(model: string, host: string, dimension: number) {
     this.ollama = new Ollama({ host });
     this.model = model;
+    this.dim = dimension;
   }
 
   dimension(): number {
-    if (this._dimension === null) {
-      throw new Error(
-        "OllamaEmbedder.dimension() called before embed(); call detectDimension() first.",
-      );
-    }
-    return this._dimension;
-  }
-
-  async detectDimension(): Promise<number> {
-    const vec = await this.embed("dimension probe");
-    this._dimension = vec.length;
-    return vec.length;
+    return this.dim;
   }
 
   async embed(text: string): Promise<Float32Array> {
@@ -140,7 +135,6 @@ export class OllamaEmbedder implements Embedder {
     if (!embedding) {
       throw new Error(`Ollama returned no embedding for model ${this.model}`);
     }
-    this._dimension = embedding.length;
     return new Float32Array(embedding);
   }
 }
@@ -151,10 +145,16 @@ export async function createEmbedder(config: EmbeddingConfig): Promise<Embedder>
   if (config.provider === "local") {
     return new LocalEmbedder();
   }
-  const embedder = new OllamaEmbedder(config.ollamaModel, config.ollamaHost);
-  // Eagerly detect dimension so dimension() is available synchronously
-  await embedder.detectDimension();
-  return embedder;
+  const ollama = new Ollama({ host: config.ollamaHost });
+  const probeResponse = await ollama.embed({
+    model: config.ollamaModel,
+    input: "dimension probe",
+  });
+  const probeEmbedding = probeResponse.embeddings?.[0];
+  if (!probeEmbedding || probeEmbedding.length === 0) {
+    throw new Error(`Ollama returned no embedding for model ${config.ollamaModel}`);
+  }
+  return new OllamaEmbedder(config.ollamaModel, config.ollamaHost, probeEmbedding.length);
 }
 
 // ---------------------------------------------------------------------------

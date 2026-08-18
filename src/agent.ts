@@ -45,8 +45,7 @@ const SQLITE_DB_FILES = [
 // should be rebuilt locally, not committed or published.
 export const WIKI_GITIGNORE =
   RUN_METADATA_FILES.map((f) => `/${f}`).join("\n") + "\n" +
-  SQLITE_DB_FILES.map((f) => `/${f}`).join("\n") + "\n" +
-  "/model-cache/\n";
+  SQLITE_DB_FILES.map((f) => `/${f}`).join("\n") + "\n";
 
 /**
  * Filters a changed-files list for report generation: drops run-metadata

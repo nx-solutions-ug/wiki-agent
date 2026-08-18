@@ -134,16 +134,41 @@ async function updateWiki(projectRoot: string): Promise<string> {
   return summary || "Update complete.";
 }
 
+const embedderCache = new Map<string, Promise<Embedder>>();
+
+/**
+ * Gets or creates a cached Embedder for the given projectRoot.
+ * Caches the Embedder per projectRoot so the model pipeline or Ollama
+ * dimension probe is only initialized once per server instance lifetime.
+ */
+export function getCachedEmbedder(projectRoot: string): Promise<Embedder> {
+  let cached = embedderCache.get(projectRoot);
+  if (!cached) {
+    cached = (async () => {
+      const config = await resolveConfig(projectRoot);
+      return createEmbedder(createEmbeddingConfig(config));
+    })();
+    embedderCache.set(projectRoot, cached);
+  }
+  return cached;
+}
+
+/**
+ * Clears the embedder cache (useful for testing).
+ */
+export function clearEmbedderCache(): void {
+  embedderCache.clear();
+}
+
 /**
  * Rebuilds the embeddings database from all wiki markdown files.
  */
-async function rebuildEmbeddings(projectRoot: string): Promise<string> {
+async function rebuildEmbeddings(projectRoot: string, embedder?: Embedder): Promise<string> {
   const wikiRoot = path.join(projectRoot, ".wiki");
   const dbPath = path.join(wikiRoot, DB_FILENAME);
-  const config = await resolveConfig(projectRoot);
-  const embedder = await createEmbedder(createEmbeddingConfig(config));
+  const activeEmbedder = embedder ?? await getCachedEmbedder(projectRoot);
 
-  const result = await indexWiki(wikiRoot, dbPath, embedder);
+  const result = await indexWiki(wikiRoot, dbPath, activeEmbedder);
   return `Indexed ${result.pagesIndexed} pages, ${result.chunksIndexed} chunks into ${DB_FILENAME}.`;
 }
 
@@ -151,13 +176,12 @@ async function rebuildEmbeddings(projectRoot: string): Promise<string> {
  * Incrementally syncs the embeddings database — detects stale files
  * (added, modified, removed) and re-embeds only what changed.
  */
-async function syncEmbeddingsTool(projectRoot: string): Promise<string> {
+async function syncEmbeddingsTool(projectRoot: string, embedder?: Embedder): Promise<string> {
   const wikiRoot = path.join(projectRoot, ".wiki");
   const dbPath = path.join(wikiRoot, DB_FILENAME);
-  const config = await resolveConfig(projectRoot);
-  const embedder = await createEmbedder(createEmbeddingConfig(config));
+  const activeEmbedder = embedder ?? await getCachedEmbedder(projectRoot);
 
-  const result = await syncEmbeddings(wikiRoot, dbPath, embedder);
+  const result = await syncEmbeddings(wikiRoot, dbPath, activeEmbedder);
 
   if (!result.synced) {
     return `Embeddings are up to date. ${result.totalChunks} chunks in database.`;
@@ -254,8 +278,7 @@ export function createMcpServer(options: McpServerOptions): McpServer {
     },
     async (args) => {
       try {
-        const config = await resolveConfig(projectRoot);
-        const embedder = await createEmbedder(createEmbeddingConfig(config));
+        const embedder = await getCachedEmbedder(projectRoot);
         const k = typeof args.limit === "number" ? args.limit : 5;
         const results = await searchWiki(projectRoot, args.query, k, embedder);
 
@@ -302,7 +325,8 @@ export function createMcpServer(options: McpServerOptions): McpServer {
         // After the agent updates wiki pages, sync embeddings incrementally
         // so search results reflect the new content without a full rebuild.
         try {
-          const syncSummary = await syncEmbeddingsTool(projectRoot);
+          const embedder = await getCachedEmbedder(projectRoot);
+          const syncSummary = await syncEmbeddingsTool(projectRoot, embedder);
           return {
             content: [{ type: "text" as const, text: `${summary}\n\n${syncSummary}` }],
           };
@@ -334,7 +358,8 @@ export function createMcpServer(options: McpServerOptions): McpServer {
     },
     async () => {
       try {
-        const summary = await rebuildEmbeddings(projectRoot);
+        const embedder = await getCachedEmbedder(projectRoot);
+        const summary = await rebuildEmbeddings(projectRoot, embedder);
         return {
           content: [{ type: "text" as const, text: summary }],
         };
@@ -361,7 +386,8 @@ export function createMcpServer(options: McpServerOptions): McpServer {
     },
     async () => {
       try {
-        const summary = await syncEmbeddingsTool(projectRoot);
+        const embedder = await getCachedEmbedder(projectRoot);
+        const summary = await syncEmbeddingsTool(projectRoot, embedder);
         return {
           content: [{ type: "text" as const, text: summary }],
         };
@@ -386,9 +412,18 @@ export async function startMcpStdioServer(projectRoot: string): Promise<void> {
   const server = createMcpServer({ projectRoot });
   const transport = new StdioServerTransport();
   await server.connect(transport);
+
+  const shutdown = async (): Promise<void> => {
+    await server.close();
+    process.exit(0);
+  };
+  process.on("SIGINT", () => { void shutdown(); });
+  process.on("SIGTERM", () => { void shutdown(); });
+
   // Keep the process alive — the transport handles stdin/stdout
-  // The server runs until the client disconnects or stdin closes
+  // The server runs until the client disconnects or stdin closes.
+  await new Promise<void>(() => { /* never resolves */ });
 }
 
 // Re-export for testing and external use
-export { readWikiPage, listWikiPages, searchWiki };
+export { readWikiPage, listWikiPages, searchWiki, rebuildEmbeddings, syncEmbeddingsTool };

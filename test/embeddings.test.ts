@@ -10,6 +10,9 @@ import {
   indexWiki,
   syncEmbeddings,
   detectStaleFiles,
+  defaultModelCacheDir,
+  LocalEmbedder,
+  OllamaEmbedder,
   type Embedder,
 } from "../src/embeddings.js";
 
@@ -357,5 +360,48 @@ describe("syncEmbeddings", () => {
     expect(meta.has("page1.md")).toBe(true);
     expect(meta.has("page2.md")).toBe(true);
     store.close();
+  });
+});
+
+describe("defaultModelCacheDir", () => {
+  test("returns user-level cache directory ending with .wiki/model-cache", () => {
+    const dir = defaultModelCacheDir();
+    expect(dir).toContain(path.join(".wiki", "model-cache"));
+  });
+});
+
+describe("LocalEmbedder", () => {
+  const originalCache = process.env.TRANSFORMERS_CACHE;
+
+  afterEach(() => {
+    if (originalCache !== undefined) {
+      process.env.TRANSFORMERS_CACHE = originalCache;
+    } else {
+      delete process.env.TRANSFORMERS_CACHE;
+    }
+  });
+
+  test("returns dimension 384", () => {
+    const embedder = new LocalEmbedder();
+    expect(embedder.dimension()).toBe(384);
+  });
+
+  test("preserves existing TRANSFORMERS_CACHE if set", () => {
+    process.env.TRANSFORMERS_CACHE = "/custom/cache/dir";
+    new LocalEmbedder();
+    expect(process.env.TRANSFORMERS_CACHE).toBe("/custom/cache/dir");
+  });
+
+  test("sets TRANSFORMERS_CACHE to defaultModelCacheDir if unset", () => {
+    delete process.env.TRANSFORMERS_CACHE;
+    new LocalEmbedder();
+    expect(process.env.TRANSFORMERS_CACHE).toBe(defaultModelCacheDir());
+  });
+});
+
+describe("OllamaEmbedder", () => {
+  test("returns fixed dimension provided to constructor", () => {
+    const embedder = new OllamaEmbedder("nomic-embed-text", "http://localhost:11434", 768);
+    expect(embedder.dimension()).toBe(768);
   });
 });
