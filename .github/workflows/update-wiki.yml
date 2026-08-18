@@ -47,8 +47,9 @@ jobs:
       - name: Run Wiki Agent
         run: wiki --update --print --verbose --wiki
         env:
-          WIKI_OLLAMA_MODE: cloud
-          WIKI_OLLAMA_API_KEY: ${{ secrets.WIKI_OLLAMA_API_KEY }}
+          WIKI_PROVIDER_MODE: ${{ vars.WIKI_PROVIDER_MODE || 'cloud' }}
+          WIKI_PROVIDER_API_KEY: ${{ secrets.WIKI_PROVIDER_API_KEY || secrets.WIKI_OLLAMA_API_KEY }}
+          WIKI_PROVIDER_BASE_URL: ${{ vars.WIKI_PROVIDER_BASE_URL }}
           WIKI_MODEL: ${{ vars.WIKI_MODEL || 'kimi-k2.7-code' }}
           GH_TOKEN: ${{ steps.token.outputs.token || secrets.GITHUB_TOKEN }}
 

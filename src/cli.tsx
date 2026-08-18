@@ -164,9 +164,33 @@ async function main() {
   }
 }
 
-if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+/**
+ * Determines whether the current module is the CLI entrypoint.
+ * Compares the resolved argv[1] against import.meta.url, with a basename
+ * fallback for symlinks, bunx wrappers, and package manager aliases.
+ */
+export function isMainModule(
+  argvEntry: string | undefined = process.argv[1],
+  importMetaUrl: string = import.meta.url,
+): boolean {
+  if (!argvEntry) return false;
+  try {
+    // Exact path match (handles direct node/bun invocations)
+    if (path.resolve(argvEntry) === fileURLToPath(importMetaUrl)) return true;
+  } catch {
+    // ignore
+  }
+  // Fallback: match by filename — handles global installs via symlinks,
+  // bunx wrappers, and package managers that alias the binary path.
+  const base = path.basename(argvEntry);
+  return base === "cli.js" || base === "cli.tsx" || base === "wiki" || base === "wiki-agent";
+}
+
+if (isMainModule()) {
   main().catch((error) => {
     console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
   });
 }
+
+
