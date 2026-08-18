@@ -168,11 +168,16 @@ async function main() {
 // Compares the resolved main module path against this file's URL.
 const isMainEntry = (() => {
   if (!process.argv[1]) return false;
+  const entry = process.argv[1];
   try {
-    return path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+    // Exact path match (handles direct node invocations)
+    if (path.resolve(entry) === fileURLToPath(import.meta.url)) return true;
   } catch {
-    return false;
+    // ignore
   }
+  // Fallback: match by filename — handles global installs via symlinks,
+  // bunx wrappers, and package managers that alias the binary path.
+  return entry.endsWith("cli.js") || entry.endsWith("cli.tsx");
 })();
 
 if (isMainEntry) {
