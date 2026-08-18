@@ -34,7 +34,7 @@ This runs the `prebuild` cleanup (`rm -rf dist`) and then `tsc -p tsconfig.json`
 bun run test
 ```
 
-Runs `vitest run` against the test files in `test/`. There are ten Vitest test files:
+Runs `vitest run` against the test files in `test/`. There are fifteen Vitest test files:
 
 - `config.test.ts` — global/project config I/O, `loadGlobalConfig` fallback on invalid JSON, and `resolveConfig` precedence.
 - `tools.test.ts` — path-safety checks, file read/write/edit, `read_file` streaming behavior, tool definition shape, `git` and `gh` subcommand allowlists, metacharacter guard, `grep`/`glob` command-injection prevention, wildcard restoration, directory exclusions (`node_modules`, `.git`, `dist`, `.wiki`), `ast_grep`/`ast_search` structural matching, `parseArgsStringToArgv`, and reasoning-tag stripping (the four `think`/`thinking`/`reasoning`/`reflection` tag pairs) in `write_file`/`edit_file`.
@@ -51,9 +51,9 @@ Runs `vitest run` against the test files in `test/`. There are ten Vitest test f
 - `flatten-wiki.test.ts` — filename conversion, link rewriting, frontmatter stripping, sidebar generation, and metadata exclusions.
 - `version.test.ts` — `VERSION` matches `package.json` and is not a stale placeholder.
 - `stream-log.test.ts` — drives `.omp/stream-log.py` as a subprocess and guards the regressions from issue #76: non-dict `args`, null/non-string `text` content, and malformed JSON lines do not crash the OMP pipeline.
+- `workflow.test.ts` — generated `.github/workflows/update-wiki.yml` contents and `--wiki` flag wiring.
 
 In addition, `test/benchmarks/benchmark.ts` is a micro-benchmark for loading `AGENTS.md`/`CLAUDE.md`; it is not part of `npm test`.
-- `workflow.test.ts` — generated `.github/workflows/update-wiki.yml` contents and `--wiki` flag wiring.
 
 The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.HOME` so the global config path can be redirected.
 
