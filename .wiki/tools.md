@@ -7,9 +7,11 @@ tags: [tools, filesystem, sandbox]
 
 # Tools
 
-The agent in `src/agent.ts` does not speak to the filesystem directly. It receives a list of tool definitions built by `createTools(projectRoot)` in `src/tools.ts` and forwards them as the `tools` field of every Ollama `chat` request. The model returns `tool_calls`, the runtime normalizes the arguments (`normalizeToolCallArgs`) and dispatches them through `executeTool`.
+The agent in `src/agent.ts` does not speak to the filesystem directly. It receives a list of tool definitions built by `createTools(projectRoot)` in `src/tools.ts` and forwards them as the `tools` field of every chat request. The model returns `tool_calls` and `executeTool` dispatches them by name. Tool instances are cached per `projectRoot` (`toolsCache`) so repeated calls in the same run reuse the same handlers.
 
 All tools are local to the runtime; no network calls are made by the tools themselves. The agent loop in `src/agent.ts` tracks successful `write_file` and `edit_file` calls, records the tool result as a per-file change description, and feeds them to `generateUpdateReport` for the PR body. The same loop also writes `.wiki/.last-update-title.txt` with a generated title for the staging PR.
+
+`write_file` and `edit_file` strip reasoning/thinking tags (`\u003cthink\u003e`, `\u003cthinking\u003e`, `\u003creasoning\u003e`, `\u003creflection\u003e` and their closing counterparts) before persisting content, so model-internal deliberation never reaches the wiki files or staging PR body.
 
 ## Tool catalog
 

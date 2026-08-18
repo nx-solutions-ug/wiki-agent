@@ -7,18 +7,20 @@ tags: [architecture, agent, ollama]
 
 # Architecture Overview
 
-Wiki Agent is a small, single-purpose Node.js application. The runtime model is "an LLM with a constrained tool belt that writes markdown into `.wiki/`." There is no LangChain, no vector store, no long-lived memory — just a manual tool-calling loop against the configured provider's chat API (Ollama or OpenAI-compatible).
+Wiki Agent is a small, single-purpose Node.js application. The runtime model is "an LLM with a constrained tool belt that writes markdown into `.wiki/`." There is no LangChain dependency. A local SQLite vector store (`sqlite-vec`) is used only for optional MCP semantic search, not by the core agent loop.
 
 ## Top-level layout
 
 The compiled entrypoint is `dist/cli.js` (declared as the `wiki` binary in `package.json`). A second binary, `wiki-flatten` (`dist/flatten-wiki.js`), is produced for GitHub Wiki publishing. Source lives under `src/`:
 
-- `cli.tsx` — argument parsing, TUI vs. headless dispatch
+- `cli.tsx` — argument parsing, TUI vs. headless dispatch, `--mcp stdio` server launch
 - `agent.ts` — the agent loop, tool calling, event stream, workflow/report generation
-- `config.ts` — global/project config, provider client factory (`createLLMClient`)
+- `config.ts` — global/project config, provider client factory (`createLLMClient`), embedding config helper (`createEmbeddingConfig`)
 - `llm.ts` — provider adapter interface plus `OpenAIAdapter` and `OllamaAdapter`
 - `prompt.ts` — system prompt, user message templates, help text; reads `AGENTS.md`/`CLAUDE.md` with `Promise.allSettled`
 - `tools.ts` — file and discovery tools exposed to the model
+- `embeddings.ts` — local and Ollama embedders, `VectorStore` backed by `better-sqlite3`/`sqlite-vec`, incremental sync helpers
+- `mcp-server.ts` — MCP stdio server exposing wiki read/search/update/rebuild tools
 - `index-middleware.ts` — post-run regeneration of `index.md`
 - `flatten-wiki.ts` — converts nested `.wiki/` to flat GitHub Wiki format before publish
 - `version.ts` — reads `package.json` version for `--version` and the TUI banner
@@ -79,7 +81,16 @@ See [Terminal UI](../tui.md) for the complete wizard and key bindings.
 
 Entries are processed concurrently in bounded chunks (`CHUNK_SIZE = 16`) within each directory. The cap is per level: every recursive `synchronizeDirectory` call manages its own chunk, so total live concurrency scales with directory depth. Mutating the shared `files`/`directories` arrays from concurrent callbacks is safe because JavaScript runs each callback's synchronous segments to completion, and `renderLinks` sorts by `href` before emitting, making the final output order-independent. Invalid frontmatter does not silently drop the file; the parse error propagates up and aborts the sync, matching the original sequential behavior.
 
-This step is invoked once at the end of `runAgent` — it does not run on every tool call.
+This step is invoked once at the end of `runAgent` — it does not run on every tool call. The MCP `update_wiki` tool runs the same `runAgent` path and therefore also regenerates indexes and updates run metadata.
+
+## Run metadata and gitignore hygiene
+
+`runAgent` rewrites `.wiki/.gitignore` on every run to keep transient files out of git:
+
+- Run metadata: `.last-updated.json`, `.last-update-report.md`, `.last-update-title.txt`
+- SQLite embeddings database: `wiki.db`, `wiki.db-journal`, `wiki.db-wal`, `wiki.db-shm`
+
+`untrackRunMetadataFiles` additionally runs `git rm --cached` on any of these files that were already tracked in legacy repos, so they do not pollute future staging PRs.
 
 ## GitHub Wiki publish conversion
 
@@ -92,8 +103,24 @@ The agent keeps its nested `.wiki/` directory structure, but GitHub Wikis requir
 - Internal links are rewritten from relative `.md` paths to flat wiki page names, e.g. `[Text](./cli/usage.md)` → `[Text](CLI-Usage)`.
 - `_Sidebar.md` is generated automatically from the page structure.
 - Metadata files (`.last-update-report.md`, `.last-updated.json`, `.last-update-title.txt`, `config.json`, `_plan.md`) are excluded from the flatten.
+- SQLite embeddings files (`wiki.db`, `wiki.db-journal`, `wiki.db-wal`, `wiki.db-shm`) are excluded.
 
 This step is invoked by `.github/workflows/update-wiki.yml` (when `--wiki` was passed to `--init`) immediately before the wiki repo is cloned and rsynced. See [GitHub Actions](../automation/github-actions.md).
+
+## MCP server
+
+`src/mcp-server.ts` implements a Model Context Protocol server. `wiki --mcp stdio` dynamically imports it from `cli.tsx` so the heavy dependencies (`better-sqlite3`, `sqlite-vec`, `@huggingface/transformers`) are only loaded when MCP mode is used.
+
+Registered tools:
+
+- `read_wiki_page` — read raw markdown by relative path (`.md` optional), with `.wiki/` path sandboxing.
+- `list_wiki_pages` — collect and sort all markdown files under `.wiki/`.
+- `search_wiki` — cosine-distance semantic search over chunk embeddings; auto-calls `syncEmbeddings` first so results reflect the current wiki state.
+- `update_wiki` — runs `runAgent` in headless mode and returns the run summary.
+- `rebuild_embeddings` — drop and recreate `.wiki/wiki.db` from all pages.
+- `sync_embeddings` — incremental sync that only re-embeds added/modified/removed pages.
+
+The embedder is cached per `projectRoot` (`getCachedEmbedder`) so the Transformers.js pipeline or Ollama dimension probe runs only once per server lifetime. The vector store is `VectorStore` in `src/embeddings.ts` (`better-sqlite3` + `sqlite-vec`) with a `page_meta` table tracking per-page `mtime`, chunk count, and title for incremental sync.
 
 ## Build and test
 

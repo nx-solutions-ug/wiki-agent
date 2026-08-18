@@ -44,6 +44,9 @@ Runs `vitest run` against the test files in `test/`. There are ten Vitest test f
 - `prompt.test.ts` — system prompt, user message templates, and help text contents.
 - `report.test.ts` — `generateUpdateReport`: no-op reports, created/edited listings, per-file description blockquotes, truncation, whitespace collapse, and summary counts.
 - `flatten-wiki.test.ts` — filename conversion, link rewriting, frontmatter stripping, sidebar generation, and metadata exclusions.
+- `embeddings.test.ts` — `VectorStore` operations, local and Ollama embedders, incremental `syncEmbeddings`, and stale-file detection.
+- `embedding-config.test.ts` — embedding configuration resolution via `createEmbeddingConfig` and `resolveConfig`.
+- `mcp-server.test.ts` — MCP tool handlers, embedder caching, and search/update wiring.
 - `version.test.ts` — `VERSION` matches `package.json` and is not a stale placeholder.
 - `stream-log.test.ts` — drives `.omp/stream-log.py` as a subprocess and guards the regressions from issue #76: non-dict `args`, null/non-string `text` content, and malformed JSON lines do not crash the OMP pipeline.
 
@@ -63,12 +66,14 @@ Produces `wiki-agent-1.16.0.tgz`. The tarball includes `dist/`, `README.md`, and
 
 ```
 src/
-  cli.tsx              CLI entrypoint, arg parsing, TUI vs. headless
+  cli.tsx              CLI entrypoint, arg parsing, TUI vs. headless, MCP dispatch
   agent.ts             LLM tool-calling loop, workflow/report generation
-  config.ts            Global/project config, provider client factory
+  config.ts            Global/project config, provider client factory, embedding config helper
   llm.ts               Provider adapter interface plus OpenAIAdapter and OllamaAdapter
   prompt.ts            System prompt, user message, help text; reads AGENTS.md/CLAUDE.md with Promise.allSettled
   tools.ts             read_file, write_file, edit_file, ls, grep, glob, git, ast_grep, ast_search, gh
+  embeddings.ts        Local and Ollama embedders, sqlite-vec vector store, incremental sync
+  mcp-server.ts        MCP stdio server exposing wiki tools and semantic search
   index-middleware.ts  Post-run index.md regeneration
   flatten-wiki.ts      Convert nested .wiki/ to flat GitHub Wiki format before publish
   version.ts           Reads package.json version for CLI --version and TUI banner
@@ -118,6 +123,7 @@ Vouched users are tracked in `.github/VOUCHED.td`. Bots and collaborators with w
 - **OMP workflows**: the `.github/workflows/omp*.yml` files and `.omp/` directory live in this repo's source but are unrelated to the `wiki-agent` package; they automate the project's own issue/PR management via OMP.
 - **OMP review flow mismatch**: `omp-ci.yml` computes a `review-type` prefix (`dep:`, `bot:`, or empty) from the PR author, but the output step is not used in the actual OMP invocation; the review type is determined by `review-pr.md` from the PR author instead.
 - **Staleness check is in system prompt only**: the update-mode staging PR staleness check is documented in the system prompt and implemented by the running agent; there is no dedicated source function for it.
+- **README MCP tool count**: the README currently says the MCP server exposes five tools, but the implementation has six (`read_wiki_page`, `list_wiki_pages`, `search_wiki`, `update_wiki`, `rebuild_embeddings`, `sync_embeddings`). This wiki documents the six-tool set as the canonical catalog.
 
 ## Release checklist
 

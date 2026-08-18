@@ -6,4 +6,4 @@ description: "Files and subdirectories in Cli."
 
 # Files
 
-- [CLI Usage](usage.md) - Commands, flags, environment variables, and the headless / TUI dispatch of the wiki binary.
+- [CLI Usage](usage.md) - Commands, flags, environment variables, MCP server, and the headless / TUI dispatch of the wiki binary.

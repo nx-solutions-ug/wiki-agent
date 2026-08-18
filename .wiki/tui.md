@@ -1,7 +1,7 @@
 ---
 type: Reference
 title: Terminal UI
-description: The Ink-based interactive terminal UI — credentials wizard, run view, and event rendering.
+description: The Ink-based interactive terminal UI — credentials wizard, embedding setup, run view, and event rendering.
 tags: [tui, ink, react, interactive, providers]
 ---
 
@@ -20,13 +20,27 @@ A `useInput` hook listens for `q` or `Ctrl+C` at the top level and calls `useApp
 
 ## Credentials setup: `CredentialsSetup.tsx`
 
-A five-step state machine:
+A seven-step state machine:
 
 1. `mode-select` — the user picks `1` for Ollama Local, `2` for Ollama Cloud, or `3` for OpenAI-compatible API. The TUI does not accept Enter here; key presses drive transitions.
 2. `api-key` — only reached from cloud or openai mode. Uses `ink-text-input` to read the key, validates that it is non-empty on submit.
 3. `base-url` — lets the user customize the provider base URL; press Enter to keep the mode default (`http://localhost:11434`, `https://ollama.com`, or `https://api.openai.com/v1`).
-4. `model` — defaults to `kimi-k2.7-code` and uses the same text input. The prompt text matches this default.
-5. `saving` — calls `saveGlobalConfig` with the assembled `GlobalConfig` (including `baseUrl` only when it differs from the mode default), then calls the parent `onConfigSaved` callback with a synthesized `ResolvedConfig` so the run view can start without re-reading the disk.
+4. `embedding-select` — choose the embedding backend for MCP semantic search: `1` for local Transformers.js (`all-MiniLM-L6-v2`) or `2` for Ollama embeddings.
+5. `embedding-model` — only for Ollama embeddings. Defaults to `nomic-embed-text`.
+6. `embedding-host` — only for Ollama embeddings. Defaults to the provider base URL.
+7. `model` — defaults to `kimi-k2.7-code` and uses the same text input. The prompt text matches this default.
+
+| Step | Key / input | Next step |
+|------|-------------|-----------|
+| `mode-select` | `1` / `2` / `3` | `base-url` (local) or `api-key` (cloud/openai) |
+| `api-key` | Enter after non-empty key | `base-url` |
+| `base-url` | Enter to keep default | `embedding-select` |
+| `embedding-select` | `1` / `2` | `model` (local) or `embedding-model` (ollama) |
+| `embedding-model` | Enter to keep default | `embedding-host` |
+| `embedding-host` | Enter to keep default | `model` |
+| `model` | Enter to keep default | `saving` |
+
+After the final step the wizard calls `saveGlobalConfig` with the assembled `GlobalConfig` (including `baseUrl` only when it differs from the mode default, and `embeddingHost` only when it differs from the mode default), then calls the parent `onConfigSaved` callback with a synthesized `ResolvedConfig` so the run view can start without re-reading the disk.
 
 Errors from `saveGlobalConfig` are caught and rendered in red; the wizard drops back to `mode-select` on failure.
 
@@ -56,4 +70,4 @@ While the agent is running the footer shows `⏳ Working...`; on completion it s
 | `1` / `2` / `3` | Pick provider mode (credentials wizard only) |
 | `Enter` | Submit the current text input (credentials wizard only) |
 
-There are no other interactive controls. Cancellation mid-run is not implemented; the agent loop either completes or fails on its own.
+`1` / `2` also select the embedding provider during the `embedding-select` step. There are no other interactive controls. Cancellation mid-run is not implemented; the agent loop either completes or fails on its own.
