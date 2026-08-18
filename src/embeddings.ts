@@ -194,6 +194,15 @@ export class VectorStore {
         embedding BLOB NOT NULL
       );
       CREATE INDEX IF NOT EXISTS idx_wiki_pages_path ON wiki_pages(path);
+
+      -- Tracks the file mtime and chunk count per indexed page so we can
+      -- detect stale entries and incrementally sync without a full rebuild.
+      CREATE TABLE IF NOT EXISTS page_meta (
+        path        TEXT PRIMARY KEY,
+        mtime       INTEGER NOT NULL,
+        chunk_count INTEGER NOT NULL,
+        title       TEXT NOT NULL DEFAULT ''
+      );
     `);
   }
 
@@ -202,8 +211,38 @@ export class VectorStore {
    */
   clearPage(pagePath: string): void {
     this.db.prepare("DELETE FROM wiki_pages WHERE path = ?").run(pagePath);
+    this.db.prepare("DELETE FROM page_meta WHERE path = ?").run(pagePath);
   }
 
+
+  /**
+   * Stores or updates metadata for a page (mtime, chunk count, title).
+   * Called after inserting all chunks for a page.
+   */
+  upsertPageMeta(pagePath: string, mtime: number, chunkCount: number, title: string): void {
+    this.db.prepare(`
+      INSERT INTO page_meta (path, mtime, chunk_count, title)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(path) DO UPDATE SET mtime = excluded.mtime, chunk_count = excluded.chunk_count, title = excluded.title
+    `).run(pagePath, mtime, chunkCount, title);
+  }
+
+  /**
+   * Removes metadata for a page. Called when a page is deleted or cleared.
+   */
+  deletePageMeta(pagePath: string): void {
+    this.db.prepare("DELETE FROM page_meta WHERE path = ?").run(pagePath);
+  }
+
+  /**
+   * Returns metadata for all indexed pages, keyed by path.
+   */
+  allPageMeta(): Map<string, { mtime: number; chunkCount: number; title: string }> {
+    const rows = this.db.prepare("SELECT path, mtime, chunk_count, title FROM page_meta").all() as {
+      path: string; mtime: number; chunk_count: number; title: string;
+    }[];
+    return new Map(rows.map(r => [r.path, { mtime: r.mtime, chunkCount: r.chunk_count, title: r.title }]));
+  }
   /**
    * Inserts a chunk with its embedding.
    */
@@ -400,6 +439,7 @@ export async function indexWiki(
       const content = await readFile(filePath, "utf8");
       const title = extractTitle(content);
       const chunks = chunkMarkdown(content);
+      const fileStat = await stat(filePath);
 
       store.clearPage(relativePath);
 
@@ -408,6 +448,8 @@ export async function indexWiki(
         store.insertChunk(relativePath, title, chunk, embedding);
         chunksIndexed++;
       }
+
+      store.upsertPageMeta(relativePath, Math.floor(fileStat.mtimeMs), chunks.length, title);
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       console.error(`[embeddings] Skipping ${relativePath}: ${msg}`);
@@ -435,5 +477,179 @@ export async function openVectorStore(dbPath: string, dimension: number): Promis
     return new VectorStore(dbPath, dimension);
   } catch {
     return null;
+  }
+}
+
+/**
+ * Result of a sync operation.
+ */
+export interface SyncResult {
+  added: string[];
+  updated: string[];
+  removed: string[];
+  pagesSynced: number;
+  totalChunks: number;
+  synced: boolean;
+}
+
+/**
+ * Compares the on-disk wiki files against the page_meta table in the vector
+ * store to determine which pages are stale (added, modified, or removed).
+ *
+ * Returns null if the database doesn't exist (caller should do a full rebuild).
+ */
+export async function detectStaleFiles(
+  wikiRoot: string,
+  dbPath: string,
+  dimension: number,
+): Promise<{ added: string[]; updated: string[]; removed: string[] } | null> {
+  const store = await openVectorStore(dbPath, dimension);
+  if (!store) {
+    return null;
+  }
+
+  try {
+    const metaMap = store.allPageMeta();
+
+    const allFiles = await collectMarkdownFiles(wikiRoot);
+    const mdFiles = allFiles.filter(f => {
+      const base = path.basename(f);
+      return base !== "index.md" && base !== "_plan.md";
+    });
+
+    const currentPaths = new Set<string>();
+    const added: string[] = [];
+    const updated: string[] = [];
+
+    for (const filePath of mdFiles) {
+      const relativePath = path.relative(wikiRoot, filePath);
+      currentPaths.add(relativePath);
+
+      const fileStat = await stat(filePath);
+      const mtime = Math.floor(fileStat.mtimeMs);
+      const existing = metaMap.get(relativePath);
+
+      if (!existing) {
+        added.push(relativePath);
+      } else if (mtime > existing.mtime) {
+        updated.push(relativePath);
+      }
+    }
+
+    const removed: string[] = [];
+    for (const dbPagePath of metaMap.keys()) {
+      if (!currentPaths.has(dbPagePath)) {
+        removed.push(dbPagePath);
+      }
+    }
+
+    return { added, updated, removed };
+  } finally {
+    store.close();
+  }
+}
+
+/**
+ * Incrementally syncs the embeddings database with on-disk wiki files.
+ *
+ * - Re-embeds added and modified pages
+ * - Removes deleted pages from the DB
+ * - Leaves unchanged pages alone
+ *
+ * If the database doesn't exist yet, falls back to a full indexWiki.
+ */
+export async function syncEmbeddings(
+  wikiRoot: string,
+  dbPath: string,
+  embedder: Embedder,
+): Promise<SyncResult> {
+  // If no DB exists, do a full rebuild
+  const existing = await openVectorStore(dbPath, embedder.dimension());
+  if (!existing) {
+    const result = await indexWiki(wikiRoot, dbPath, embedder);
+    return {
+      added: [],
+      updated: [],
+      removed: [],
+      pagesSynced: result.pagesIndexed,
+      totalChunks: result.chunksIndexed,
+      synced: true,
+    };
+  }
+  existing.close();
+
+  const stale = await detectStaleFiles(wikiRoot, dbPath, embedder.dimension());
+  if (!stale) {
+    const result = await indexWiki(wikiRoot, dbPath, embedder);
+    return {
+      added: [],
+      updated: [],
+      removed: [],
+      pagesSynced: result.pagesIndexed,
+      totalChunks: result.chunksIndexed,
+      synced: true,
+    };
+  }
+
+  const { added, updated, removed } = stale;
+
+  if (added.length === 0 && updated.length === 0 && removed.length === 0) {
+    const store = await openVectorStore(dbPath, embedder.dimension());
+    const totalChunks = store ? store.count() : 0;
+    if (store) store.close();
+    return { added, updated, removed, pagesSynced: 0, totalChunks, synced: false };
+  }
+
+  const store = await openVectorStore(dbPath, embedder.dimension());
+  if (!store) {
+    const result = await indexWiki(wikiRoot, dbPath, embedder);
+    return {
+      added: [],
+      updated: [],
+      removed: [],
+      pagesSynced: result.pagesIndexed,
+      totalChunks: result.chunksIndexed,
+      synced: true,
+    };
+  }
+
+  try {
+    for (const pagePath of removed) {
+      store.clearPage(pagePath);
+    }
+
+    const changedPaths = [...added, ...updated];
+    for (const relativePath of changedPaths) {
+      const filePath = path.join(wikiRoot, relativePath);
+      try {
+        const content = await readFile(filePath, "utf8");
+        const title = extractTitle(content);
+        const chunks = chunkMarkdown(content);
+        const fileStat = await stat(filePath);
+
+        store.clearPage(relativePath);
+
+        for (const chunk of chunks) {
+          const embedding = await embedder.embed(chunk);
+          store.insertChunk(relativePath, title, chunk, embedding);
+        }
+
+        store.upsertPageMeta(relativePath, Math.floor(fileStat.mtimeMs), chunks.length, title);
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        console.error(`[embeddings] Skipping ${relativePath}: ${msg}`);
+      }
+    }
+
+    return {
+      added,
+      updated,
+      removed,
+      pagesSynced: changedPaths.length,
+      totalChunks: store.count(),
+      synced: true,
+    };
+  } finally {
+    store.close();
   }
 }

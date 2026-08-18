@@ -5,9 +5,10 @@
  * Tools exposed:
  *  1. read_wiki_page  — read a wiki page by relative path
  *  2. list_wiki_pages — list all wiki pages
- *  3. search_wiki     — semantic search over wiki content using embeddings
+ *  3. search_wiki     — semantic search over wiki content using embeddings (auto-syncs stale files)
  *  4. update_wiki     — trigger a wiki-agent update run (like `wiki --update`)
- *  5. rebuild_embeddings — rebuild the embeddings database from wiki content
+ *  5. rebuild_embeddings — full rebuild of the embeddings database from wiki content
+ *  6. sync_embeddings    — incrementally sync embeddings (only re-embeds changed pages)
  *
  * The server is streamable: `wiki --mcp stdio` starts it on stdin/stdout.
  */
@@ -24,6 +25,7 @@ import {
   indexWiki,
   openVectorStore,
   collectMarkdownFiles,
+  syncEmbeddings,
   type Embedder,
   type SearchResult,
 } from "./embeddings.js";
@@ -68,8 +70,8 @@ async function listWikiPages(projectRoot: string): Promise<string[]> {
 
 /**
  * Performs semantic search over the wiki using the embeddings database.
- * If the database doesn't exist yet, returns an error message directing the
- * user to run rebuild_embeddings first.
+ * Automatically syncs stale files (added, modified, removed) before searching
+ * so results always reflect the current state of the wiki on disk.
  */
 async function searchWiki(
   projectRoot: string,
@@ -77,9 +79,20 @@ async function searchWiki(
   k: number,
   embedder: Embedder,
 ): Promise<SearchResult[]> {
-  const dbPath = path.join(projectRoot, ".wiki", DB_FILENAME);
-  const store = await openVectorStore(dbPath, embedder.dimension());
+  const wikiRoot = path.join(projectRoot, ".wiki");
+  const dbPath = path.join(wikiRoot, DB_FILENAME);
 
+  // Auto-sync: detect and re-embed stale files before searching
+  const syncResult = await syncEmbeddings(wikiRoot, dbPath, embedder);
+  if (syncResult.synced && (syncResult.added.length > 0 || syncResult.updated.length > 0 || syncResult.removed.length > 0)) {
+    const parts: string[] = [];
+    if (syncResult.added.length > 0) parts.push(`${syncResult.added.length} added`);
+    if (syncResult.updated.length > 0) parts.push(`${syncResult.updated.length} updated`);
+    if (syncResult.removed.length > 0) parts.push(`${syncResult.removed.length} removed`);
+    console.error(`[mcp] Embeddings auto-synced: ${parts.join(", ")}`);
+  }
+
+  const store = await openVectorStore(dbPath, embedder.dimension());
   if (!store) {
     throw new Error(
       "Embeddings database not found. Call the rebuild_embeddings tool first to build it.",
@@ -132,6 +145,30 @@ async function rebuildEmbeddings(projectRoot: string): Promise<string> {
 
   const result = await indexWiki(wikiRoot, dbPath, embedder);
   return `Indexed ${result.pagesIndexed} pages, ${result.chunksIndexed} chunks into ${DB_FILENAME}.`;
+}
+
+/**
+ * Incrementally syncs the embeddings database — detects stale files
+ * (added, modified, removed) and re-embeds only what changed.
+ */
+async function syncEmbeddingsTool(projectRoot: string): Promise<string> {
+  const wikiRoot = path.join(projectRoot, ".wiki");
+  const dbPath = path.join(wikiRoot, DB_FILENAME);
+  const config = await resolveConfig(projectRoot);
+  const embedder = await createEmbedder(createEmbeddingConfig(config));
+
+  const result = await syncEmbeddings(wikiRoot, dbPath, embedder);
+
+  if (!result.synced) {
+    return `Embeddings are up to date. ${result.totalChunks} chunks in database.`;
+  }
+
+  const parts: string[] = [];
+  if (result.added.length > 0) parts.push(`Added: ${result.added.length} (${result.added.join(", ")})`);
+  if (result.updated.length > 0) parts.push(`Updated: ${result.updated.length} (${result.updated.join(", ")})`);
+  if (result.removed.length > 0) parts.push(`Removed: ${result.removed.length} (${result.removed.join(", ")})`);
+
+  return `Synced embeddings: ${parts.join("; ")}. ${result.totalChunks} chunks in database.`;
 }
 
 export interface McpServerOptions {
@@ -255,15 +292,26 @@ export function createMcpServer(options: McpServerOptions): McpServer {
       description:
         "Trigger a wiki-agent update run — inspects recent source changes and refreshes " +
         "wiki documentation pages. Equivalent to running 'wiki --update'. " +
-        "Returns a summary of what changed.",
+        "Returns a summary of what changed. After the update, embeddings are " +
+        "automatically synced to reflect the new wiki content.",
       inputSchema: {},
     },
     async () => {
       try {
         const summary = await updateWiki(projectRoot);
-        return {
-          content: [{ type: "text" as const, text: summary }],
-        };
+        // After the agent updates wiki pages, sync embeddings incrementally
+        // so search results reflect the new content without a full rebuild.
+        try {
+          const syncSummary = await syncEmbeddingsTool(projectRoot);
+          return {
+            content: [{ type: "text" as const, text: `${summary}\n\n${syncSummary}` }],
+          };
+        } catch {
+          // Sync is best-effort — the wiki update itself succeeded
+          return {
+            content: [{ type: "text" as const, text: summary }],
+          };
+        }
       } catch (error) {
         const msg = error instanceof Error ? error.message : String(error);
         return {
@@ -281,12 +329,39 @@ export function createMcpServer(options: McpServerOptions): McpServer {
       description:
         "Rebuild the embeddings database (.wiki/wiki.db) from all wiki markdown files. " +
         "This is a full rebuild — existing embeddings are replaced. " +
-        "Use this after wiki pages are updated to keep semantic search current.",
+        "Use sync_embeddings instead for incremental updates (only re-embeds changed pages).",
       inputSchema: {},
     },
     async () => {
       try {
         const summary = await rebuildEmbeddings(projectRoot);
+        return {
+          content: [{ type: "text" as const, text: summary }],
+        };
+      } catch (error) {
+        const msg = error instanceof Error ? error.message : String(error);
+        return {
+          content: [{ type: "text" as const, text: `Error: ${msg}` }],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  // Tool: sync_embeddings
+  server.registerTool(
+    "sync_embeddings",
+    {
+      description:
+        "Incrementally sync the embeddings database with on-disk wiki files. " +
+        "Detects which pages were added, modified, or removed since the last index " +
+        "and re-embeds only what changed. This is faster than rebuild_embeddings for " +
+        "small updates. The search_wiki tool also calls this automatically before searching.",
+      inputSchema: {},
+    },
+    async () => {
+      try {
+        const summary = await syncEmbeddingsTool(projectRoot);
         return {
           content: [{ type: "text" as const, text: summary }],
         };

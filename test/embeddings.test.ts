@@ -7,6 +7,9 @@ import {
   extractTitle,
   collectMarkdownFiles,
   VectorStore,
+  indexWiki,
+  syncEmbeddings,
+  detectStaleFiles,
   type Embedder,
 } from "../src/embeddings.js";
 
@@ -170,7 +173,189 @@ describe("VectorStore", () => {
 
     const paths = store.pagePaths();
     expect(paths).toEqual(["page1.md", "page2.md"]);
+  });
+});
 
+describe("detectStaleFiles", () => {
+  let tempBase: string;
+  let wikiRoot: string;
+  let dbPath: string;
+  const embedder = new MockEmbedder(16);
+
+  beforeEach(async () => {
+    tempBase = await tempDir();
+    wikiRoot = path.join(tempBase, "wiki");
+    await mkdir(wikiRoot, { recursive: true });
+    dbPath = path.join(tempBase, "wiki.db");
+  });
+
+  afterEach(async () => {
+    await rm(tempBase, { recursive: true, force: true });
+  });
+
+  test("returns null when no DB exists", async () => {
+    await writeFile(path.join(wikiRoot, "page1.md"), "# Page 1");
+    const result = await detectStaleFiles(wikiRoot, dbPath, embedder.dimension());
+    expect(result).toBeNull();
+  });
+
+  test("detects no changes when files are up to date", async () => {
+    await writeFile(path.join(wikiRoot, "page1.md"), "# Page 1");
+    await indexWiki(wikiRoot, dbPath, embedder);
+
+    const result = await detectStaleFiles(wikiRoot, dbPath, embedder.dimension());
+    expect(result).not.toBeNull();
+    expect(result!.added).toEqual([]);
+    expect(result!.updated).toEqual([]);
+    expect(result!.removed).toEqual([]);
+  });
+
+  test("detects added files", async () => {
+    await writeFile(path.join(wikiRoot, "page1.md"), "# Page 1");
+    await indexWiki(wikiRoot, dbPath, embedder);
+
+    // Add a new file after indexing
+    await writeFile(path.join(wikiRoot, "page2.md"), "# Page 2");
+
+    const result = await detectStaleFiles(wikiRoot, dbPath, embedder.dimension());
+    expect(result!.added).toEqual(["page2.md"]);
+    expect(result!.updated).toEqual([]);
+    expect(result!.removed).toEqual([]);
+  });
+
+  test("detects updated files", async () => {
+    await writeFile(path.join(wikiRoot, "page1.md"), "# Page 1");
+    await indexWiki(wikiRoot, dbPath, embedder);
+
+    // Integration test: need a real delay so the filesystem mtime differs
+    // from the indexed value. Fake timers cannot control filesystem mtime.
+    const { promise: delay1, resolve: resume1 } = Promise.withResolvers<void>();
+    setTimeout(resume1, 50);
+    await delay1;
+    await writeFile(path.join(wikiRoot, "page1.md"), "# Page 1 Updated");
+
+    const result = await detectStaleFiles(wikiRoot, dbPath, embedder.dimension());
+    expect(result!.added).toEqual([]);
+    expect(result!.updated).toEqual(["page1.md"]);
+    expect(result!.removed).toEqual([]);
+  });
+
+  test("detects removed files", async () => {
+    await writeFile(path.join(wikiRoot, "page1.md"), "# Page 1");
+    await writeFile(path.join(wikiRoot, "page2.md"), "# Page 2");
+    await indexWiki(wikiRoot, dbPath, embedder);
+
+    // Remove a file after indexing
+    await rm(path.join(wikiRoot, "page2.md"));
+
+    const result = await detectStaleFiles(wikiRoot, dbPath, embedder.dimension());
+    expect(result!.added).toEqual([]);
+    expect(result!.updated).toEqual([]);
+    expect(result!.removed).toEqual(["page2.md"]);
+  });
+});
+
+describe("syncEmbeddings", () => {
+  let tempBase: string;
+  let wikiRoot: string;
+  let dbPath: string;
+  const embedder = new MockEmbedder(16);
+
+  beforeEach(async () => {
+    tempBase = await tempDir();
+    wikiRoot = path.join(tempBase, "wiki");
+    await mkdir(wikiRoot, { recursive: true });
+    dbPath = path.join(tempBase, "wiki.db");
+  });
+
+  afterEach(async () => {
+    await rm(tempBase, { recursive: true, force: true });
+  });
+
+  test("falls back to full rebuild when no DB exists", async () => {
+    await writeFile(path.join(wikiRoot, "page1.md"), "# Page 1");
+    const result = await syncEmbeddings(wikiRoot, dbPath, embedder);
+    expect(result.synced).toBe(true);
+    expect(result.totalChunks).toBeGreaterThan(0);
+  });
+
+  test("reports nothing to sync when up to date", async () => {
+    await writeFile(path.join(wikiRoot, "page1.md"), "# Page 1");
+    await indexWiki(wikiRoot, dbPath, embedder);
+
+    const result = await syncEmbeddings(wikiRoot, dbPath, embedder);
+    expect(result.synced).toBe(false);
+    expect(result.added).toEqual([]);
+    expect(result.updated).toEqual([]);
+    expect(result.removed).toEqual([]);
+  });
+
+  test("syncs added files incrementally", async () => {
+    await writeFile(path.join(wikiRoot, "page1.md"), "# Page 1");
+    await indexWiki(wikiRoot, dbPath, embedder);
+
+    await writeFile(path.join(wikiRoot, "page2.md"), "# Page 2");
+    const result = await syncEmbeddings(wikiRoot, dbPath, embedder);
+    expect(result.synced).toBe(true);
+    expect(result.added).toEqual(["page2.md"]);
+
+    // Verify the new page is searchable
+    const store = new VectorStore(dbPath, embedder.dimension());
+    const queryVec = await embedder.embed("# Page 2");
+    const results = store.search(queryVec, 5);
+    expect(results.some(r => r.path === "page2.md")).toBe(true);
+    store.close();
+  });
+
+  test("syncs updated files incrementally", async () => {
+    await writeFile(path.join(wikiRoot, "page1.md"), "# Page 1");
+    await indexWiki(wikiRoot, dbPath, embedder);
+    // Integration test: need a real delay so the filesystem mtime differs
+    // from the indexed value. Fake timers cannot control filesystem mtime.
+    const { promise: delay2, resolve: resume2 } = Promise.withResolvers<void>();
+    setTimeout(resume2, 50);
+    await delay2;
+    await writeFile(path.join(wikiRoot, "page1.md"), "# Page 1 Updated Content");
+    const result = await syncEmbeddings(wikiRoot, dbPath, embedder);
+    expect(result.synced).toBe(true);
+    expect(result.updated).toEqual(["page1.md"]);
+
+    // Verify updated content is searchable
+    const store = new VectorStore(dbPath, embedder.dimension());
+    const queryVec = await embedder.embed("Updated Content");
+    const results = store.search(queryVec, 5);
+    expect(results.some(r => r.chunk.includes("Updated"))).toBe(true);
+    store.close();
+  });
+
+  test("removes deleted files from DB", async () => {
+    await writeFile(path.join(wikiRoot, "page1.md"), "# Page 1");
+    await writeFile(path.join(wikiRoot, "page2.md"), "# Page 2");
+    await indexWiki(wikiRoot, dbPath, embedder);
+
+    await rm(path.join(wikiRoot, "page2.md"));
+    const result = await syncEmbeddings(wikiRoot, dbPath, embedder);
+    expect(result.synced).toBe(true);
+    expect(result.removed).toEqual(["page2.md"]);
+
+    // Verify the deleted page is gone from the DB
+    const store = new VectorStore(dbPath, embedder.dimension());
+    const paths = store.pagePaths();
+    expect(paths).toEqual(["page1.md"]);
+    store.close();
+  });
+
+  test("page_meta is tracked after sync", async () => {
+    await writeFile(path.join(wikiRoot, "page1.md"), "# Page 1");
+    await indexWiki(wikiRoot, dbPath, embedder);
+
+    await writeFile(path.join(wikiRoot, "page2.md"), "# Page 2");
+    await syncEmbeddings(wikiRoot, dbPath, embedder);
+
+    const store = new VectorStore(dbPath, embedder.dimension());
+    const meta = store.allPageMeta();
+    expect(meta.has("page1.md")).toBe(true);
+    expect(meta.has("page2.md")).toBe(true);
     store.close();
   });
 });
