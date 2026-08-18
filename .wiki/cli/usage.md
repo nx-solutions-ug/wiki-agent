@@ -31,6 +31,7 @@ Exactly one of `--init` or `--update` is required. If neither is present, the he
 | `--wiki` | Meaningful with `--init`: the generated `.github/workflows/update-wiki.yml` will also publish to the repository's GitHub Wiki tab. Note that the generated workflow itself hardcodes `--wiki` in its `wiki --update --print --verbose --wiki` step, so the CI job always attempts wiki publishing regardless of whether `--wiki` was passed locally. |
 | `--print` | Run headless: write events to stdout/stderr instead of launching the TUI. Required for CI. |
 | `--model <id>` | Override the model for this run. Higher priority than env vars and config files. |
+| `--mcp stdio` | Start the MCP server on stdin/stdout. No `--init`/`--update` required; runs standalone. |
 | `--verbose`, `-v` | Show tool call results in addition to assistant prose. Without this flag, tool events are suppressed in both headless and TUI output. |
 | `--help`, `-h` | Show help. |
 
@@ -49,6 +50,9 @@ Environment variables are merged with config files by `resolveConfig` in `config
 | `WIKI_OLLAMA_API_KEY` | Legacy alias for `WIKI_PROVIDER_API_KEY` | from `~/.wiki/config.json` |
 | `WIKI_OLLAMA_BASE_URL` | Legacy alias for `WIKI_PROVIDER_BASE_URL` | mode default |
 | `WIKI_MODEL` | Override model ID | from `~/.wiki/config.json` |
+| `WIKI_EMBEDDING_PROVIDER` | `"local"` (Hugging Face) or `"ollama"` | `"local"` |
+| `WIKI_EMBEDDING_MODEL` | Ollama embedding model ID (when provider is `"ollama"`) | `"nomic-embed-text"` |
+| `WIKI_EMBEDDING_HOST` | Ollama host for embeddings (when provider is `"ollama"`) | `http://localhost:11434` |
 | `WIKI_RECURSION_LIMIT` | Max agent iterations | `200` |
 | `GH_TOKEN` | GitHub token for the read-only `gh` CLI tool (used in CI for the staging PR staleness check) | from environment |
 
@@ -98,6 +102,19 @@ Conversion rules:
 - Metadata files (`.last-update-report.md`, `.last-updated.json`, `.last-update-title.txt`, `config.json`, `_plan.md`) are excluded.
 
 The GitHub Actions workflow created by `wiki --init --wiki` invokes `wiki-flatten` before pushing to `<repo>.wiki.git`.
+
+## MCP mode
+
+`wiki --mcp stdio` starts a Model Context Protocol server instead of running an init/update cycle. Exposed tools include:
+
+- `read_wiki_page` — read a page by relative path under `.wiki/`.
+- `list_wiki_pages` — list all `.wiki/` markdown files as relative paths.
+- `search_wiki` — semantic search over the wiki via the embeddings database (auto-syncs stale files first).
+- `update_wiki` — trigger a `wiki --update` run in headless mode.
+- `rebuild_embeddings` — fully rebuild `.wiki/wiki.db` from the current wiki content.
+- `sync_embeddings` — incrementally sync embeddings so only changed pages are re-embedded.
+
+MCP mode is dispatched in `cli.tsx` before the normal `--init`/`--update` path. It dynamically imports `src/mcp-server.ts` so that heavy native dependencies (`better-sqlite3`, `@huggingface/transformers`) are only loaded when needed.
 
 ## Exit codes
 
