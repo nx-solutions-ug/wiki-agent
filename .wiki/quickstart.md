@@ -25,7 +25,7 @@ cd wiki-agent
 bun install
 bun run build
 bun pm pack
-cd ~/.bun/install/global && bun add /path/to/wiki-agent/wiki-agent-1.16.0.tgz
+cd ~/.bun/install/global && bun add /path/to/wiki-agent/wiki-agent-1.17.1.tgz
 ```
 
 After install, the `wiki` command is on `PATH` (entrypoint: `dist/cli.js`, declared as the `bin` in `package.json`).
@@ -87,4 +87,4 @@ Wiki Agent writes only inside `.wiki/`. Each page starts with YAML frontmatter (
 - `.wiki/automation/` — CI integrations
 - `.wiki/development.md` — build, test, and release
 
-After the run, `index.md` files in each subdirectory are regenerated to list the contained files using their frontmatter titles and descriptions.
+After the run, `index.md` files in each subdirectory are regenerated to list the contained files using their frontmatter titles and descriptions. A local `.wiki/wiki.db` and run-metadata files (`.last-updated.json`, `.last-update-report.md`, `.last-update-title.txt`) are also gitignored.

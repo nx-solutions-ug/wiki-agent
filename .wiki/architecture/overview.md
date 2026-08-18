@@ -9,6 +9,10 @@ tags: [architecture, agent, ollama]
 
 Wiki Agent is a small, single-purpose Node.js application. The runtime model is "an LLM with a constrained tool belt that writes markdown into `.wiki/`." There is no LangChain, no vector store, no long-lived memory — just a manual tool-calling loop against the configured provider's chat API (Ollama or OpenAI-compatible).
 
+## Run metadata gitignore
+
+`runAgent` writes `.wiki/.gitignore` on every run so transient files stay out of git history. The gitignore covers the three run-metadata files (`.last-updated.json`, `.last-update-report.md`, `.last-update-title.txt`) and the binary embeddings database plus its SQLite sidecar files (`wiki.db`, `wiki.db-journal`, `wiki.db-wal`, `wiki.db-shm`). The agent also untracks any of these files that were already committed in legacy repositories.
+
 ## Top-level layout
 
 The compiled entrypoint is `dist/cli.js` (declared as the `wiki` binary in `package.json`). A second binary, `wiki-flatten` (`dist/flatten-wiki.js`), is produced for GitHub Wiki publishing. Source lives under `src/`:
@@ -35,7 +39,7 @@ See [Configuration](../configuration.md) for the data model, [Tools](../tools.md
 3. Stream or batch the response. Collect `content` and any `tool_calls` returned by the model.
 4. Append the assistant message to the history. If there are tool calls, append a `tool` message per call; Ollama uses `tool_name`, while OpenAI uses `tool_call_id`.
 5. Loop up to `WIKI_RECURSION_LIMIT` iterations (default `200`). A response with no tool calls ends the loop.
-6. After the loop, call `createWorkflowFile` in `src/workflow.ts`, `synchronizeWikiIndexes(.wiki)`, write `.wiki/.last-updated.json`, `.wiki/.last-update-report.md` (via `generateUpdateReport`), and `.wiki/.last-update-title.txt` (via `generateUpdateTitle`), then emit a `done` event. The write/edit tools themselves strip reasoning/thinking tags from persisted content before it reaches disk. On `init`, the loop also appends/updates a wiki-agent section in `AGENTS.md`/`CLAUDE.md` via `appendWikiAgentFrontmatter`.
+6. After the loop, call `createWorkflowFile` in `src/workflow.ts`, `synchronizeWikiIndexes(.wiki)`, write `.wiki/.last-updated.json`, `.wiki/.last-update-report.md` (via `generateUpdateReport`), and `.wiki/.last-update-title.txt` (via `generateUpdateTitle`), then emit a `done` event. The write/edit tools themselves strip reasoning/thinking tags from persisted content before it reaches disk. On `init`, the loop also appends/updates a wiki-agent section in `AGENTS.md`/`CLAUDE.md` via `appendWikiAgentFrontmatter`, and writes `.wiki/.gitignore` to keep run metadata and the embeddings database out of git.
 
 Errors from the LLM SDK are surfaced through the `error` event stream. If the model had already produced content, the loop exits with a `done` summary that includes the error message; otherwise it emits `error` and stops.
 
@@ -57,6 +61,15 @@ type AgentEvent =
   | { type: "error"; message: string }
   | { type: "done"; summary: string };
 ```
+
+## Embeddings and MCP server
+
+Two newer modules extend the core agent without changing the main loop:
+
+- `src/embeddings.ts` provides pluggable text embeddings (`local` via Hugging Face Transformers.js, or `ollama` via the Ollama embeddings API) and a `better-sqlite3` + `sqlite-vec` vector store persisted as `.wiki/wiki.db`. It supports chunking wiki pages, incremental `syncEmbeddings`, and `k`-nearest-neighbor semantic search over the wiki.
+- `src/mcp-server.ts` exposes Wiki Agent as an MCP server over stdio (`wiki --mcp stdio`). Tools include `read_wiki_page`, `list_wiki_pages`, `search_wiki`, `update_wiki`, `rebuild_embeddings`, and `sync_embeddings`. The server reuses `resolveConfig` and `createEmbeddingConfig` for provider/embedding setup.
+
+Both modules are covered by tests (`embeddings.test.ts`, `embedding-config.test.ts`, `mcp-server.test.ts`). The embeddings database and its sidecar files are gitignored so they are not committed or published.
 
 ## Tool sandboxing
 

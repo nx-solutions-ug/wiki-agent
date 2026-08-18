@@ -145,6 +145,10 @@ The tool is constrained the same way as the `git` tool:
 
 Read-only inspection (`pr list`, `pr view`, `repo view`, `issue list`, etc.) is always allowed. The update-mode staging PR staleness check uses this tool to list open `wiki/staging-*` PRs and compare branch timestamps against the latest commit timestamp, then close any stale ones with a comment before proceeding. See [CLI Usage](../cli/usage.md) for the `GH_TOKEN` environment variable used by the workflow.
 
+## Thinking-tag stripper
+
+`tools.ts` exports `stripThinkingTags(content)` for removing reasoning/thinking tags (``, ``, ``, ``, and their closing counterparts) from text before it is persisted to `.wiki/`. Both `write_file` and `edit_file` run the stripper on the content they write, so the generated wiki pages cannot contain leftover model reasoning blocks.
+
 ## Argument parsing helper
 
 `tools.ts` also exports `parseArgsStringToArgv` for safely splitting an argument string into an argv array (handling quotes, escapes, and whitespace). It is covered by `test/tools.test.ts` and is used internally by the `git`/`gh` command runners.

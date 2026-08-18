@@ -38,6 +38,11 @@ Runs `vitest run` against the test files in `test/`. There are ten Vitest test f
 
 - `config.test.ts` — global/project config I/O, `loadGlobalConfig` fallback on invalid JSON, and `resolveConfig` precedence.
 - `tools.test.ts` — path-safety checks, file read/write/edit, `read_file` streaming behavior, tool definition shape, `git` and `gh` subcommand allowlists, metacharacter guard, `grep`/`glob` command-injection prevention, wildcard restoration, directory exclusions (`node_modules`, `.git`, `dist`, `.wiki`), `ast_grep`/`ast_search` structural matching, `parseArgsStringToArgv`, and reasoning-tag stripping (the four `think`/`thinking`/`reasoning`/`reflection` tag pairs) in `write_file`/`edit_file`.
+- `embeddings.test.ts` — local and Ollama embedders, vector-store setup, chunking, search, and incremental sync.
+- `embedding-config.test.ts` — `createEmbeddingConfig` and embedding fields in `resolveConfig`.
+- `mcp-server.test.ts` — MCP tool registration, wiki read/list/search/update handlers, and path safety.
+- `agent.test.ts` — `runAgent` loop behavior, `filterReportFiles`, and `untrackRunMetadataFiles`.
+- `cli.test.ts` — argument parsing, `--version`, `--mcp stdio`, and headless/TUI dispatch paths.
 - `llm.test.ts` — `OpenAIAdapter` streaming and non-streaming behavior.
 - `llm-ollama.test.ts` — `OllamaAdapter` streaming and non-streaming behavior.
 - `index-middleware.test.ts` — `index.md` regeneration, exclusions, error propagation for invalid frontmatter, and idempotency.
@@ -48,6 +53,7 @@ Runs `vitest run` against the test files in `test/`. There are ten Vitest test f
 - `stream-log.test.ts` — drives `.omp/stream-log.py` as a subprocess and guards the regressions from issue #76: non-dict `args`, null/non-string `text` content, and malformed JSON lines do not crash the OMP pipeline.
 
 In addition, `test/benchmarks/benchmark.ts` is a micro-benchmark for loading `AGENTS.md`/`CLAUDE.md`; it is not part of `npm test`.
+- `workflow.test.ts` — generated `.github/workflows/update-wiki.yml` contents and `--wiki` flag wiring.
 
 The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.HOME` so the global config path can be redirected.
 
@@ -57,18 +63,20 @@ The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.H
 bun pm pack
 ```
 
-Produces `wiki-agent-1.16.0.tgz`. The tarball includes `dist/`, `README.md`, and `LICENSE` per the `files` array in `package.json`. The earlier `package.json` `files` entry for `.github/workflows/wiki-update.yml` was removed, since workflows are generated into target repos by `--init`, not shipped in the package.
+Produces `wiki-agent-1.17.1.tgz`. The tarball includes `dist/`, `README.md`, and `LICENSE` per the `files` array in `package.json`. Workflows are generated into target repos by `--init`, not shipped in the package.
 
 ## Project layout
 
 ```
 src/
-  cli.tsx              CLI entrypoint, arg parsing, TUI vs. headless
+  cli.tsx              CLI entrypoint, arg parsing, TUI vs. headless, plus --mcp stdio server dispatch
   agent.ts             LLM tool-calling loop, workflow/report generation
-  config.ts            Global/project config, provider client factory
+  config.ts            Global/project config, provider + embedding client factory
   llm.ts               Provider adapter interface plus OpenAIAdapter and OllamaAdapter
   prompt.ts            System prompt, user message, help text; reads AGENTS.md/CLAUDE.md with Promise.allSettled
   tools.ts             read_file, write_file, edit_file, ls, grep, glob, git, ast_grep, ast_search, gh
+  embeddings.ts        Pluggable local/ollama embeddings and sqlite-vec vector store in .wiki/wiki.db
+  mcp-server.ts        MCP server exposing wiki read/list/search/update and embedding sync tools
   index-middleware.ts  Post-run index.md regeneration
   flatten-wiki.ts      Convert nested .wiki/ to flat GitHub Wiki format before publish
   version.ts           Reads package.json version for CLI --version and TUI banner
@@ -118,6 +126,7 @@ Vouched users are tracked in `.github/VOUCHED.td`. Bots and collaborators with w
 - **OMP workflows**: the `.github/workflows/omp*.yml` files and `.omp/` directory live in this repo's source but are unrelated to the `wiki-agent` package; they automate the project's own issue/PR management via OMP.
 - **OMP review flow mismatch**: `omp-ci.yml` computes a `review-type` prefix (`dep:`, `bot:`, or empty) from the PR author, but the output step is not used in the actual OMP invocation; the review type is determined by `review-pr.md` from the PR author instead.
 - **Staleness check is in system prompt only**: the update-mode staging PR staleness check is documented in the system prompt and implemented by the running agent; there is no dedicated source function for it.
+- **Embeddings/MCP are not yet in the high-level overview pages**: the `embeddings.ts` and `mcp-server.ts` modules are present in the source and have dedicated tests, but the wiki's architecture and quickstart pages still describe the core loop. Add dedicated pages only when the feature set stabilizes.
 
 ## Release checklist
 
