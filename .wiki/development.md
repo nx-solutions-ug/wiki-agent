@@ -44,7 +44,8 @@ Runs `vitest run` against the test files in `test/`. There are ten Vitest test f
 - `prompt.test.ts` — system prompt, user message templates, and help text contents.
 - `report.test.ts` — `generateUpdateReport`: no-op reports, created/edited listings, per-file description blockquotes, truncation, whitespace collapse, and summary counts.
 - `flatten-wiki.test.ts` — filename conversion, link rewriting, frontmatter stripping, sidebar generation, and metadata exclusions.
-- `embeddings.test.ts` — `VectorStore` operations, local and Ollama embedders, incremental `syncEmbeddings`, and stale-file detection.
+-Runs `vitest run` against the test files in `test/`. There are ten Vitest test files:
++Runs `vitest run` against the test files in `test/`. There are thirteen Vitest test files:
 - `embedding-config.test.ts` — embedding configuration resolution via `createEmbeddingConfig` and `resolveConfig`.
 - `mcp-server.test.ts` — MCP tool handlers, embedder caching, and search/update wiring.
 - `version.test.ts` — `VERSION` matches `package.json` and is not a stale placeholder.
