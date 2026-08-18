@@ -200,7 +200,7 @@ Documentation is generated under `.wiki/` and kept in sync via `wiki --update`.
 Do not hand-edit files under `.wiki/` — regenerate them with `wiki --update` instead.
 
 ```yaml
-version: 1.13.1
+version: 1.16.0
 wiki-path: .wiki/
-initialized: 2026-07-28T07:38:14.976Z
+initialized: 2026-08-18T07:10:20.443Z
 ```
