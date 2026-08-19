@@ -16,7 +16,7 @@ When the CLI is launched without `--print`, `cli.tsx` mounts an [Ink](https://gi
 - If `config.mode` is `"cloud"` or `"openai"` and no API key is set, it renders `CredentialsSetup`.
 - Otherwise it renders the run view inside a rounded header box that shows the agent version, the provider mode, the model, and the project root.
 
-A `useInput` hook listens for `q` or `Ctrl+C` at the top level and calls `useApp().exit()` to leave Ink cleanly. The same key handling is duplicated in each screen so `q` and `Ctrl+C` work everywhere.
+A `useInput` hook in `App` listens for `q` or `Ctrl+C` and calls `useApp().exit()` to leave Ink cleanly. `CredentialsSetup` and `RunView` do not duplicate this listener.
 
 ## Credentials setup: `CredentialsSetup.tsx`
 
@@ -35,7 +35,7 @@ Errors from `saveGlobalConfig` are caught and rendered in red; the wizard drops 
 
 ## Run view: `RunView.tsx`
 
-`RunView` creates the LLM client via `createLLMClient(config)` and calls `runAgent` with `stream: true` and the `wiki` flag propagated from the CLI. Each `AgentEvent` is translated into a `DisplayEvent` and appended to a ref-backed state list, which Ink re-renders.
+`RunView` receives the CLI command, working directory, resolved config, and the `verbose`/`wiki` flags. It creates the LLM client via `createLLMClient(config)` and calls `runAgent` with `stream: true`. Each `AgentEvent` is translated into a `DisplayEvent` and appended to a ref-backed state list, which Ink re-renders.
 
 Consecutive `assistant` chunks are merged into a single `DisplayEvent` so streaming does not fragment prose into one line per token. The mapping is:
 
@@ -59,4 +59,4 @@ While the agent is running the footer shows `⏳ Working...`; on completion it s
 | `1` / `2` / `3` | Pick provider mode (credentials wizard only) |
 | `Enter` | Submit the current text input (credentials wizard only) |
 
-There are no other interactive controls. Cancellation mid-run is not implemented; the agent loop either completes or fails on its own.
+There are no other interactive controls; the agent loop either completes or fails on its own.
