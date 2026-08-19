@@ -55,7 +55,6 @@ export function App({ command, cwd, config, verbose, wiki }: AppProps): React.Re
       config: resolvedConfig,
       verbose,
       wiki,
-      onExit: exit,
     }),
   );
 }

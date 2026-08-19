@@ -10,7 +10,6 @@ interface RunViewProps {
   config: ResolvedConfig;
   verbose: boolean;
   wiki: boolean;
-  onExit: () => void;
 }
 
 interface DisplayEvent {
@@ -25,7 +24,6 @@ export function RunView({
   config,
   verbose,
   wiki,
-  onExit,
 }: RunViewProps): React.ReactElement {
   const [events, setEvents] = useState<DisplayEvent[]>([]);
   const [running, setRunning] = useState(true);
