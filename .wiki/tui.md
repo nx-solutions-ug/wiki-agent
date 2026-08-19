@@ -20,13 +20,16 @@ A `useInput` hook listens for `q` or `Ctrl+C` at the top level and calls `useApp
 
 ## Credentials setup: `CredentialsSetup.tsx`
 
-A five-step state machine:
+An eight-step state machine:
 
 1. `mode-select` — the user picks `1` for Ollama Local, `2` for Ollama Cloud, or `3` for OpenAI-compatible API. The TUI does not accept Enter here; key presses drive transitions.
 2. `api-key` — only reached from cloud or openai mode. Uses `ink-text-input` to read the key, validates that it is non-empty on submit.
 3. `base-url` — lets the user customize the provider base URL; press Enter to keep the mode default (`http://localhost:11434`, `https://ollama.com`, or `https://api.openai.com/v1`).
-4. `model` — defaults to `kimi-k2.7-code` and uses the same text input. The prompt text matches this default.
-5. `saving` — calls `saveGlobalConfig` with the assembled `GlobalConfig` (including `baseUrl` only when it differs from the mode default), then calls the parent `onConfigSaved` callback with a synthesized `ResolvedConfig` so the run view can start without re-reading the disk.
+4. `embedding-select` — pick `1` for local Hugging Face Transformers.js embeddings (`all-MiniLM-L6-v2`, on-device) or `2` for Ollama embeddings. Key presses drive transitions.
+5. `embedding-model` — only reached when the embedding provider is `ollama`. Defaults to `nomic-embed-text`.
+6. `embedding-host` — Ollama server URL for embeddings. Defaults to the provider's base URL (or `http://localhost:11434` for local mode).
+7. `model` — the LLM model ID. Defaults to `kimi-k2.7-code` and uses the same text input. The prompt text matches this default.
+8. `saving` — calls `saveGlobalConfig` with the assembled `GlobalConfig` (including `baseUrl`/`embeddingHost` only when they differ from the mode defaults), then calls the parent `onConfigSaved` callback with a synthesized `ResolvedConfig` so the run view can start without re-reading the disk.
 
 Errors from `saveGlobalConfig` are caught and rendered in red; the wizard drops back to `mode-select` on failure.
 
