@@ -45,7 +45,7 @@ Runs `vitest run` against the test files in `test/`. There are fifteen Vitest te
 - `cli.test.ts` — argument parsing, `--version`, `--mcp stdio`, and headless/TUI dispatch paths.
 - `llm.test.ts` — `OpenAIAdapter` streaming and non-streaming behavior.
 - `llm-ollama.test.ts` — `OllamaAdapter` streaming and non-streaming behavior.
-- `index-middleware.test.ts` — `index.md` regeneration, exclusions, error propagation for invalid frontmatter, and idempotency.
+- `index-middleware.test.ts` — `index.md` regeneration, exclusions, error propagation for invalid frontmatter, and idempotency. It also verifies deterministic sorting across chunk boundaries by repeating the parallel sync several times.
 - `prompt.test.ts` — system prompt, user message templates, and help text contents.
 - `report.test.ts` — `generateUpdateReport`: no-op reports, created/edited listings, per-file description blockquotes, truncation, whitespace collapse, and summary counts.
 - `flatten-wiki.test.ts` — filename conversion, link rewriting, frontmatter stripping, sidebar generation, and metadata exclusions.
