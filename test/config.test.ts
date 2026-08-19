@@ -11,6 +11,8 @@ import {
   createLLMClient,
   type GlobalConfig,
   getGlobalConfigDir,
+  defaultBaseUrl,
+  type ProviderMode,
 } from "../src/config.js";
 import { OllamaAdapter, OpenAIAdapter } from "../src/llm.js";
 
@@ -219,5 +221,23 @@ describe("createLLMClient", () => {
   it("creates OllamaAdapter for local mode", () => {
     const client = createLLMClient({ mode: "local", baseUrl: "http://localhost:11434", model: "test" });
     expect(client).toBeInstanceOf(OllamaAdapter);
+  });
+});
+
+describe("defaultBaseUrl", () => {
+  it("returns DEFAULT_OPENAI_HOST for openai mode", () => {
+    expect(defaultBaseUrl("openai")).toBe("https://api.openai.com/v1");
+  });
+
+  it("returns DEFAULT_CLOUD_HOST for cloud mode", () => {
+    expect(defaultBaseUrl("cloud")).toBe("https://ollama.com");
+  });
+
+  it("returns DEFAULT_LOCAL_HOST for local mode", () => {
+    expect(defaultBaseUrl("local")).toBe("http://localhost:11434");
+  });
+
+  it("returns DEFAULT_LOCAL_HOST for unknown/default mode", () => {
+    expect(defaultBaseUrl("unknown" as unknown as ProviderMode)).toBe("http://localhost:11434");
   });
 });
