@@ -139,8 +139,8 @@ describe("index-middleware", () => {
     ).sort((a, b) => a.localeCompare(b));
 
 
-    // Run repeatedly — concurrency scheduling is non-deterministic, so a
-    // shared-array ordering bug could pass once but not reliably.
+    // Run repeatedly — concurrency scheduling across chunks is non-deterministic,
+    // verifying that link sorting produces a reliable, deterministic output.
     for (let run = 0; run < 5; run++) {
       const dir = await tempDir();
       for (let i = 0; i < FILE_COUNT; i++) {
