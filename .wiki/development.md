@@ -36,7 +36,7 @@ bun run test
 
 Runs `vitest run` against the test files in `test/`. There are fifteen Vitest test files:
 
-- `config.test.ts` — global/project config I/O, `loadGlobalConfig` fallback on invalid JSON, and `resolveConfig` precedence.
+- `config.test.ts` — global/project config I/O, `loadGlobalConfig` fallback on invalid JSON, `resolveConfig` precedence, and `defaultBaseUrl` provider defaults.
 - `tools.test.ts` — path-safety checks, file read/write/edit, `read_file` streaming behavior, tool definition shape, `git` and `gh` subcommand allowlists, metacharacter guard, `grep`/`glob` command-injection prevention, wildcard restoration, directory exclusions (`node_modules`, `.git`, `dist`, `.wiki`), `ast_grep`/`ast_search` structural matching, `parseArgsStringToArgv`, and reasoning-tag stripping (the four `think`/`thinking`/`reasoning`/`reflection` tag pairs) in `write_file`/`edit_file`.
 - `embeddings.test.ts` — local and Ollama embedders, vector-store setup, chunking, search, and incremental sync.
 - `embedding-config.test.ts` — `createEmbeddingConfig` and embedding fields in `resolveConfig`.
