@@ -4,6 +4,8 @@ import readline from "node:readline";
 import { execFile } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
+import { parseDocument } from "yaml";
+import { resolveUpdatedBy } from "./cli-helpers.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -102,6 +104,65 @@ export function stripThinkingTags(content: string): string {
   return stripped.replace(/^\s+/, "");
 }
 
+/**
+ * Checks if a file path has a markdown extension (.md or .markdown).
+ */
+export function isMarkdownFile(filePath: string): boolean {
+  const ext = path.extname(filePath).toLowerCase();
+  return ext === ".md" || ext === ".markdown";
+}
+
+/**
+ * Injects or updates `last_updated` and `updated_by` frontmatter properties in markdown content.
+ * If YAML frontmatter already exists, parses the block with YAML AST (parseDocument), updates or
+ * adds `last_updated` and `updated_by` while preserving all comments, formatting, and other keys.
+ * If no frontmatter exists, prepends a new YAML frontmatter block.
+ */
+export function injectOrUpdateFrontmatter(
+  content: string,
+  metadata: { last_updated: string; updated_by: string },
+): string {
+  const match = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/u.exec(content);
+  if (match) {
+    const rawYaml = match[1];
+    const rest = content.slice(match[0].length);
+    try {
+      const doc = parseDocument(rawYaml);
+      doc.set("last_updated", metadata.last_updated);
+      doc.set("updated_by", metadata.updated_by);
+      const updatedYaml = doc.toString().trim();
+      const prefix = `---\n${updatedYaml}\n---`;
+      if (!rest) {
+        return prefix + "\n";
+      }
+      return `${prefix}\n${rest.startsWith("\n") ? rest : "\n" + rest}`;
+    } catch {
+      // Fallback on parse error: append fields
+      const doc = parseDocument("");
+      doc.set("last_updated", metadata.last_updated);
+      doc.set("updated_by", metadata.updated_by);
+      const updatedYaml = doc.toString().trim();
+      return `---\n${rawYaml.trim()}\n${updatedYaml}\n---\n${rest.startsWith("\n") ? rest : "\n" + rest}`;
+    }
+  }
+
+  // No existing frontmatter
+  const doc = parseDocument("");
+  doc.set("last_updated", metadata.last_updated);
+  doc.set("updated_by", metadata.updated_by);
+  const yamlStr = doc.toString().trim();
+  const trimmedLeading = content.replace(/^\r?\n+/, "");
+  if (!trimmedLeading) {
+    return `---\n${yamlStr}\n---\n`;
+  }
+  return `---\n${yamlStr}\n---\n\n${trimmedLeading}`;
+}
+
+export interface ToolOptions {
+  updatedBy?: string;
+  lastUpdated?: string;
+}
+
 interface ToolDefinition {
   type: "function";
   function: {
@@ -169,7 +230,7 @@ function resolveProjectPath(
   return resolved;
 }
 
-export function createTools(projectRoot: string): Tool[] {
+export function createTools(projectRoot: string, options?: ToolOptions): Tool[] {
   const readFileTool: Tool = {
     definition: {
       type: "function",
@@ -254,7 +315,16 @@ export function createTools(projectRoot: string): Tool[] {
     },
     handler: async (args) => {
       const filePath = resolveWikiPath(args.path as string, projectRoot);
-      const content = stripThinkingTags(args.content as string);
+      let content = stripThinkingTags(args.content as string);
+
+      if (isMarkdownFile(filePath)) {
+        const updater = options?.updatedBy ?? await resolveUpdatedBy(projectRoot);
+        const lastUpdated = options?.lastUpdated ?? new Date().toISOString();
+        content = injectOrUpdateFrontmatter(content, {
+          last_updated: lastUpdated,
+          updated_by: updater,
+        });
+      }
 
       await mkdir(path.dirname(filePath), { recursive: true });
       await writeFile(filePath, content, "utf8");
@@ -296,10 +366,19 @@ export function createTools(projectRoot: string): Tool[] {
       const newString = stripThinkingTags(args.new_string as string);
 
       const content = await readFile(filePath, "utf8");
-      const newContent = content.replace(oldString, newString);
+      let newContent = content.replace(oldString, newString);
 
       if (newContent === content) {
         return `No match found for old_string in ${args.path}`;
+      }
+
+      if (isMarkdownFile(filePath)) {
+        const updater = options?.updatedBy ?? await resolveUpdatedBy(projectRoot);
+        const lastUpdated = options?.lastUpdated ?? new Date().toISOString();
+        newContent = injectOrUpdateFrontmatter(newContent, {
+          last_updated: lastUpdated,
+          updated_by: updater,
+        });
       }
 
       await writeFile(filePath, newContent, "utf8");
@@ -813,15 +892,17 @@ export async function executeTool(
   toolName: string,
   args: Record<string, unknown>,
   projectRoot: string,
+  options?: ToolOptions,
 ): Promise<string> {
-  let projectTools = toolsCache.get(projectRoot);
+  const cacheKey = options?.updatedBy ? `${projectRoot}::${options.updatedBy}` : projectRoot;
+  let projectTools = toolsCache.get(cacheKey);
   if (!projectTools) {
     projectTools = new Map();
-    const toolsList = createTools(projectRoot);
+    const toolsList = createTools(projectRoot, options);
     for (const t of toolsList) {
       projectTools.set(t.definition.function.name, t);
     }
-    toolsCache.set(projectRoot, projectTools);
+    toolsCache.set(cacheKey, projectTools);
   }
   const tool = projectTools.get(toolName);
 

@@ -1,6 +1,7 @@
 import { readFile, writeFile, readdir, stat } from "node:fs/promises";
 import path from "node:path";
 import { parse } from "yaml";
+import { resolveUpdatedBy } from "./cli-helpers.js";
 
 const INDEX_FILE = "index.md";
 const EXCLUDED_FILES = new Set([INDEX_FILE, "_plan.md"]);
@@ -16,12 +17,18 @@ interface DirectoryEntry {
   isDir: boolean;
 }
 
+export interface SynchronizeOptions {
+  updatedBy?: string;
+  lastUpdated?: string;
+}
+
 /**
  * Synchronizes index.md files for every directory under the wiki root.
  * Call this after the agent run completes.
  */
 export async function synchronizeWikiIndexes(
   wikiRoot: string,
+  options?: SynchronizeOptions,
 ): Promise<void> {
   try {
     await stat(wikiRoot);
@@ -29,12 +36,16 @@ export async function synchronizeWikiIndexes(
     return;
   }
 
-  await synchronizeDirectory(wikiRoot, wikiRoot);
+  const updatedBy = options?.updatedBy ?? await resolveUpdatedBy(path.dirname(wikiRoot));
+  const lastUpdated = options?.lastUpdated ?? new Date().toISOString();
+
+  await synchronizeDirectory(wikiRoot, wikiRoot, { updatedBy, lastUpdated });
 }
 
 async function synchronizeDirectory(
   dirPath: string,
   root: string,
+  syncOptions: { updatedBy: string; lastUpdated: string },
 ): Promise<void> {
   const entries = await collectEntries(dirPath);
 
@@ -59,7 +70,7 @@ async function synchronizeDirectory(
 
         if (entry.isDir) {
           directories.push({ href: `${encodeURIComponent(entry.name)}/`, label: entry.name });
-          await synchronizeDirectory(path.join(dirPath, entry.name), root);
+          await synchronizeDirectory(path.join(dirPath, entry.name), root, syncOptions);
           return;
         }
 
@@ -80,7 +91,10 @@ async function synchronizeDirectory(
   const indexPath = path.join(dirPath, INDEX_FILE);
   const title =
     dirPath === root ? "Wiki" : titleFromSlug(path.basename(dirPath));
-  const content = renderIndex(title, files, directories);
+  const content = renderIndex(title, files, directories, {
+    last_updated: syncOptions.lastUpdated,
+    updated_by: syncOptions.updatedBy,
+  });
 
   let existing: string | null = null;
   try {
@@ -89,7 +103,17 @@ async function synchronizeDirectory(
     // index.md doesn't exist yet
   }
 
-  if (existing === content) return;
+  if (existing) {
+    const existingBodyMatch = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)([\s\S]*)$/u.exec(existing);
+    const newBodyMatch = /^---\r?\n[\s\S]*?\r?\n---(?:\r?\n|$)([\s\S]*)$/u.exec(content);
+    if (existingBodyMatch && newBodyMatch && existingBodyMatch[1] === newBodyMatch[1]) {
+      const existingFrontmatter = await parseFrontmatter(indexPath);
+      if (existingFrontmatter.last_updated && existingFrontmatter.updated_by) {
+        return;
+      }
+    }
+    if (existing === content) return;
+  }
 
   await writeFile(indexPath, content, "utf8");
 }
@@ -106,6 +130,7 @@ function renderIndex(
   title: string,
   files: Link[],
   directories: Link[],
+  metadata?: { last_updated?: string; updated_by?: string },
 ): string {
   const sections = [
     renderLinks("Files", files, true),
@@ -114,7 +139,19 @@ function renderIndex(
     .filter(Boolean)
     .join("\n\n");
 
-  return `---\ntype: Documentation Index\ntitle: ${JSON.stringify(title)}\ndescription: ${JSON.stringify(`Files and subdirectories in ${title}.`)}\n---\n\n${sections}\n`;
+  const fields: string[] = [
+    "type: Documentation Index",
+    `title: ${JSON.stringify(title)}`,
+    `description: ${JSON.stringify(`Files and subdirectories in ${title}.`)}`,
+  ];
+  if (metadata?.last_updated) {
+    fields.push(`last_updated: ${JSON.stringify(metadata.last_updated)}`);
+  }
+  if (metadata?.updated_by) {
+    fields.push(`updated_by: ${JSON.stringify(metadata.updated_by)}`);
+  }
+
+  return `---\n${fields.join("\n")}\n---\n\n${sections}\n`;
 }
 
 function renderLinks(
@@ -136,9 +173,11 @@ function renderLinks(
   return `# ${heading}\n\n${items.join("\n")}`;
 }
 
-interface FrontmatterMetadata {
+export interface FrontmatterMetadata {
   description?: string;
   title?: string;
+  last_updated?: string;
+  updated_by?: string;
 }
 
 async function parseFrontmatter(
@@ -174,7 +213,7 @@ async function parseFrontmatter(
     throw new Error(`${filePath} YAML front matter must be a mapping.`);
   }
 
-  const { description, title } = fields as Record<string, unknown>;
+  const { description, title, last_updated, updated_by } = fields as Record<string, unknown>;
 
   if (
     description !== undefined &&
@@ -187,9 +226,19 @@ async function parseFrontmatter(
     throw new Error(`${filePath} YAML title must be a string.`);
   }
 
+  if (last_updated !== undefined && typeof last_updated !== "string") {
+    throw new Error(`${filePath} YAML last_updated must be a string.`);
+  }
+
+  if (updated_by !== undefined && typeof updated_by !== "string") {
+    throw new Error(`${filePath} YAML updated_by must be a string.`);
+  }
+
   return {
     ...(description ? { description } : {}),
     ...(title ? { title } : {}),
+    ...(last_updated ? { last_updated } : {}),
+    ...(updated_by ? { updated_by } : {}),
   };
 }
 

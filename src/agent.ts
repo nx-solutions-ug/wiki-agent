@@ -8,6 +8,7 @@ import { synchronizeWikiIndexes } from "./index-middleware.js";
 import { VERSION } from "./version.js";
 import { type LLMClient, type LLMMessage, type LLMToolCall } from "./llm.js";
 import { createWorkflowFile } from "./workflow.js";
+import { resolveUpdatedBy } from "./cli-helpers.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -197,6 +198,7 @@ export interface RunOptions {
   maxIterations?: number;
   stream?: boolean;
   wikiPublish?: boolean;
+  updatedBy?: string;
   onEvent?: (event: AgentEvent) => void;
 }
 
@@ -233,11 +235,16 @@ export async function runAgent(
     maxIterations,
     stream = false,
     wikiPublish = false,
+    updatedBy: explicitUpdatedBy,
     onEvent = () => {},
   } = options;
 
+  const updatedBy = await resolveUpdatedBy(projectRoot, {
+    updatedBy: explicitUpdatedBy,
+  });
+
   const maxIter = maxIterations ?? resolveMaxIterations();
-  const tools = createTools(projectRoot);
+  const tools = createTools(projectRoot, { updatedBy });
   const systemPrompt = await createSystemPrompt(projectRoot);
   const userMessage = createUserMessage(command, projectRoot, gitSummary);
 
@@ -332,7 +339,7 @@ export async function runAgent(
 
       onEvent({ type: "tool", name: toolName, result: "" });
 
-      const result = await executeTool(toolName, args, projectRoot);
+      const result = await executeTool(toolName, args, projectRoot, { updatedBy });
 
       if (toolName === "write_file" || toolName === "edit_file") {
         const filePath = typeof args.path === "string" ? args.path : "unknown";
@@ -392,13 +399,7 @@ export async function runAgent(
     return;
   }
 
-  await synchronizeWikiIndexes(path.join(projectRoot, ".wiki"));
-
-  await writeFile(
-    path.join(projectRoot, ".wiki", ".last-updated.json"),
-    JSON.stringify({ lastUpdated: new Date().toISOString() }, null, 2) + "\n",
-    "utf8",
-  );
+  await synchronizeWikiIndexes(path.join(projectRoot, ".wiki"), { updatedBy });
 
   const reportFiles = filterReportFiles(changedFiles);
 

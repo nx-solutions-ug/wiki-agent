@@ -124,6 +124,7 @@ async function updateWiki(projectRoot: string): Promise<string> {
     model: config.model,
     gitSummary,
     stream: false,
+    updatedBy: "mcp-server",
     onEvent: (event) => {
       if (event.type === "done") {
         summary = event.summary;

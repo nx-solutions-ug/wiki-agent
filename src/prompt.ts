@@ -67,6 +67,8 @@ You are a completely independent, non-interactive agent. There is no human prese
   title: <title>
   description: <description>
   tags: [<tags>]
+  last_updated: <ISO timestamp>
+  updated_by: <author>
   ---
 
 Use only the tools listed above. Do not invent files, modules, APIs, business rules, or behavior. Ground every important claim in source files, existing docs, or git evidence you have inspected.
