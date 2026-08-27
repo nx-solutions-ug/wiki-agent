@@ -1,8 +1,11 @@
 ---
 type: Reference
 title: Development
-description: Build, test, release workflow, and repository automation for the wiki-agent project.
-tags: [development, build, test, release]
+description: Build, test, release workflow, and repository automation for the
+  wiki-agent project.
+tags: [ development, build, test, release ]
+last_updated: 2026-08-27T11:22:18.515Z
+updated_by: wiki-agent
 ---
 
 # Development
@@ -42,7 +45,7 @@ Runs `vitest run` against the test files in `test/`. There are fifteen Vitest te
 - `embedding-config.test.ts` — `createEmbeddingConfig` and embedding fields in `resolveConfig`.
 - `mcp-server.test.ts` — MCP tool registration, wiki read/list/search/update handlers, and path safety.
 - `agent.test.ts` — `runAgent` loop behavior, `filterReportFiles`, and `untrackRunMetadataFiles`.
-- `cli.test.ts` — argument parsing, `--version`, `--mcp stdio`, and headless/TUI dispatch paths.
+- `cli.test.ts` — argument parsing, `--version`, `--get-config`, `--mcp stdio`, and headless/TUI dispatch paths.
 - `llm.test.ts` — `OpenAIAdapter` streaming and non-streaming behavior.
 - `llm-ollama.test.ts` — `OllamaAdapter` streaming and non-streaming behavior.
 - `index-middleware.test.ts` — `index.md` regeneration, exclusions, error propagation for invalid frontmatter, and idempotency. It also verifies deterministic sorting across chunk boundaries by repeating the parallel sync several times.

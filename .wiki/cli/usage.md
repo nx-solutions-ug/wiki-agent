@@ -1,8 +1,11 @@
 ---
 type: Reference
 title: CLI Usage
-description: Commands, flags, environment variables, and the headless / TUI dispatch of the wiki binary.
-tags: [cli, commands, flags, environment-variables]
+description: Commands, flags, environment variables, and the headless / TUI
+  dispatch of the wiki binary.
+tags: [ cli, commands, flags, environment-variables ]
+last_updated: 2026-08-27T11:22:52.400Z
+updated_by: wiki-agent
 ---
 
 # CLI Usage
@@ -15,13 +18,14 @@ The `wiki` command is parsed in `cli.tsx` and dispatches to either the Ink TUI o
 
 ### Commands
 
-Exactly one of `--init` or `--update` is required. If neither is present, the help text is printed and the process exits `0`.
+Exactly one of `--init` or `--update` is required. If neither is present, the help text is printed and the process exits `0`. The `--get-config` and `--version` flags are standalone commands and do not require `--init` or `--update`.
 
 | Command | Effect |
 |---------|--------|
 | `wiki --init` | Initialize wiki documentation. Drives the model with the "init" user message and writes `.github/workflows/update-wiki.yml`. |
 | `wiki --update` | Refresh an existing wiki. Drives the model with the "update" user message and recent git history. Produces `.wiki/.last-update-report.md` and `.wiki/.last-updated.json` when content changes. |
 | `wiki --version` | Print the current package version (read from `package.json`) and exit. |
+| `wiki --get-config` | Print the merged effective configuration as JSON and exit. Useful for debugging config resolution. |
 | `wiki --help` / `-h` | Print the help text and exit. |
 
 ### Flags
@@ -32,6 +36,7 @@ Exactly one of `--init` or `--update` is required. If neither is present, the he
 | `--print` | Run headless: write events to stdout/stderr instead of launching the TUI. Required for CI. |
 | `--model <id>` | Override the model for this run. Higher priority than env vars and config files. |
 | `--mcp stdio` | Start the MCP server on stdin/stdout. No `--init`/`--update` required; runs standalone. |
+| `--get-config` | Print the merged effective configuration (after env vars, config files, and `--model` are applied) as JSON and exit. |
 | `--verbose`, `-v` | Show tool call results in addition to assistant prose. Without this flag, tool events are suppressed in both headless and TUI output. |
 | `--help`, `-h` | Show help. |
 
@@ -116,7 +121,16 @@ The GitHub Actions workflow created by `wiki --init --wiki` invokes `wiki-flatte
 
 MCP mode is dispatched in `cli.tsx` before the normal `--init`/`--update` path. It dynamically imports `src/mcp-server.ts` so that heavy native dependencies (`better-sqlite3`, `@huggingface/transformers`) are only loaded when needed.
 
+## `--get-config` example
+
+```bash
+wiki --get-config
+wiki --get-config --model llama3.2
+```
+
+Output is the resolved `ResolvedConfig` object from `src/config.ts:resolveConfig`, printed as formatted JSON to stdout. The printed object reflects the same precedence order as a normal run: env vars and legacy aliases first, then `--model`, then project/global config, then defaults.
+
 ## Exit codes
 
-- `wiki`: `0` — normal completion (including `--help`); `1` — unhandled exception in `main`, or API key missing when the resolved config is `cloud` or `openai` mode.
+- `wiki`: `0` — normal completion (including `--help` and `--get-config`); `1` — unhandled exception in `main`, or API key missing when the resolved config is `cloud` or `openai` mode.
 - `wiki-flatten`: `0` — success; `1` — missing arguments or unexpected error.

@@ -1,8 +1,11 @@
 ---
 type: Reference
 title: Configuration
-description: Global and project config files, environment variable overrides, and how the effective configuration is resolved.
-tags: [config, environment-variables, ollama, openai, resolution-order]
+description: Global and project config files, environment variable overrides,
+  and how the effective configuration is resolved.
+tags: [ config, environment-variables, ollama, openai, resolution-order ]
+last_updated: 2026-08-27T11:22:54.979Z
+updated_by: wiki-agent
 ---
 
 # Configuration
@@ -93,6 +96,8 @@ Lives inside the wiki output directory. Currently only two fields are read:
 The TUI and headless runner both use this factory, so there is exactly one code path for building the client.
 
 `createEmbeddingConfig` extracts `{ provider, ollamaModel, ollamaHost }` from the resolved config for the embeddings/MCP server path. The embedding provider is independent of the LLM provider: you can use `openai` for the agent and `local` embeddings, or `local` LLM plus `ollama` embeddings.
+
+To inspect the fully resolved configuration for the current directory, run `wiki --get-config`. It applies the same precedence rules as an actual init/update run and prints the resulting `ResolvedConfig` as JSON.
 
 ## Provider defaults
 
