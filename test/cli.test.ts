@@ -50,6 +50,11 @@ describe("parseArgs", () => {
     const versionArgs = parseArgs(["node", "cli.js", "--version"]);
     expect(versionArgs.version).toBe(true);
   });
+
+  test("parses --get-config flag", () => {
+    const args = parseArgs(["node", "cli.js", "--get-config"]);
+    expect(args.getConfig).toBe(true);
+  });
 });
 
 describe("isMainModule", () => {

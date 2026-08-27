@@ -169,6 +169,7 @@ Usage
   wiki --init --print --model <id>    Specify model
   wiki --update --print --verbose     Headless update with full tool logs
   wiki --update --print --wiki        Update and publish to the GitHub Wiki tab
+  wiki --get-config                   Print the current merged configuration
   wiki --mcp stdio                    Start MCP server on stdio (streamable)
   wiki --version                      Show version
   wiki --help                         Show this help
@@ -180,6 +181,7 @@ Options
   --verbose, -v      Show full tool call results (default: assistant prose only)
   --model <id>       Override the model ID
   --wiki             Update and publish to the GitHub Wiki tab
+  --get-config       Print the current merged configuration
   --mcp <transport>  Start as MCP server (supports: stdio)
   --version          Show version
   --help, -h         Show help

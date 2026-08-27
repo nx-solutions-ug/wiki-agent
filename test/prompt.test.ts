@@ -133,6 +133,7 @@ describe("prompt", () => {
       expect(help).toContain("--update");
       expect(help).toContain("--print");
       expect(help).toContain("--model");
+      expect(help).toContain("--get-config");
       expect(help).toContain("--help");
     });
 

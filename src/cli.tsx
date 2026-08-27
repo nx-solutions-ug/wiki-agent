@@ -25,10 +25,20 @@ interface CliArgs {
   mcp: McpTransport | null;
   help: boolean;
   version: boolean;
+  getConfig: boolean;
 }
 
 export function parseArgs(argv: string[]): CliArgs {
-  const args: CliArgs = { command: null, print: false, verbose: false, wiki: false, mcp: null, help: false, version: false };
+  const args: CliArgs = {
+    command: null,
+    print: false,
+    verbose: false,
+    wiki: false,
+    mcp: null,
+    help: false,
+    version: false,
+    getConfig: false,
+  };
   for (let i = 2; i < argv.length; i++) {
     const arg = argv[i];
 
@@ -48,6 +58,9 @@ export function parseArgs(argv: string[]): CliArgs {
         break;
       case "--wiki":
         args.wiki = true;
+        break;
+      case "--get-config":
+        args.getConfig = true;
         break;
       case "--mcp": {
         const transport = argv[++i];
@@ -117,8 +130,20 @@ async function runHeadless(
 async function main() {
   const args = parseArgs(process.argv);
 
+  if (args.help) {
+    console.log(getHelpText());
+    process.exit(0);
+  }
+
   if (args.version) {
     console.log(`wiki-agent v${VERSION}`);
+    process.exit(0);
+  }
+
+  if (args.getConfig) {
+    const cwd = process.cwd();
+    const config = await resolveConfig(cwd, args.model);
+    console.log(JSON.stringify(config, null, 2));
     process.exit(0);
   }
 
@@ -132,7 +157,7 @@ async function main() {
     return;
   }
 
-  if (args.help || args.command === null) {
+  if (args.command === null) {
     console.log(getHelpText());
     process.exit(0);
   }
