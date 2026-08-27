@@ -2,7 +2,9 @@
 type: Quickstart
 title: Quickstart
 description: Install, configure, and run Wiki Agent to generate a wiki for any repository.
-tags: [quickstart, install, setup]
+tags: [ quickstart, install, setup ]
+last_updated: 2026-08-27T11:22:13.369Z
+updated_by: wiki-agent
 ---
 
 # Quickstart
@@ -35,6 +37,7 @@ Verify the install:
 ```bash
 wiki --version
 wiki --help
+wiki --get-config
 ```
 
 The README uses a hero banner at `public/banner.png`. The npm tarball only includes `dist/`, `README.md`, and `LICENSE` (the `files` array in `package.json`); workflows are generated into target repos by `--init`, not shipped in the package.
@@ -63,6 +66,9 @@ wiki --update --print
 
 # Show the installed version
 wiki --version
+
+# Print the merged configuration for debugging
+wiki --get-config
 
 # Override the model for a single run
 wiki --init --print --model llama3.2
