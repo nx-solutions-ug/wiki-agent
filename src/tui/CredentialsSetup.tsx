@@ -21,7 +21,6 @@ type SetupStep =
 
 const DEFAULT_LLM_MODEL = "kimi-k2.7-code";
 const DEFAULT_EMBEDDING_MODEL = "nomic-embed-text";
-const DEFAULT_OLLAMA_HOST = "http://localhost:11434";
 
 export function CredentialsSetup({
   onConfigSaved,
