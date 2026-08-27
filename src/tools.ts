@@ -1,4 +1,4 @@
-import { readFile, writeFile, readdir, stat, mkdir } from "node:fs/promises";
+import { readFile, writeFile, readdir, mkdir } from "node:fs/promises";
 import { createReadStream } from "node:fs";
 import readline from "node:readline";
 import { execFile } from "node:child_process";
