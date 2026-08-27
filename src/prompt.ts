@@ -123,7 +123,6 @@ ${instructionsSection}
 
 export function createUserMessage(
   command: WikiCommand,
-  projectRoot: string,
   gitSummary?: string,
 ): string {
   if (command === "init") {
