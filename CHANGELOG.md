@@ -1,3 +1,10 @@
+# [1.18.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.17.1...v1.18.0) (2026-08-27)
+
+
+### Features
+
+* add last_updated and updated_by frontmatter to wiki files ([#148](https://github.com/nx-solutions-ug/wiki-agent/issues/148)) ([87f1ae2](https://github.com/nx-solutions-ug/wiki-agent/commit/87f1ae269735482f7daf383183dddae03d6ef563))
+
 ## [1.17.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.17.0...v1.17.1) (2026-08-18)
 
 
