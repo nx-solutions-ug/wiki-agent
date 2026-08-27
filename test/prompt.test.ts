@@ -100,14 +100,14 @@ describe("prompt", () => {
 
   describe("createUserMessage", () => {
     test("init message contains initialization instructions", () => {
-      const message = createUserMessage("init", "/test/project");
+      const message = createUserMessage("init");
       expect(message).toContain("Initialize wiki documentation");
       expect(message).toContain(".wiki/quickstart.md");
       expect(message).toContain("discovery pass");
     });
 
     test("update message contains update instructions", () => {
-      const message = createUserMessage("update", "/test/project");
+      const message = createUserMessage("update");
       expect(message).toContain("Update the existing");
       expect(message).toContain("surgical");
       expect(message).toContain("discovery pass");
@@ -116,12 +116,12 @@ describe("prompt", () => {
 
     test("includes git context when provided", () => {
       const gitSummary = "abc123 First commit\ndef456 Second commit";
-      const message = createUserMessage("init", "/test/project", gitSummary);
+      const message = createUserMessage("init", gitSummary);
       expect(message).toContain("abc123 First commit");
     });
 
     test("falls back to not available when no git summary", () => {
-      const message = createUserMessage("init", "/test/project");
+      const message = createUserMessage("init");
       expect(message).toContain("not available");
     });
   });

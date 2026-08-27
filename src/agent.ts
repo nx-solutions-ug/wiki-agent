@@ -1,4 +1,4 @@
-import { mkdir, writeFile, readFile } from "node:fs/promises";
+import { writeFile, readFile } from "node:fs/promises";
 import { execFile } from "node:child_process";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -246,7 +246,7 @@ export async function runAgent(
   const maxIter = maxIterations ?? resolveMaxIterations();
   const tools = createTools(projectRoot, { updatedBy });
   const systemPrompt = await createSystemPrompt(projectRoot);
-  const userMessage = createUserMessage(command, projectRoot, gitSummary);
+  const userMessage = createUserMessage(command, gitSummary);
 
   const messages: LLMMessage[] = [
     { role: "system", content: systemPrompt },

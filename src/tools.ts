@@ -1,4 +1,4 @@
-import { readFile, writeFile, readdir, stat, mkdir } from "node:fs/promises";
+import { readFile, writeFile, readdir, mkdir } from "node:fs/promises";
 import { createReadStream } from "node:fs";
 import readline from "node:readline";
 import { execFile } from "node:child_process";
@@ -230,8 +230,8 @@ function resolveProjectPath(
   return resolved;
 }
 
-export function createTools(projectRoot: string, options?: ToolOptions): Tool[] {
-  const readFileTool: Tool = {
+function createReadFileTool(projectRoot: string): Tool {
+  return {
     definition: {
       type: "function",
       function: {
@@ -289,8 +289,10 @@ export function createTools(projectRoot: string, options?: ToolOptions): Tool[] 
       return truncateResult(result);
     },
   };
+}
 
-  const writeFileTool: Tool = {
+function createWriteFileTool(projectRoot: string, options?: ToolOptions): Tool {
+  return {
     definition: {
       type: "function",
       function: {
@@ -332,8 +334,10 @@ export function createTools(projectRoot: string, options?: ToolOptions): Tool[] 
       return `Wrote ${args.path}`;
     },
   };
+}
 
-  const editFileTool: Tool = {
+function createEditFileTool(projectRoot: string, options?: ToolOptions): Tool {
+  return {
     definition: {
       type: "function",
       function: {
@@ -386,8 +390,10 @@ export function createTools(projectRoot: string, options?: ToolOptions): Tool[] 
       return `Edited ${args.path}`;
     },
   };
+}
 
-  const lsTool: Tool = {
+function createLsTool(projectRoot: string): Tool {
+  return {
     definition: {
       type: "function",
       function: {
@@ -420,8 +426,10 @@ export function createTools(projectRoot: string, options?: ToolOptions): Tool[] 
       return truncateResult(result || "(empty directory)");
     },
   };
+}
 
-  const grepTool: Tool = {
+function createGrepTool(projectRoot: string): Tool {
+  return {
     definition: {
       type: "function",
       function: {
@@ -494,8 +502,10 @@ export function createTools(projectRoot: string, options?: ToolOptions): Tool[] 
       }
     },
   };
+}
 
-  const globTool: Tool = {
+function createGlobTool(projectRoot: string): Tool {
+  return {
     definition: {
       type: "function",
       function: {
@@ -552,8 +562,10 @@ export function createTools(projectRoot: string, options?: ToolOptions): Tool[] 
       }
     },
   };
+}
 
-  const gitTool: Tool = {
+function createGitTool(projectRoot: string): Tool {
+  return {
     definition: {
       type: "function",
       function: {
@@ -616,8 +628,10 @@ export function createTools(projectRoot: string, options?: ToolOptions): Tool[] 
       }
     },
   };
+}
 
-  const astGrepTool: Tool = {
+function createAstGrepTool(projectRoot: string): Tool {
+  return {
     definition: {
       type: "function",
       function: {
@@ -698,8 +712,10 @@ export function createTools(projectRoot: string, options?: ToolOptions): Tool[] 
       }
     },
   };
+}
 
-  const astSearchTool: Tool = {
+function createAstSearchTool(projectRoot: string): Tool {
+  return {
     definition: {
       type: "function",
       function: {
@@ -759,8 +775,10 @@ export function createTools(projectRoot: string, options?: ToolOptions): Tool[] 
       }
     },
   };
+}
 
-  const ghTool: Tool = {
+function createGhTool(projectRoot: string): Tool {
+  return {
     definition: {
       type: "function",
       function: {
@@ -867,18 +885,20 @@ export function createTools(projectRoot: string, options?: ToolOptions): Tool[] 
       }
     },
   };
+}
 
+export function createTools(projectRoot: string, options?: ToolOptions): Tool[] {
   return [
-    readFileTool,
-    writeFileTool,
-    editFileTool,
-    lsTool,
-    grepTool,
-    globTool,
-    gitTool,
-    astGrepTool,
-    astSearchTool,
-    ghTool,
+    createReadFileTool(projectRoot),
+    createWriteFileTool(projectRoot, options),
+    createEditFileTool(projectRoot, options),
+    createLsTool(projectRoot),
+    createGrepTool(projectRoot),
+    createGlobTool(projectRoot),
+    createGitTool(projectRoot),
+    createAstGrepTool(projectRoot),
+    createAstSearchTool(projectRoot),
+    createGhTool(projectRoot),
   ];
 }
 
