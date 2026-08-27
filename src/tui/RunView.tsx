@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Box, Text, useApp } from "ink";
+import { Box, Text } from "ink";
 import { runAgent, type AgentEvent } from "../agent.js";
 import { createLLMClient, type ResolvedConfig } from "../config.js";
 import type { WikiCommand } from "../prompt.js";
@@ -29,7 +29,6 @@ export function RunView({
   const [running, setRunning] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const eventsRef = useRef<DisplayEvent[]>([]);
-  const { exit } = useApp();
 
   useEffect(() => {
     const client = createLLMClient(config);
