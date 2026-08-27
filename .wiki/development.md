@@ -126,7 +126,7 @@ Vouched users are tracked in `.github/VOUCHED.td`. Bots and collaborators with w
 - **OMP workflows**: the `.github/workflows/omp*.yml` files and `.omp/` directory live in this repo's source but are unrelated to the `wiki-agent` package; they automate the project's own issue/PR management via OMP.
 - **OMP review flow mismatch**: `omp-ci.yml` computes a `review-type` prefix (`dep:`, `bot:`, or empty) from the PR author, but the output step is not used in the actual OMP invocation; the review type is determined by `review-pr.md` from the PR author instead.
 - **Staleness check is in system prompt only**: the update-mode staging PR staleness check is documented in the system prompt and implemented by the running agent; there is no dedicated source function for it.
-- **Embeddings/MCP are not yet in the high-level overview pages**: the `embeddings.ts` and `mcp-server.ts` modules are present in the source and have dedicated tests, but the wiki's architecture and quickstart pages still describe the core loop. Add dedicated pages only when the feature set stabilizes.
+- **Embeddings/MCP are covered in the architecture overview**: the `embeddings.ts` and `mcp-server.ts` modules are documented in [Architecture Overview](./architecture/overview.md#embeddings-and-mcp-server).
 
 ## Release checklist
 

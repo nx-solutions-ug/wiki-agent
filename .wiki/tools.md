@@ -73,6 +73,18 @@ The handler reads the file with a `createReadStream` + `readline` pipeline, stre
 
 The handler reads the file, runs a single `String.prototype.replace`, and writes it back. If the file is unchanged after the replace, it returns `No match found for old_string in <path>` and does not touch the file.
 
+## Frontmatter metadata injection
+
+Every markdown file created or edited by `write_file` or `edit_file` gets fresh `last_updated` and `updated_by` YAML frontmatter before it is written. The tool uses `tools.ts:injectOrUpdateFrontmatter`, which parses any existing frontmatter with the YAML AST, preserves all other keys/comments, and sets the two metadata fields. If the file has no frontmatter, a new YAML block is prepended.
+
+`updated_by` is resolved by `cli-helpers.ts:resolveUpdatedBy`:
+- `wiki-agent` for automated runs (`CI`, `GITHUB_ACTIONS`, or `WIKI_AUTOMATED=true`).
+- `mcp-server` for MCP server runs (`WIKI_MCP=true`).
+- `git config user.name` for user runs, falling back to `GIT_AUTHOR_NAME`, `USER`, `USERNAME`, or `wiki-agent`.
+- `WIKI_UPDATED_BY` or an explicit `updatedBy` tool option overrides the above.
+
+This is why every page in `.wiki/` — including auto-generated `index.md` files — carries a `last_updated`/`updated_by` header.
+
 ## `ls`
 
 ```json

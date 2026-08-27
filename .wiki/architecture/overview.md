@@ -39,11 +39,11 @@ See [Configuration](../configuration.md) for the data model, [Tools](../tools.md
 3. Stream or batch the response. Collect `content` and any `tool_calls` returned by the model.
 4. Append the assistant message to the history. If there are tool calls, append a `tool` message per call; Ollama uses `tool_name`, while OpenAI uses `tool_call_id`.
 5. Loop up to `WIKI_RECURSION_LIMIT` iterations (default `200`). A response with no tool calls ends the loop.
-6. After the loop, call `createWorkflowFile` in `src/workflow.ts`, `synchronizeWikiIndexes(.wiki)`, write `.wiki/.last-updated.json`, `.wiki/.last-update-report.md` (via `generateUpdateReport`), and `.wiki/.last-update-title.txt` (via `generateUpdateTitle`), then emit a `done` event. The write/edit tools themselves strip reasoning/thinking tags from persisted content before it reaches disk. On `init`, the loop also appends/updates a wiki-agent section in `AGENTS.md`/`CLAUDE.md` via `appendWikiAgentFrontmatter`, and writes `.wiki/.gitignore` to keep run metadata and the embeddings database out of git.
+6. After the loop, call `createWorkflowFile` in `src/workflow.ts`, `synchronizeWikiIndexes(.wiki)`, write `.wiki/.last-update-report.md` (via `generateUpdateReport`) and `.wiki/.last-update-title.txt` (via `generateUpdateTitle`), then emit a `done` event. The write/edit tools themselves strip reasoning/thinking tags from persisted content and inject `last_updated`/`updated_by` frontmatter before it reaches disk. On `init`, the loop also appends/updates a wiki-agent section in `AGENTS.md`/`CLAUDE.md` via `appendWikiAgentFrontmatter`, and writes `.wiki/.gitignore` to keep run metadata and the embeddings database out of git.
 
 Errors from the LLM SDK are surfaced through the `error` event stream. If the model had already produced content, the loop exits with a `done` summary that includes the error message; otherwise it emits `error` and stops.
 
-`runAgent` also writes `.wiki/.gitignore` on every run so run-metadata files (`/.last-updated.json`, `/.last-update-report.md`, `/.last-update-title.txt`) stay out of git history, and it untracks any of those files that were already committed in legacy repos.
+`runAgent` also writes `.wiki/.gitignore` on every run so run-metadata files (`/.last-update-report.md`, `/.last-update-title.txt`) stay out of git history, and it untracks any of those files that were already committed in legacy repos.
 
 ## Streaming and headless
 
@@ -104,7 +104,7 @@ The agent keeps its nested `.wiki/` directory structure, but GitHub Wikis requir
 - `.wiki/cli/usage.md` → `CLI-Usage.md`
 - Internal links are rewritten from relative `.md` paths to flat wiki page names, e.g. `[Text](./cli/usage.md)` → `[Text](CLI-Usage)`.
 - `_Sidebar.md` is generated automatically from the page structure.
-- Metadata files (`.last-update-report.md`, `.last-updated.json`, `.last-update-title.txt`, `config.json`, `_plan.md`) are excluded from the flatten.
+- Metadata files (`.last-update-report.md`, `.last-update-title.txt`, `config.json`, `_plan.md`) are excluded from the flatten.
 
 This step is invoked by `.github/workflows/update-wiki.yml` (when `--wiki` was passed to `--init`) immediately before the wiki repo is cloned and rsynced. See [GitHub Actions](../automation/github-actions.md).
 

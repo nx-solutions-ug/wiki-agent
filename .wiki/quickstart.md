@@ -87,4 +87,4 @@ Wiki Agent writes only inside `.wiki/`. Each page starts with YAML frontmatter (
 - `.wiki/automation/` — CI integrations
 - `.wiki/development.md` — build, test, and release
 
-After the run, `index.md` files in each subdirectory are regenerated to list the contained files using their frontmatter titles and descriptions. A local `.wiki/wiki.db` and run-metadata files (`.last-updated.json`, `.last-update-report.md`, `.last-update-title.txt`) are also gitignored.
+After the run, `index.md` files in each subdirectory are regenerated to list the contained files using their frontmatter titles and descriptions. Each generated or edited `.md` page — including every `index.md` — carries `last_updated` and `updated_by` frontmatter so readers can see when it was last refreshed and by whom (e.g. `wiki-agent` in CI, `mcp-server`, or the local Git user). A local `.wiki/wiki.db` and run-metadata files (`.last-update-report.md`, `.last-update-title.txt`) are also gitignored.

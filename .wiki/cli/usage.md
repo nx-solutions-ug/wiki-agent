@@ -54,6 +54,9 @@ Environment variables are merged with config files by `resolveConfig` in `config
 | `WIKI_EMBEDDING_MODEL` | Ollama embedding model ID (when provider is `"ollama"`) | `"nomic-embed-text"` |
 | `WIKI_EMBEDDING_HOST` | Ollama host for embeddings (when provider is `"ollama"`) | `http://localhost:11434` |
 | `WIKI_RECURSION_LIMIT` | Max agent iterations | `200` |
+| `WIKI_UPDATED_BY` | Override the `updated_by` author written into wiki frontmatter | resolved from run context |
+| `WIKI_AUTOMATED` | Force `updated_by: wiki-agent` when set to `true`/`1` | `false` |
+| `WIKI_MCP` | Force `updated_by: mcp-server` when set to `true`/`1` | `false` |
 | `GH_TOKEN` | GitHub token for the read-only `gh` CLI tool (used in CI for the staging PR staleness check) | from environment |
 
 In headless mode, the model ID is selected as: `--model` flag → `.wiki/config.json` `modelOverride` → `WIKI_MODEL` → `~/.wiki/config.json` `defaultModel` → `kimi-k2.7-code`.
