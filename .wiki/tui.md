@@ -1,8 +1,11 @@
 ---
 type: Reference
 title: Terminal UI
-description: The Ink-based interactive terminal UI — credentials wizard, run view, and event rendering.
-tags: [tui, ink, react, interactive, providers]
+description: The Ink-based interactive terminal UI — credentials wizard, run
+  view, and event rendering.
+tags: [ tui, ink, react, interactive, providers ]
+last_updated: 2026-08-27T11:02:44.092Z
+updated_by: wiki-agent
 ---
 
 # Terminal UI
@@ -16,7 +19,7 @@ When the CLI is launched without `--print`, `cli.tsx` mounts an [Ink](https://gi
 - If `config.mode` is `"cloud"` or `"openai"` and no API key is set, it renders `CredentialsSetup`.
 - Otherwise it renders the run view inside a rounded header box that shows the agent version, the provider mode, the model, and the project root.
 
-A `useInput` hook listens for `q` or `Ctrl+C` at the top level and calls `useApp().exit()` to leave Ink cleanly. The same key handling is duplicated in each screen so `q` and `Ctrl+C` work everywhere.
+A `useInput` hook in `App.tsx` listens for `q` or `Ctrl+C` and calls `useApp().exit()` to leave Ink cleanly. The child screens (`CredentialsSetup` and `RunView`) rely on this top-level handler, so `q` and `Ctrl+C` exit the app from any screen.
 
 ## Credentials setup: `CredentialsSetup.tsx`
 
@@ -27,11 +30,11 @@ An eight-step state machine:
 3. `base-url` — lets the user customize the provider base URL; press Enter to keep the mode default (`http://localhost:11434`, `https://ollama.com`, or `https://api.openai.com/v1`).
 4. `embedding-select` — pick `1` for local Hugging Face Transformers.js embeddings (`all-MiniLM-L6-v2`, on-device) or `2` for Ollama embeddings. Key presses drive transitions.
 5. `embedding-model` — only reached when the embedding provider is `ollama`. Defaults to `nomic-embed-text`.
-6. `embedding-host` — Ollama server URL for embeddings. Defaults to the provider's base URL (or `http://localhost:11434` for local mode).
-7. `model` — the LLM model ID. Defaults to `kimi-k2.7-code` and uses the same text input. The prompt text matches this default.
+6. `embedding-host` — Ollama server URL for embeddings. Defaults to the provider's base URL.
+7. `model` — the LLM model ID. Defaults to `kimi-k2.7-code` and uses the same text input. The prompt text matches this default. This is the final input step before saving, regardless of which embedding path was chosen.
 8. `saving` — calls `saveGlobalConfig` with the assembled `GlobalConfig` (including `baseUrl`/`embeddingHost` only when they differ from the mode defaults), then calls the parent `onConfigSaved` callback with a synthesized `ResolvedConfig` so the run view can start without re-reading the disk.
 
-Errors from `saveGlobalConfig` are caught and rendered in red; the wizard drops back to `mode-select` on failure.
+Choosing local embeddings at `embedding-select` skips the `embedding-model` and `embedding-host` prompts and goes straight to the `model` step. Errors from `saveGlobalConfig` are caught and rendered in red; the wizard drops back to `mode-select` on failure.
 
 ## Run view: `RunView.tsx`
 

@@ -1,8 +1,11 @@
 ---
 type: Reference
 title: Development
-description: Build, test, release workflow, and repository automation for the wiki-agent project.
-tags: [development, build, test, release]
+description: Build, test, release workflow, and repository automation for the
+  wiki-agent project.
+tags: [ development, build, test, release ]
+last_updated: 2026-08-27T11:02:45.372Z
+updated_by: wiki-agent
 ---
 
 # Development
@@ -118,7 +121,11 @@ The repo uses several GitHub Actions workflows beyond `update-wiki.yml`:
 
 Vouched users are tracked in `.github/VOUCHED.td`. Bots and collaborators with write access are automatically allowed. See [Vouch Access Control](../automation/vouch.md) for details.
 
-`.releaserc.json` configures semantic-release for branches `main`, `beta`, and `alpha`, writes `CHANGELOG.md`, commits `package.json`/`CHANGELOG.md`, creates a GitHub release, and publishes `@chronova/wiki-agent` via the `@semantic-release/npm` plugin. The `releaseBodyTemplate` in `.releaserc.json` also truncates the release notes at 120 000 bytes with a pointer back to `CHANGELOG.md` as a fallback. The release job additionally edits the newly created release body with a full commit-level "What's Changed" section generated locally from `git log`, replacing the default notes; if those generated notes exceed 120 000 bytes they are truncated at a safe line boundary with a pointer back to `CHANGELOG.md`. Renovate is configured with `config:recommended` in `renovate.json`. Because the project uses Bun, `package-lock.json` is not part of the git assets. The project is released under the ISC license (`LICENSE`); `package.json` sets `license: "ISC"`.
+`.releaserc.json` configures semantic-release for branches `main`, `beta`, and `alpha`, writes `CHANGELOG.md`, commits `package.json`/`CHANGELOG.md`, creates a GitHub release, and publishes `@chronova/wiki-agent` via the `@semantic-release/npm` plugin. The `releaseBodyTemplate` in `.releaserc.json` also truncates the release notes at 120 000 bytes with a pointer back to `CHANGELOG.md` as a fallback. The release job additionally edits the newly created release body with a full commit-level "What's Changed" section generated locally from `git log`, replacing the default notes; if those generated notes exceed 120 000 bytes they are truncated at a safe line boundary with a pointer back to `CHANGELOG.md`.
+
+## Wiki Agent in this repo
+
+This repository is managed by Wiki Agent itself. Documentation under `.wiki/` is generated output, not hand-written source: run `wiki --update` to refresh it rather than editing pages by hand. `AGENTS.md` at the repository root contains the project conventions the agent follows (build/test commands, TypeScript settings, naming, path safety, event model, etc.), and the update run appends a marker section to `AGENTS.md`/`CLAUDE.md` declaring the repo is wiki-managed.
 
 ## Known source inconsistencies
 
