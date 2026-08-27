@@ -1,3 +1,10 @@
+# [1.19.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.18.0...v1.19.0) (2026-08-27)
+
+
+### Features
+
+* **cli:** add --get-config flag to print merged configuration ([9eaf976](https://github.com/nx-solutions-ug/wiki-agent/commit/9eaf97695056cee51b5c78edb7262aaac909fb5f))
+
 # [1.18.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.17.1...v1.18.0) (2026-08-27)
 
 
