@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { Box, Text, useApp, useInput } from "ink";
-import { runAgent, type AgentEvent } from "../agent.js";
-import { createLLMClient, type ResolvedConfig } from "../config.js";
+import { type ResolvedConfig } from "../config.js";
 import { CredentialsSetup } from "./CredentialsSetup.js";
 import { RunView } from "./RunView.js";
 import { VERSION } from "../version.js";
