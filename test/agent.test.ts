@@ -165,9 +165,14 @@ describe("runAgent", () => {
 
     expect(events).toContainEqual({ type: "done", summary: "Agent run complete" });
 
-    // verify metadata files are written
-    const lastUpdated = await readFile(path.join(projectRoot, ".wiki", ".last-updated.json"), "utf8");
-    expect(lastUpdated).toContain("lastUpdated");
+    // verify .last-updated.json is NOT written
+    await expect(readFile(path.join(projectRoot, ".wiki", ".last-updated.json"), "utf8")).rejects.toThrow();
+
+    // verify written wiki file has frontmatter entries
+    const testMd = await readFile(path.join(projectRoot, ".wiki", "test.md"), "utf8");
+    expect(testMd).toContain("last_updated:");
+    expect(testMd).toContain("updated_by:");
+    expect(testMd).toContain("test content");
 
     const report = await readFile(path.join(projectRoot, ".wiki", ".last-update-report.md"), "utf8");
     expect(report).toContain("test.md");
@@ -252,5 +257,45 @@ describe("runAgent", () => {
 
     // Called 3 times matching max iterations
     expect(mockClient.chat).toHaveBeenCalledTimes(3);
+  });
+
+  test("propagates updatedBy option to written wiki files and indexes", async () => {
+    const mockClient: LLMClient = {
+      chat: vi.fn()
+        .mockResolvedValueOnce({
+          message: {
+            content: "Writing file",
+            tool_calls: [
+              {
+                id: "call_1",
+                function: {
+                  name: "write_file",
+                  arguments: { path: ".wiki/mcp-page.md", content: "---\ntitle: MCP Page\n---\n# MCP Page\n" },
+                },
+              },
+            ],
+          },
+        })
+        .mockResolvedValueOnce({
+          message: { content: "Done", tool_calls: [] },
+        }),
+    };
+
+    const options: RunOptions = {
+      command: "update",
+      projectRoot,
+      model: "test-model",
+      updatedBy: "mcp-server",
+    };
+
+    await runAgent(mockClient, options);
+
+    const pageContent = await readFile(path.join(projectRoot, ".wiki", "mcp-page.md"), "utf8");
+    expect(pageContent).toContain("updated_by: mcp-server");
+    expect(pageContent).toContain("last_updated:");
+
+    const indexContent = await readFile(path.join(projectRoot, ".wiki", "index.md"), "utf8");
+    expect(indexContent).toContain('updated_by: "mcp-server"');
+    expect(indexContent).toContain("last_updated:");
   });
 });

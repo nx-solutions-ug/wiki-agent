@@ -4,7 +4,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import os from "node:os";
 import path from "node:path";
-import { createTools, executeTool, parseArgsStringToArgv, stripThinkingTags, _toolsCache, clearToolsCache } from "../src/tools.js";
+import { createTools, executeTool, parseArgsStringToArgv, stripThinkingTags, injectOrUpdateFrontmatter, _toolsCache, clearToolsCache } from "../src/tools.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -45,7 +45,7 @@ describe("tools", () => {
       expect(result).toContain("Error");
     });
 
-    test("write_file accepts paths under .wiki/", async () => {
+    test("write_file accepts paths under .wiki/ and adds frontmatter", async () => {
       const result = await executeTool(
         "write_file",
         { path: ".wiki/quickstart.md", content: "# Quickstart" },
@@ -58,7 +58,9 @@ describe("tools", () => {
         path.join(projectRoot, ".wiki", "quickstart.md"),
         "utf8",
       );
-      expect(content).toBe("# Quickstart");
+      expect(content).toContain("# Quickstart");
+      expect(content).toContain("last_updated:");
+      expect(content).toContain("updated_by:");
     });
 
     test("write_file creates nested directories", async () => {
@@ -135,7 +137,9 @@ describe("tools", () => {
         path.join(projectRoot, ".wiki", "test.md"),
         "utf8",
       );
-      expect(content).toBe("new text here");
+      expect(content).toContain("new text here");
+      expect(content).toContain("last_updated:");
+      expect(content).toContain("updated_by:");
     });
 
     test("returns no-match message when old_string not found", async () => {
@@ -156,6 +160,74 @@ describe("tools", () => {
       );
 
       expect(result).toContain("No match found");
+    });
+  });
+
+  describe("frontmatter handling", () => {
+    test("injectOrUpdateFrontmatter preserves existing fields and adds metadata", () => {
+      const input = "---\ntype: Guide\ntitle: My Title\ndescription: Desc\ntags: [a, b]\n---\n\n# Body\n";
+      const output = injectOrUpdateFrontmatter(input, {
+        last_updated: "2026-08-26T00:00:00.000Z",
+        updated_by: "Alice",
+      });
+
+      expect(output).toContain("type: Guide");
+      expect(output).toContain("title: My Title");
+      expect(output).toContain("description: Desc");
+      expect(output).toContain("tags: [ a, b ]");
+      expect(output).toContain("last_updated: 2026-08-26T00:00:00.000Z");
+      expect(output).toContain("updated_by: Alice");
+      expect(output).toContain("# Body");
+    });
+
+    test("injectOrUpdateFrontmatter updates existing last_updated and updated_by", () => {
+      const input = "---\ntitle: Doc\nlast_updated: 2020-01-01T00:00:00.000Z\nupdated_by: OldUser\n---\n# Content\n";
+      const output = injectOrUpdateFrontmatter(input, {
+        last_updated: "2026-08-26T12:00:00.000Z",
+        updated_by: "NewUser",
+      });
+
+      expect(output).toContain("title: Doc");
+      expect(output).toContain("last_updated: 2026-08-26T12:00:00.000Z");
+      expect(output).toContain("updated_by: NewUser");
+      expect(output).not.toContain("2020-01-01");
+      expect(output).not.toContain("OldUser");
+    });
+
+    test("injectOrUpdateFrontmatter prepends frontmatter when none exists", () => {
+      const input = "# Markdown Title\n\nSome paragraph.";
+      const output = injectOrUpdateFrontmatter(input, {
+        last_updated: "2026-08-26T00:00:00.000Z",
+        updated_by: "wiki-agent",
+      });
+
+      expect(output.startsWith("---\n")).toBe(true);
+      expect(output).toContain("last_updated: 2026-08-26T00:00:00.000Z");
+      expect(output).toContain("updated_by: wiki-agent");
+      expect(output).toContain("# Markdown Title");
+    });
+
+    test("write_file and edit_file respect explicit updatedBy option", async () => {
+      await executeTool(
+        "write_file",
+        { path: ".wiki/page.md", content: "---\ntitle: Page\n---\n# Page\n" },
+        projectRoot,
+        { updatedBy: "mcp-server" },
+      );
+
+      const content1 = await readFile(path.join(projectRoot, ".wiki", "page.md"), "utf8");
+      expect(content1).toContain("updated_by: mcp-server");
+
+      await executeTool(
+        "edit_file",
+        { path: ".wiki/page.md", old_string: "# Page", new_string: "# Updated Page" },
+        projectRoot,
+        { updatedBy: "Custom Author" },
+      );
+
+      const content2 = await readFile(path.join(projectRoot, ".wiki", "page.md"), "utf8");
+      expect(content2).toContain("updated_by: Custom Author");
+      expect(content2).toContain("# Updated Page");
     });
   });
 
@@ -187,7 +259,10 @@ describe("tools", () => {
       );
       expect(content).not.toContain(`${LT}think`);
       expect(content).not.toContain("Let me plan the doc");
-      expect(content).toContain("---\ntype: Guide\ntitle: Quickstart\n---");
+      expect(content).toContain("type: Guide");
+      expect(content).toContain("title: Quickstart");
+      expect(content).toContain("last_updated:");
+      expect(content).toContain("updated_by:");
       expect(content).toContain("# Quickstart");
     });
 
@@ -267,9 +342,11 @@ describe("tools", () => {
         path.join(projectRoot, ".wiki", "clean.md"),
         "utf8",
       );
-      expect(content).toBe(
-        "---\ntype: Guide\ntitle: Clean\n---\n# Clean\n\nNo thinking here.\n",
-      );
+      expect(content).toContain("type: Guide");
+      expect(content).toContain("title: Clean");
+      expect(content).toContain("last_updated:");
+      expect(content).toContain("updated_by:");
+      expect(content).toContain("# Clean\n\nNo thinking here.");
     });
 
     test("edit_file strips thinking tags from new_string", async () => {

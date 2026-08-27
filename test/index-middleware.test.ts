@@ -42,13 +42,15 @@ describe("index-middleware", () => {
       "---\ntype: Reference\ntitle: Architecture\ndescription: System architecture.\n---\n\n# Architecture\n",
     );
 
-    await synchronizeWikiIndexes(wikiRoot);
+    await synchronizeWikiIndexes(wikiRoot, { updatedBy: "test-author" });
 
     const index = await readFile(path.join(wikiRoot, "index.md"), "utf8");
     expect(index).toContain("Getting Started");
     expect(index).toContain("Architecture");
     expect(index).toContain("How to get started.");
     expect(index).toContain("System architecture.");
+    expect(index).toContain("last_updated:");
+    expect(index).toContain('updated_by: "test-author"');
   });
 
   test("indexes a file without frontmatter using its filename", async () => {

@@ -25,7 +25,7 @@ cli.tsx (entry, bin: ./dist/cli.js)
 5. Executes each tool via `tools.ts:executeTool`, appends results as `role: "tool"` messages with `tool_name` (Ollama uses `tool_name`, not `tool_call_id`).
 6. Tracks `write_file`/`edit_file` calls into `changedFiles[]` for the update report.
 7. Loops until no tool calls are returned or `maxIterations` (env `WIKI_RECURSION_LIMIT`, default `200`) is hit.
-8. After loop: `synchronizeWikiIndexes` (`index-middleware.ts`) regenerates every `index.md`, writes `.last-updated.json` and `.last-update-report.md`.
+8. After loop: `synchronizeWikiIndexes` (`index-middleware.ts`) regenerates every `index.md` (with `last_updated` and `updated_by` frontmatter), writes `.last-update-report.md` and `.last-update-title.txt`.
 9. On `init`: also writes `.github/workflows/update-wiki.yml` via `createWorkflowFile`.
 
 **Index middleware** (`src/index-middleware.ts`): recursively walks `.wiki/`, parses YAML frontmatter from each `.md` (title/description), and renders one `index.md` per directory listing files and subdirectories. Excludes `index.md` and `_plan.md` from collection.

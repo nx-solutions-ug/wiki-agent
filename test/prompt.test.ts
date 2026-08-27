@@ -29,6 +29,8 @@ describe("prompt", () => {
       expect(prompt).toContain("title:");
       expect(prompt).toContain("description:");
       expect(prompt).toContain("tags:");
+      expect(prompt).toContain("last_updated:");
+      expect(prompt).toContain("updated_by:");
     });
 
     test("contains tool discipline", async () => {
