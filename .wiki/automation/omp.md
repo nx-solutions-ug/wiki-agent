@@ -1,8 +1,11 @@
 ---
 type: Reference
 title: OMP Automation Workflows
-description: GitHub Actions workflows that run OMP for issue triage, PR labeling, PR review, and on-demand chat commands.
-tags: [github-actions, ci, automation, omp]
+description: GitHub Actions workflows that run OMP for issue triage, PR
+  labeling, PR review, and on-demand chat commands.
+tags: [ github-actions, ci, automation, omp ]
+last_updated: 2026-08-28T09:10:23.348Z
+updated_by: wiki-agent
 ---
 
 # OMP Automation Workflows
@@ -36,7 +39,7 @@ Automated OMP jobs triggered by repository events:
 
 - **`triage-issue`** — runs when an issue is opened or when manually dispatched with an issue number. Reacts with 👀, installs OMP, authenticates to Ollama Cloud, expands `.omp/commands/triage-issue.md`, runs OMP, and dispatches a follow-up `issue-triaged` event.
 - **`label-pr`** — runs when a PR is opened, synchronized, or marked ready for review. Skips if the PR already has both a type label (`bug`, `feature`, `enhancement`, `docs`, `chore`) and a priority label (`priority: critical`, `priority: high`, `priority: medium`, `priority: low`). Otherwise, expands `.omp/commands/label-pr.md` and runs OMP.
-- **`review-pr`** — runs on PR open/update or manual dispatch. On `synchronize`, it first checks whether the head commit author/committer looks like an agent/bot (names containing `opencode-agent`, `opencode`, `github-actions`, `omp-agent`, or `chronova-agent`). If the commit is from such an author, the re-review is skipped. The workflow installs the `gh-pr-review` extension, posts an `eyes` reaction, and expands `.omp/commands/review-pr.md` for OMP review. The `review-pr.md` prompt itself determines the review type (dependency / bot / human) from the PR author and posts the appropriate review.
+- **`review-pr`** — runs on PR open/update or manual dispatch. On `synchronize`, it first checks whether the head commit author/committer looks like an agent/bot (names containing `opencode-agent`, `opencode`, `github-actions`, `omp-agent`, or `chronova-agent`). If the commit is from such an author, the re-review is skipped. The workflow installs the `gh-pr-review` extension, posts an `eyes` reaction, and expands `.omp/commands/review-pr.md` for OMP review. The `review-pr.md` prompt itself determines the review type (dependency / bot / human) from the PR author and posts the appropriate review. The `review-pr` job has `contents: write` permissions so it can resolve review threads via the GitHub API.
 
 After each triage run, `omp-ci.yml` dispatches `.github/workflows/omp-fix-issue.yml` with the issue number in `client_payload`.
 
