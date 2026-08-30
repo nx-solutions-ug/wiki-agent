@@ -4,7 +4,7 @@ title: OMP Automation Workflows
 description: GitHub Actions workflows that run OMP for issue triage, PR
   labeling, PR review, and on-demand chat commands.
 tags: [ github-actions, ci, automation, omp ]
-last_updated: 2026-08-28T09:54:03.501Z
+last_updated: 2026-08-30T11:58:54.772Z
 updated_by: wiki-agent
 ---
 
@@ -31,7 +31,7 @@ On-demand OMP invocation triggered by comments:
 - Generates a GitHub App token, authenticates `gh`, installs the `gh-pr-review` extension (`agynio/gh-pr-review`) pinned to `v1.6.2`, and sets up git push credentials. This extension is required by the PR review prompt even though this workflow also serves issue comments.
 - Installs OMP and authenticates it against Ollama Cloud using `secrets.OLLAMA_API_KEY`.
 - Extracts the command name and arguments from the comment. If the comment matches a `.omp/commands/<command>.md` file, that prompt is expanded by replacing `$ARGUMENTS`. For freeform prompts that do not match a command file, the raw prompt is written; and for PR comments (but not issue comments), `.omp/commands/_pr-commit-push.md` is appended after substituting `__PR_NUMBER__` so the agent checks out the PR branch and commits/pushes any changes.
-- Runs OMP in JSON mode with `--model ollama-cloud/minimax-m3`, which matches the `default`/`task`/`commit` roles in `.omp/agent/config.yml`; the workflow does not consume the role mapping directly.
+- Runs OMP in JSON mode with `--model ollama-cloud/glm-5.3-flash`, which matches the `default`/`task`/`commit` roles in `.omp/agent/config.yml`; the workflow does not consume the role mapping directly.
 
 ### `.github/workflows/omp-ci.yml`
 
@@ -65,7 +65,7 @@ These prompts reference `$ARGUMENTS`, which the workflow replaces with the issue
 |--------|---------|
 | `APP_CLIENT_ID` | GitHub App client ID for token generation |
 | `APP_PRIVATE_KEY` | GitHub App private key for token generation |
-| `OLLAMA_API_KEY` | Ollama Cloud API key used by OMP to access `ollama-cloud/minimax-m3` |
+| `OLLAMA_API_KEY` | Ollama Cloud API key used by OMP to access `ollama-cloud/glm-5.3-flash` |
 | `GH_TOKEN` | GitHub token for `gh` commands (the OMP workflows authenticate `gh` with the generated GitHub App token) |
 
 These are separate from the `WIKI_OLLAMA_API_KEY` secret used by the wiki update workflow.
