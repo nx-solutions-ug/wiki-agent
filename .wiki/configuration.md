@@ -4,7 +4,7 @@ title: Configuration
 description: Global and project config files, environment variable overrides,
   and how the effective configuration is resolved.
 tags: [ config, environment-variables, ollama, openai, resolution-order ]
-last_updated: 2026-08-27T11:22:54.979Z
+last_updated: 2026-08-30T12:12:36.170Z
 updated_by: wiki-agent
 ---
 
@@ -15,7 +15,7 @@ Wiki Agent merges configuration from several sources. The exact precedence is fi
 - `mode`: `WIKI_PROVIDER_MODE` (or legacy `WIKI_OLLAMA_MODE`) if valid (`"local"`, `"cloud"`, or `"openai"`) → global config `mode` → built-in `"local"`.
 - `apiKey`: `WIKI_PROVIDER_API_KEY` (or legacy `WIKI_OLLAMA_API_KEY`) → global config `apiKey` → unset.
 - `baseUrl`: `WIKI_PROVIDER_BASE_URL` (or legacy `WIKI_OLLAMA_BASE_URL`) → global config `baseUrl` → mode default (see below).
-- `model`: `--model` CLI flag → `.wiki/config.json` `modelOverride` → `WIKI_MODEL` environment variable → `~/.wiki/config.json` `defaultModel` → built-in `kimi-k2.7-code`.
+- `model`: `--model` CLI flag → `.wiki/config.json` `modelOverride` → `WIKI_MODEL` environment variable → `~/.wiki/config.json` `defaultModel` → built-in `kimi-k3`.
 - `embeddingProvider`: `WIKI_EMBEDDING_PROVIDER` env var (`"local"` or `"ollama"`) → global config `embeddingProvider` → `"local"`.
 - `embeddingModel`: `WIKI_EMBEDDING_MODEL` env var → global config `embeddingModel` → `"nomic-embed-text"`.
 - `embeddingHost`: `WIKI_EMBEDDING_HOST` env var → global config `embeddingHost` → `http://localhost:11434`.
@@ -27,7 +27,7 @@ Lives in the user's home directory. Created and updated by the TUI's credentials
 ```json
 {
   "mode": "local",
-  "defaultModel": "kimi-k2.7-code"
+  "defaultModel": "kimi-k3"
 }
 ```
 
@@ -37,7 +37,7 @@ For cloud mode:
 {
   "mode": "cloud",
   "apiKey": "your-api-key",
-  "defaultModel": "kimi-k2.7-code"
+  "defaultModel": "kimi-k3"
 }
 ```
 
@@ -48,14 +48,14 @@ For an OpenAI-compatible endpoint:
   "mode": "openai",
   "apiKey": "your-api-key",
   "baseUrl": "https://api.openai.com/v1",
-  "defaultModel": "kimi-k2.7-code",
+  "defaultModel": "kimi-k3",
   "embeddingProvider": "local",
   "embeddingModel": "nomic-embed-text",
   "embeddingHost": "http://localhost:11434"
 }
 ```
 
-The `defaultGlobalConfig()` helper returns `{ mode: "local", defaultModel: "kimi-k2.7-code", embeddingProvider: "local", embeddingModel: "nomic-embed-text", embeddingHost: "http://localhost:11434" }` when the file is absent or unreadable. `loadGlobalConfig` swallows parse errors and falls back to the default.
+The `defaultGlobalConfig()` helper returns `{ mode: "local", defaultModel: "kimi-k3", embeddingProvider: "local", embeddingModel: "nomic-embed-text", embeddingHost: "http://localhost:11434" }` when the file is absent or unreadable. `loadGlobalConfig` swallows parse errors and falls back to the default.
 
 ## Project config: `.wiki/config.json`
 
@@ -80,7 +80,7 @@ Lives inside the wiki output directory. Currently only two fields are read:
 - `mode` — `WIKI_PROVIDER_MODE` (or legacy `WIKI_OLLAMA_MODE`) if valid (`"local"`, `"cloud"`, or `"openai"`), otherwise the global config's `mode`.
 - `apiKey` — `WIKI_PROVIDER_API_KEY` (or legacy `WIKI_OLLAMA_API_KEY`) if set, otherwise the global config's `apiKey`.
 - `baseUrl` — `WIKI_PROVIDER_BASE_URL` (or legacy `WIKI_OLLAMA_BASE_URL`) if set, otherwise the global config's `baseUrl`, otherwise the mode's default.
-- `model` — `modelOverride` arg (the `--model` flag) → `projectConfig.modelOverride` → `WIKI_MODEL` → `globalConfig.defaultModel` → `"kimi-k2.7-code"`.
+- `model` — `modelOverride` arg (the `--model` flag) → `projectConfig.modelOverride` → `WIKI_MODEL` → `globalConfig.defaultModel` → `"kimi-k3"`.
 - `embeddingProvider` — `WIKI_EMBEDDING_PROVIDER` env var (if `"local"` or `"ollama"`) → `globalConfig.embeddingProvider` → `"local"`.
 - `embeddingModel` — `WIKI_EMBEDDING_MODEL` env var → `globalConfig.embeddingModel` → `"nomic-embed-text"`.
 - `embeddingHost` — `WIKI_EMBEDDING_HOST` env var → `globalConfig.embeddingHost` → `http://localhost:11434`.
@@ -113,7 +113,7 @@ To inspect the fully resolved configuration for the current directory, run `wiki
 
 Constants exported from `config.ts`:
 
-- `DEFAULT_MODEL = "kimi-k2.7-code"` — fallback model ID.
+- `DEFAULT_MODEL = "kimi-k3"` — fallback model ID.
 - `DEFAULT_EMBEDDING_MODEL = "nomic-embed-text"` — fallback Ollama embedding model ID.
 - `MAX_TOOL_RESULT_LENGTH = 10_000` — truncation ceiling for any tool result string.
 
