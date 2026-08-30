@@ -19,7 +19,7 @@ type SetupStep =
   | "embedding-host"
   | "saving";
 
-const DEFAULT_LLM_MODEL = "kimi-k2.7-code";
+const DEFAULT_LLM_MODEL = "kimi-k3";
 const DEFAULT_EMBEDDING_MODEL = "nomic-embed-text";
 
 export function CredentialsSetup({

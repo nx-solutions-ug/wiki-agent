@@ -66,7 +66,7 @@ export async function createWorkflowFile(projectRoot: string, wikiPublish: boole
     "          WIKI_PROVIDER_MODE: ${{ vars.WIKI_PROVIDER_MODE || 'cloud' }}",
     '          WIKI_PROVIDER_API_KEY: ${{ secrets.WIKI_PROVIDER_API_KEY || secrets.WIKI_OLLAMA_API_KEY }}',
     '          WIKI_PROVIDER_BASE_URL: ${{ vars.WIKI_PROVIDER_BASE_URL }}',
-    "          WIKI_MODEL: ${{ vars.WIKI_MODEL || 'kimi-k2.7-code' }}",
+    "          WIKI_MODEL: ${{ vars.WIKI_MODEL || 'kimi-k3' }}",
     "          GH_TOKEN: ${{ steps.token.outputs.token || secrets.GITHUB_TOKEN }}",
     "",
     "      - name: Generate timestamp",

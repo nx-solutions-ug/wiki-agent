@@ -43,7 +43,7 @@ function getGlobalConfigPath(): string {
 const DEFAULT_LOCAL_HOST = "http://localhost:11434";
 const DEFAULT_CLOUD_HOST = "https://ollama.com";
 const DEFAULT_OPENAI_HOST = "https://api.openai.com/v1";
-const DEFAULT_MODEL = "kimi-k2.7-code";
+const DEFAULT_MODEL = "kimi-k3";
 const DEFAULT_EMBEDDING_MODEL = "nomic-embed-text";
 
 /** Returns the default base URL for a given provider mode. */

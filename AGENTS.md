@@ -117,7 +117,7 @@ try {
 2. CLI `--model` flag
 3. Project config `.wiki/config.json` (`modelOverride`)
 4. Global config `~/.wiki/config.json`
-5. Built-in defaults (`mode: "local"`, `model: "kimi-k2.7-code"`, local `http://localhost:11434`, cloud `https://ollama.com`, openai `https://api.openai.com/v1`)
+5. Built-in defaults (`mode: "local"`, `model: "kimi-k3"`, local `http://localhost:11434`, cloud `https://ollama.com`, openai `https://api.openai.com/v1`)
 
 
 Note: `resolveConfig` reads env vars and global config in the same pass — env wins over global for each field independently.
@@ -156,7 +156,7 @@ Headless mode (`cli.tsx:runHeadless`) prints these to stdout/stderr; the TUI (`R
 These are present in the source as of this writing — be aware when editing:
 
 - **Workflow filename mismatch**: `package.json` `files` (line 12) lists `.github/workflows/wiki-update.yml`, but `src/agent.ts:createWorkflowFile` (lines 255, 333) writes `.github/workflows/update-wiki.yml`. The `package.json` entry is stale — it references a file the build never ships. If you touch either, reconcile the names.
-- **Stale model hint in TUI**: `src/tui/CredentialsSetup.tsx:106` renders "Press Enter to use the default (qwen3-coder)", but the actual initial state (line 19) and `config.ts:DEFAULT_MODEL` are both `kimi-k2.7-code`. The hint text is out of date.
+- **Stale model hint in TUI**: `src/tui/CredentialsSetup.tsx:106` renders "Press Enter to use the default (qwen3-coder)", but the actual initial state (line 19) and `config.ts:DEFAULT_MODEL` are both `kimi-k3`. The hint text is out of date.
 
 ## Runtime/Tooling Preferences
 

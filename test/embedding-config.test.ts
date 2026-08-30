@@ -43,7 +43,7 @@ describe("embedding config", () => {
   test("resolveConfig reads embedding provider from global config", async () => {
     const globalConfig: GlobalConfig = {
       mode: "local",
-      defaultModel: "kimi-k2.7-code",
+      defaultModel: "kimi-k3",
       embeddingProvider: "ollama",
       embeddingModel: "mxbai-embed-large",
     };
