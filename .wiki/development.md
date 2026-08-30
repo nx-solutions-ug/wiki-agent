@@ -4,7 +4,7 @@ title: Development
 description: Build, test, release workflow, and repository automation for the
   wiki-agent project.
 tags: [ development, build, test, release ]
-last_updated: 2026-08-27T11:22:18.515Z
+last_updated: 2026-08-30T17:07:28.331Z
 updated_by: wiki-agent
 ---
 
@@ -66,7 +66,7 @@ The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.H
 bun pm pack
 ```
 
-Produces `wiki-agent-1.17.1.tgz`. The tarball includes `dist/`, `README.md`, and `LICENSE` per the `files` array in `package.json`. Workflows are generated into target repos by `--init`, not shipped in the package.
+Produces `wiki-agent-1.19.0.tgz`. The tarball includes `dist/`, `README.md`, and `LICENSE` per the `files` array in `package.json`. Workflows are generated into target repos by `--init`, not shipped in the package.
 
 ## Project layout
 
