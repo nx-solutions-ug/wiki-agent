@@ -2,7 +2,9 @@
 type: Reference
 title: Vouch Access Control
 description: Discussion-driven vouching for maintainers and the PR gate that enforces it.
-tags: [github-actions, ci, automation, vouch, access-control]
+tags: [ github-actions, ci, automation, vouch, access-control ]
+last_updated: 2026-08-31T17:07:26.169Z
+updated_by: wiki-agent
 ---
 
 # Vouch Access Control
@@ -34,24 +36,26 @@ Supported commands in the comment body:
 | `!denounce [@user] [reason]` | Denounce the discussion author or a specific user. |
 | `!unvouch [@user]` | Remove the vouch for the discussion author or a specific user. |
 
-The workflow checks out the repository with `actions/checkout@v7` and delegates to `mitchellh/vouch/action/manage-by-discussion@v1`, passing the discussion number, comment node ID, the keyword prefixes, and the permitted roles.
+The workflow checks out the repository with `actions/checkout@v7` and delegates to `mitchellh/vouch/action/manage-by-discussion@v1`, passing the discussion number, comment node ID, the keyword prefixes (`!vouch`/`!denounce`/`!unvouch`), and the permitted roles (`admin,maintain,write`).
+
+Both vouch workflows generate a GitHub App token first via `actions/create-github-app-token@v3` (using `secrets.APP_CLIENT_ID` and `secrets.APP_PRIVATE_KEY`) and pass that token to the action as `GITHUB_TOKEN`. There is no fallback to `secrets.GITHUB_TOKEN`. `vouch-manage.yml` also declares a workflow-scoped `concurrency: group: vouch-manage` with `cancel-in-progress: false` so multiple Discussion comments queue rather than cancel each other.
 
 ## PR gate
 
-`.github/workflows/vouch-pr.yml` runs on `pull_request_target` for `opened`, `reopened`, and `ready_for_review` events. It uses `mitchellh/vouch/action/check-pr@v1` to decide whether a PR is allowed:
+`.github/workflows/vouch-pr.yml` runs on `pull_request_target` for `opened`, `reopened`, and `ready_for_review` events. The workflow generates a GitHub App token via `actions/create-github-app-token@v3` and runs `mitchellh/vouch/action/check-pr@v1` with `require-vouch: true` and `auto-close: true`:
 
 - Allowed automatically: bots, collaborators with write access, and explicitly vouched users.
-- Otherwise: if `require-vouch: true` and `auto-close: true` are set, the PR is closed automatically.
-- When the PR is vouched or already allowed, the workflow creates/forces a `vouched` label and applies it to the PR.
+- Otherwise the PR is closed automatically (with a comment explaining how to get vouched).
+- When the PR is vouched or already allowed, the workflow creates/forces a `vouched` label (color `2da44e`) and applies it to the PR via `gh label create --force` + `gh pr edit --add-label` (first removing any stale `vouched` label with `--remove-label` to avoid a no-op).
 
 The workflow runs under `pull_request_target` so it can act on pull requests from forks. Concurrency is scoped per PR (`vouch-pr-${{ github.event.pull_request.number }}`) with `cancel-in-progress: true`.
 
 ## Permissions
 
-- `vouch-manage.yml` needs `contents: write` and `discussions: write`.
-- `vouch-pr.yml` needs `contents: read`, `pull-requests: write`, and `issues: write`.
+- `vouch-manage.yml` needs `contents: write`, `discussions: write`, and `id-token: write`.
+- `vouch-pr.yml` needs `contents: read`, `pull-requests: write`, `issues: write`, and `id-token: write`.
 
-Both workflows use `secrets.GITHUB_TOKEN` directly for the vouch action; the PR gate also uses it for the `gh label` / `gh pr edit` commands.
+The `id-token: write` permission is required by the GitHub App token step; the vouch action itself authenticates with the generated App token (`GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}`), and the PR gate's `gh label`/`gh pr edit` commands use the same token via `GH_TOKEN`.
 
 ## Requesting a vouch
 
