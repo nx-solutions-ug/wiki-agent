@@ -1,8 +1,11 @@
 ---
 type: Architecture
 title: Architecture Overview
-description: How Wiki Agent is organized — the agent loop, tools, TUI, and post-run index synchronization.
-tags: [architecture, agent, ollama]
+description: How Wiki Agent is organized — the agent loop, tools, TUI, and
+  post-run index synchronization.
+tags: [ architecture, agent, ollama ]
+last_updated: 2026-08-31T16:04:03.693Z
+updated_by: wiki-agent
 ---
 
 # Architecture Overview
@@ -23,6 +26,10 @@ The compiled entrypoint is `dist/cli.js` (declared as the `wiki` binary in `pack
 - `llm.ts` — provider adapter interface plus `OpenAIAdapter` and `OllamaAdapter`
 - `prompt.ts` — system prompt, user message templates, help text; reads `AGENTS.md`/`CLAUDE.md` with `Promise.allSettled`
 - `tools.ts` — file and discovery tools exposed to the model
+- `cli-helpers.ts` — shared CLI helpers (`getGitSummary`, `getGitUserName`, `resolveUpdatedBy`) reused by `cli.tsx`, `agent.ts`, and the MCP server
+- `embeddings.ts` — pluggable embeddings and the sqlite-vec vector store backing semantic wiki search
+- `mcp-server.ts` — MCP server entry (`wiki --mcp stdio`) exposing wiki read/list/search/update tools
+- `workflow.ts` — `createWorkflowFile` — generates `.github/workflows/update-wiki.yml`
 - `index-middleware.ts` — post-run regeneration of `index.md`
 - `flatten-wiki.ts` — converts nested `.wiki/` to flat GitHub Wiki format before publish
 - `version.ts` — reads `package.json` version for `--version` and the TUI banner
@@ -39,11 +46,9 @@ See [Configuration](../configuration.md) for the data model, [Tools](../tools.md
 3. Stream or batch the response. Collect `content` and any `tool_calls` returned by the model.
 4. Append the assistant message to the history. If there are tool calls, append a `tool` message per call; Ollama uses `tool_name`, while OpenAI uses `tool_call_id`.
 5. Loop up to `WIKI_RECURSION_LIMIT` iterations (default `200`). A response with no tool calls ends the loop.
-6. After the loop, call `createWorkflowFile` in `src/workflow.ts`, `synchronizeWikiIndexes(.wiki)`, write `.wiki/.last-updated.json`, `.wiki/.last-update-report.md` (via `generateUpdateReport`), and `.wiki/.last-update-title.txt` (via `generateUpdateTitle`), then emit a `done` event. The write/edit tools themselves strip reasoning/thinking tags from persisted content before it reaches disk. On `init`, the loop also appends/updates a wiki-agent section in `AGENTS.md`/`CLAUDE.md` via `appendWikiAgentFrontmatter`, and writes `.wiki/.gitignore` to keep run metadata and the embeddings database out of git.
+6. After the loop, call `createWorkflowFile` (from `src/workflow.ts`) to generate the GitHub Actions workflow, run `synchronizeWikiIndexes(.wiki)` to regenerate every directory `index.md`, write `.wiki/.last-updated.json`, write `.wiki/.last-update-report.md` (via `generateUpdateReport`), and write `.wiki/.last-update-title.txt` (via `generateUpdateTitle`), then emit a `done` event. The write/edit tools themselves strip reasoning/thinking tags from persisted content before it reaches disk, and they auto-inject `last_updated`/`updated_by` frontmatter on every markdown write (see [Tools](../tools.md)). On `init`, `agent.ts:appendWikiAgentFrontmatter` also appends (or refreshes) an idempotent `## Wiki Agent` section in `AGENTS.md`/`CLAUDE.md` — creating `AGENTS.md` with a `# Repository Guidelines` preamble when neither file exists — and `runAgent` writes `.wiki/.gitignore` to keep run metadata and the embeddings database out of git.
 
 Errors from the LLM SDK are surfaced through the `error` event stream. If the model had already produced content, the loop exits with a `done` summary that includes the error message; otherwise it emits `error` and stops.
-
-`runAgent` also writes `.wiki/.gitignore` on every run so run-metadata files (`/.last-updated.json`, `/.last-update-report.md`, `/.last-update-title.txt`) stay out of git history, and it untracks any of those files that were already committed in legacy repos.
 
 ## Streaming and headless
 

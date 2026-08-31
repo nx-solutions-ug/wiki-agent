@@ -4,7 +4,7 @@ title: CLI Usage
 description: Commands, flags, environment variables, and the headless / TUI
   dispatch of the wiki binary.
 tags: [ cli, commands, flags, environment-variables ]
-last_updated: 2026-08-30T12:12:43.989Z
+last_updated: 2026-08-31T16:03:35.225Z
 updated_by: wiki-agent
 ---
 
@@ -59,6 +59,8 @@ Environment variables are merged with config files by `resolveConfig` in `config
 | `WIKI_EMBEDDING_MODEL` | Ollama embedding model ID (when provider is `"ollama"`) | `"nomic-embed-text"` |
 | `WIKI_EMBEDDING_HOST` | Ollama host for embeddings (when provider is `"ollama"`) | `http://localhost:11434` |
 | `WIKI_RECURSION_LIMIT` | Max agent iterations | `200` |
+| `WIKI_UPDATED_BY` | Override the `updated_by` frontmatter stamp author | `git config user.name` (or `"wiki-agent"` in CI) |
+| `WIKI_AUTOMATED` | When `true`/`1`, forces the `updated_by` stamp to `"wiki-agent"` | unset |
 | `GH_TOKEN` | GitHub token for the read-only `gh` CLI tool (used in CI for the staging PR staleness check) | from environment |
 
 In headless mode, the model ID is selected as: `--model` flag → `.wiki/config.json` `modelOverride` → `WIKI_MODEL` → `~/.wiki/config.json` `defaultModel` → `kimi-k3`.

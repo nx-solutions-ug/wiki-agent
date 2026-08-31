@@ -4,13 +4,15 @@ title: Configuration
 description: Global and project config files, environment variable overrides,
   and how the effective configuration is resolved.
 tags: [ config, environment-variables, ollama, openai, resolution-order ]
-last_updated: 2026-08-30T12:12:36.170Z
+last_updated: 2026-08-31T16:04:55.864Z
 updated_by: wiki-agent
 ---
 
 # Configuration
 
-Wiki Agent merges configuration from several sources. The exact precedence is field-specific and is implemented in `resolveConfig(projectRoot, modelOverride?)` in `src/config.ts`:
+Wiki Agent merges configuration from several sources. The exact precedence is field-specific and is implemented in `resolveConfig(projectRoot, modelOverride?)` in `src/config.ts`. Frontmatter authorship for `.wiki/` writes is resolved separately by `resolveUpdatedBy` in `src/cli-helpers.ts` (see [Tools](./tools.md)); that resolver honors `WIKI_UPDATED_BY`, `WIKI_MCP`, `WIKI_AUTOMATED`, and the generic `CI`/`GITHUB_ACTIONS` variables in addition to `git config user.name`.
+
+The field-by-field precedence of `resolveConfig`:
 
 - `mode`: `WIKI_PROVIDER_MODE` (or legacy `WIKI_OLLAMA_MODE`) if valid (`"local"`, `"cloud"`, or `"openai"`) → global config `mode` → built-in `"local"`.
 - `apiKey`: `WIKI_PROVIDER_API_KEY` (or legacy `WIKI_OLLAMA_API_KEY`) → global config `apiKey` → unset.
