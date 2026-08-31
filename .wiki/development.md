@@ -4,7 +4,7 @@ title: Development
 description: Build, test, release workflow, and repository automation for the
   wiki-agent project.
 tags: [ development, build, test, release ]
-last_updated: 2026-08-30T17:07:28.331Z
+last_updated: 2026-08-31T16:04:20.564Z
 updated_by: wiki-agent
 ---
 
@@ -29,7 +29,7 @@ bun install
 bun run build
 ```
 
-This runs the `prebuild` cleanup (`rm -rf dist`) and then `tsc -p tsconfig.json`. The compiler emits `*.js` and `*.d.ts` files into `dist/` from `src/**/*.ts(x)`. The TS config uses `module: nodenext`, `moduleResolution: nodenext`, `target: ES2022`, and `jsx: react-jsx`.
+This runs the `prebuild` cleanup (`bun run clean`, which invokes a small Node `fs.rmSync` one-liner to remove `dist/` portably across platforms) and then `tsc -p tsconfig.json`. The compiler emits `*.js` and `*.d.ts` files into `dist/` from `src/**/*.ts(x)`. The TS config uses `module: nodenext`, `moduleResolution: nodenext`, `target: ES2022`, and `jsx: react-jsx`.
 
 ## Test
 
@@ -125,7 +125,7 @@ Vouched users are tracked in `.github/VOUCHED.td`. Bots and collaborators with w
 
 ## Known source inconsistencies
 
-- **Workflow filename mismatch**: `package.json` `files` used to list `.github/workflows/wiki-update.yml`, but `src/agent.ts:createWorkflowFile` writes `.github/workflows/update-wiki.yml`. As of v1.13.0 the `files` array only includes `dist`, `README.md`, and `LICENSE`, so this discrepancy no longer appears in published tarballs.
+- **Workflow filename mismatch**: `package.json` `files` used to list `.github/workflows/wiki-update.yml`, but `workflow.ts:createWorkflowFile` writes `.github/workflows/update-wiki.yml`. As of v1.13.0 the `files` array only includes `dist`, `README.md`, and `LICENSE`, so this discrepancy no longer appears in published tarballs.
 - **OMP workflows**: the `.github/workflows/omp*.yml` files and `.omp/` directory live in this repo's source but are unrelated to the `wiki-agent` package; they automate the project's own issue/PR management via OMP.
 - **OMP review flow mismatch**: `omp-ci.yml` computes a `review-type` prefix (`dep:`, `bot:`, or empty) from the PR author, but the output step is not used in the actual OMP invocation; the review type is determined by `review-pr.md` from the PR author instead.
 - **Staleness check is in system prompt only**: the update-mode staging PR staleness check is documented in the system prompt and implemented by the running agent; there is no dedicated source function for it.

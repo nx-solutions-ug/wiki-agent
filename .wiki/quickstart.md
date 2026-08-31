@@ -3,7 +3,7 @@ type: Quickstart
 title: Quickstart
 description: Install, configure, and run Wiki Agent to generate a wiki for any repository.
 tags: [ quickstart, install, setup ]
-last_updated: 2026-08-30T17:07:25.538Z
+last_updated: 2026-08-31T16:03:31.104Z
 updated_by: wiki-agent
 ---
 
@@ -41,6 +41,8 @@ wiki --get-config
 ```
 
 The README uses a hero banner at `public/banner.png`. The npm tarball only includes `dist/`, `README.md`, and `LICENSE` (the `files` array in `package.json`); workflows are generated into target repos by `--init`, not shipped in the package.
+
+The agent stamps every markdown page it writes with `last_updated` and `updated_by` YAML frontmatter (see [Tools](./tools.md)). The author is resolved from `WIKI_UPDATED_BY`, the MCP/CI environment, or the local `git config user.name`.
 
 ## 2. Configure the provider
 
@@ -82,7 +84,7 @@ Running `wiki --init` writes `.github/workflows/update-wiki.yml` into your repo.
 
 ## What gets generated
 
-Wiki Agent writes only inside `.wiki/`. Each page starts with YAML frontmatter (`type`, `title`, `description`, `tags`) and the layout is opinionated:
+Wiki Agent writes only inside `.wiki/`. Each page starts with YAML frontmatter (`type`, `title`, `description`, `tags`) plus the auto-injected `last_updated`/`updated_by` provenance stamp, and the layout is opinionated:
 
 - `.wiki/quickstart.md` — this page (or a project-specific equivalent)
 - `.wiki/architecture/` — system-level overview for humans and agents

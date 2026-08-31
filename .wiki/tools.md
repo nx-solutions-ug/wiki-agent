@@ -1,8 +1,11 @@
 ---
 type: Reference
 title: Tools
-description: The file and discovery tools exposed to the model, their parameters, and sandboxing rules.
-tags: [tools, filesystem, sandbox]
+description: The file and discovery tools exposed to the model, their
+  parameters, and sandboxing rules.
+tags: [ tools, filesystem, sandbox ]
+last_updated: 2026-08-31T16:03:13.406Z
+updated_by: wiki-agent
 ---
 
 # Tools
@@ -57,6 +60,8 @@ The handler reads the file with a `createReadStream` + `readline` pipeline, stre
 
 `resolveWikiPath` rejects any path that escapes `.wiki/`, including absolute paths and `..` traversal. The handler returns `Wrote <path>` on success.
 
+Before writing, the handler strips reasoning tags from `content`, and when the target file is markdown (`.md`/`.markdown`) it runs `injectOrUpdateFrontmatter` to set or refresh the `last_updated` (ISO timestamp) and `updated_by` fields in the YAML frontmatter — creating a frontmatter block when none exists. See [Frontmatter auto-injection](#frontmatter-auto-injection) below.
+
 ## `edit_file`
 
 ```json
@@ -71,7 +76,7 @@ The handler reads the file with a `createReadStream` + `readline` pipeline, stre
 - `old_string` — the text to find (required).
 - `new_string` — the replacement (required).
 
-The handler reads the file, runs a single `String.prototype.replace`, and writes it back. If the file is unchanged after the replace, it returns `No match found for old_string in <path>` and does not touch the file.
+The handler reads the file, runs a single `String.prototype.replace`, and writes it back. If the file is unchanged after the replace, it returns `No match found for old_string in <path>` and does not touch the file. On a successful markdown edit it refreshes the `last_updated`/`updated_by` frontmatter fields exactly like `write_file` (see [Frontmatter auto-injection](#frontmatter-auto-injection)).
 
 ## `ls`
 
@@ -215,4 +220,19 @@ This sanitization runs automatically in the two write tools:
 - `edit_file` strips tags from `args.new_string` before replacing `old_string`.
 
 `src/agent.ts` also runs `stripThinkingTags` on the assistant prose used for per-file change descriptions and on the generated `.last-update-report.md`, so reasoning blocks do not leak into PR bodies. Content without any thinking tags is returned unchanged.
+
+## Frontmatter auto-injection
+
+Every markdown file the agent persists under `.wiki/` is stamped with provenance metadata. `src/tools.ts:injectOrUpdateFrontmatter` parses the existing YAML frontmatter with `parseDocument` (preserving comments, formatting, and unknown keys), sets `last_updated` to the current ISO timestamp and `updated_by` to the resolved author, and re-serializes. If the file has no frontmatter, a fresh block containing just those two fields is prepended. If the existing frontmatter fails to parse, the two fields are appended to the raw YAML text instead of discarding it. Non-markdown targets (anything not ending in `.md`/`.markdown`) are written verbatim without injection.
+
+The author string is resolved by `src/cli-helpers.ts:resolveUpdatedBy` with this precedence:
+
+1. An explicit `updatedBy` option (used by callers that already know the author).
+2. The `WIKI_UPDATED_BY` environment variable.
+3. `"mcp-server"` when the update came through the MCP server (`isMcp` option or `WIKI_MCP=true`/`1`).
+4. `"wiki-agent"` for automated runs — detected via the `isAutomated` option, the `CI` or `GITHUB_ACTIONS` environment variables, or `WIKI_AUTOMATED=true`/`1`.
+5. The repository's `git config user.name`.
+6. `GIT_AUTHOR_NAME` → `USER` → `USERNAME` environment variables, finally falling back to `"wiki-agent"`.
+
+The timestamps and author are also passed through the run as `ToolOptions`/`SynchronizeOptions`, so `write_file`, `edit_file`, and the index-middleware's generated `index.md` files share one consistent stamp per run.
 
