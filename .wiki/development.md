@@ -4,7 +4,7 @@ title: Development
 description: Build, test, release workflow, and repository automation for the
   wiki-agent project.
 tags: [ development, build, test, release ]
-last_updated: 2026-09-03T20:43:29.896Z
+last_updated: 2026-09-03T21:27:26.940Z
 updated_by: wiki-agent
 ---
 
@@ -132,7 +132,6 @@ Vouched users are tracked in `.github/VOUCHED.td`. Bots and collaborators with w
 - **Workflow filename mismatch**: `package.json` `files` used to list `.github/workflows/wiki-update.yml`, but `workflow.ts:createWorkflowFile` writes `.github/workflows/update-wiki.yml`. As of v1.13.0 the `files` array only includes `dist`, `README.md`, and `LICENSE`, so this discrepancy no longer appears in published tarballs.
 - **OMP workflows**: the `.github/workflows/omp*.yml` files and `.omp/` directory live in this repo's source but are unrelated to the `wiki-agent` package; they automate the project's own issue/PR management via OMP.
 - **Staleness check is in system prompt only**: the update-mode staging PR staleness check is documented in the system prompt and implemented by the running agent; there is no dedicated source function for it.
-- **Embeddings/MCP are not yet in the high-level overview pages**: the `embeddings.ts` and `mcp-server.ts` modules are present in the source and have dedicated tests, but the wiki's architecture and quickstart pages still describe the core loop. Add dedicated pages only when the feature set stabilizes.
 
 ## Release checklist
 
