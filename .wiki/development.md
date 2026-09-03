@@ -4,7 +4,7 @@ title: Development
 description: Build, test, release workflow, and repository automation for the
   wiki-agent project.
 tags: [ development, build, test, release ]
-last_updated: 2026-09-03T14:08:53.006Z
+last_updated: 2026-09-03T20:41:55.426Z
 updated_by: wiki-agent
 ---
 
@@ -37,7 +37,7 @@ This runs the `prebuild` cleanup (`bun run clean`, which invokes a small Node `f
 bun run test
 ```
 
-Runs `vitest run` against the test files in `test/`. There are fifteen Vitest test files:
+Runs `vitest run` against the test files in `test/`. There are sixteen Vitest test files:
 
 - `config.test.ts` — global/project config I/O, `loadGlobalConfig` fallback on invalid JSON, and `resolveConfig` precedence.
 - `tools.test.ts` — path-safety checks, file read/write/edit, `read_file` streaming behavior, tool definition shape, `git` and `gh` subcommand allowlists, metacharacter guard, `grep`/`glob` command-injection prevention, wildcard restoration, directory exclusions (`node_modules`, `.git`, `dist`, `.wiki`), `ast_grep`/`ast_search` structural matching, `parseArgsStringToArgv`, and reasoning-tag stripping (the four `think`/`thinking`/`reasoning`/`reflection` tag pairs) in `write_file`/`edit_file`.
@@ -48,6 +48,7 @@ Runs `vitest run` against the test files in `test/`. There are fifteen Vitest te
 - `cli.test.ts` — argument parsing, `--version`, `--get-config`, `--mcp stdio`, and headless/TUI dispatch paths.
 - `llm.test.ts` — `OpenAIAdapter` streaming and non-streaming behavior.
 - `llm-ollama.test.ts` — `OllamaAdapter` streaming and non-streaming behavior.
+- `cli-helpers.test.ts` — `getGitUserName` and `resolveUpdatedBy` precedence (explicit option → `WIKI_UPDATED_BY` → `WIKI_MCP`/`isMcp` → `CI`/`GITHUB_ACTIONS`/`isAutomated` → `git config user.name`).
 - `index-middleware.test.ts` — `index.md` regeneration, exclusions, error propagation for invalid frontmatter, and idempotency. It also verifies deterministic sorting across chunk boundaries by repeating the parallel sync several times.
 - `prompt.test.ts` — system prompt, user message templates, and help text contents.
 - `report.test.ts` — `generateUpdateReport`: no-op reports, created/edited listings, per-file description blockquotes, truncation, whitespace collapse, and summary counts.
@@ -77,6 +78,7 @@ src/
   config.ts            Global/project config, provider + embedding client factory
   llm.ts               Provider adapter interface plus OpenAIAdapter and OllamaAdapter
   prompt.ts            System prompt, user message, help text; reads AGENTS.md/CLAUDE.md with Promise.allSettled
+  cli-helpers.ts       Shared helpers (getGitSummary, getGitUserName, resolveUpdatedBy) reused by cli.tsx, agent.ts, and the MCP server
   tools.ts             read_file, write_file, edit_file, ls, grep, glob, git, ast_grep, ast_search, gh
   embeddings.ts        Pluggable local/ollama embeddings and sqlite-vec vector store in .wiki/wiki.db
   mcp-server.ts        MCP server exposing wiki read/list/search/update and embedding sync tools

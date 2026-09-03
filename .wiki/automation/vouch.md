@@ -2,7 +2,9 @@
 type: Reference
 title: Vouch Access Control
 description: Discussion-driven vouching for maintainers and the PR gate that enforces it.
-tags: [github-actions, ci, automation, vouch, access-control]
+tags: [ github-actions, ci, automation, vouch, access-control ]
+last_updated: 2026-09-03T20:42:17.104Z
+updated_by: wiki-agent
 ---
 
 # Vouch Access Control
@@ -48,10 +50,10 @@ The workflow runs under `pull_request_target` so it can act on pull requests fro
 
 ## Permissions
 
-- `vouch-manage.yml` needs `contents: write` and `discussions: write`.
-- `vouch-pr.yml` needs `contents: read`, `pull-requests: write`, and `issues: write`.
+- `vouch-manage.yml` needs `contents: write`, `discussions: write`, and `id-token: write`.
+- `vouch-pr.yml` needs `contents: read`, `pull-requests: write`, `issues: write`, and `id-token: write`.
 
-Both workflows use `secrets.GITHUB_TOKEN` directly for the vouch action; the PR gate also uses it for the `gh label` / `gh pr edit` commands.
+Both workflows generate a GitHub App token with `actions/create-github-app-token@v3` (from `secrets.APP_CLIENT_ID` / `secrets.APP_PRIVATE_KEY`) and pass it to the vouch action as `GITHUB_TOKEN`; the PR gate also uses it for the `gh label` / `gh pr edit` commands. They do not use `secrets.GITHUB_TOKEN` directly. Both workflows also request `id-token: write`.
 
 ## Requesting a vouch
 
