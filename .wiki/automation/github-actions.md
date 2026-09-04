@@ -4,7 +4,7 @@ title: GitHub Actions
 description: Scheduled and on-demand wiki updates using the bundled workflow and
   headless mode.
 tags: [ github-actions, ci, automation, cron ]
-last_updated: 2026-09-03T14:08:56.730Z
+last_updated: 2026-09-04T10:26:59.065Z
 updated_by: wiki-agent
 ---
 
@@ -74,7 +74,7 @@ The same commit that refreshes this wiki can also run the release pipeline. `.gi
 | `WIKI_PROVIDER_API_KEY` | Secret | Bearer token for the configured provider. Required because the workflow forces cloud mode. The legacy `WIKI_OLLAMA_API_KEY` alias is also honored. This is a different secret from the `OLLAMA_API_KEY` used by the OMP workflows. |
 | `APP_CLIENT_ID` | Secret (optional) | GitHub App client ID for token generation; falls back to `secrets.GITHUB_TOKEN`. |
 | `APP_PRIVATE_KEY` | Secret (optional) | GitHub App private key for token generation. |
-| `WIKI_MODEL` | Variable (optional) | Model ID override. Defaults to `kimi-k3` if unset. |
+| `WIKI_MODEL` | Variable (optional) | Model ID override. The generated workflow template defaults it to `glm-5.3-flash` if unset. |
 | `WIKI_PUSH_TOKEN` | Secret (optional) | PAT with `repo` scope used to push to the wiki repo and open the wiki PR. If unset, the GitHub App token or `GITHUB_TOKEN` is used. Set only if the default token cannot push to the wiki repo. |
 
 The `WIKI_OLLAMA_BASE_URL` environment variable is not set; the agent uses the cloud default `https://ollama.com`. Override it by adding a step that exports the variable if you need a self-hosted endpoint. Note that `GH_TOKEN` must be set for the agent's read-only `gh` tool to perform the staging PR staleness check; the workflow sets it to the generated GitHub App token or `secrets.GITHUB_TOKEN`.
