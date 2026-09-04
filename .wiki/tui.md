@@ -4,7 +4,7 @@ title: Terminal UI
 description: The Ink-based interactive terminal UI — credentials wizard, run
   view, and event rendering.
 tags: [ tui, ink, react, interactive, providers ]
-last_updated: 2026-08-30T12:12:39.038Z
+last_updated: 2026-09-04T18:11:13.073Z
 updated_by: wiki-agent
 ---
 
@@ -31,7 +31,7 @@ An eight-step state machine:
 4. `embedding-select` — pick `1` for local Hugging Face Transformers.js embeddings (`all-MiniLM-L6-v2`, on-device) or `2` for Ollama embeddings. Key presses drive transitions.
 5. `embedding-model` — only reached when the embedding provider is `ollama`. Defaults to `nomic-embed-text`.
 6. `embedding-host` — Ollama server URL for embeddings. Defaults to the provider's base URL (or `http://localhost:11434` for local mode).
-7. `model` — the LLM model ID. Defaults to `kimi-k3` and uses the same text input. The prompt text matches this default.
+7. `model` — the LLM model ID. Defaults to `glm-5.3-flash` (the `DEFAULT_MODEL` constant from `config.ts`) and uses the same text input. The prompt text matches this default.
 8. `saving` — calls `saveGlobalConfig` with the assembled `GlobalConfig` (including `baseUrl`/`embeddingHost` only when they differ from the mode defaults), then calls the parent `onConfigSaved` callback with a synthesized `ResolvedConfig` so the run view can start without re-reading the disk.
 
 Errors from `saveGlobalConfig` are caught and rendered in red; the wizard drops back to `mode-select` on failure.
