@@ -4,7 +4,7 @@ title: Development
 description: Build, test, release workflow, and repository automation for the
   wiki-agent project.
 tags: [ development, build, test, release ]
-last_updated: 2026-09-04T10:27:03.540Z
+last_updated: 2026-09-04T16:46:17.295Z
 updated_by: wiki-agent
 ---
 
@@ -15,7 +15,7 @@ This page covers the day-to-day commands for hacking on Wiki Agent itself, not o
 ## Prerequisites
 
 - Node.js 22+ (declared in `package.json` `engines.node`). The CI workflows set `node-version: "25"` for the build/release jobs, while the package still supports Node.js 22 and later.
-- Bun — used as the package manager and packer. `bun install` installs dependencies (recorded in `bun.lock`), `prebuild` runs `bun run clean`, and `bun pm pack` produces the tarball. If you do not have bun, run `tsc` directly and use `npm pack`. Do not introduce a `package-lock.json` or `yarn.lock`.
+- Bun — used as the package manager and packer. `bun install` installs dependencies (recorded in `bun.lock`), `prebuild` runs `bun run clean`, and `bun pm pack` produces the tarball. The Bun version is pinned via `packageManager: "bun@1.4.1"` in `package.json`. If you do not have bun, run `tsc` directly and use `npm pack`. Do not introduce a `package-lock.json` or `yarn.lock`.
 
 ## Install
 
