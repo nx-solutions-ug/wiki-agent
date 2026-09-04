@@ -4,7 +4,7 @@ title: CLI Usage
 description: Commands, flags, environment variables, and the headless / TUI
   dispatch of the wiki binary.
 tags: [ cli, commands, flags, environment-variables ]
-last_updated: 2026-08-31T16:03:35.225Z
+last_updated: 2026-09-04T10:26:55.931Z
 updated_by: wiki-agent
 ---
 
@@ -63,7 +63,7 @@ Environment variables are merged with config files by `resolveConfig` in `config
 | `WIKI_AUTOMATED` | When `true`/`1`, forces the `updated_by` stamp to `"wiki-agent"` | unset |
 | `GH_TOKEN` | GitHub token for the read-only `gh` CLI tool (used in CI for the staging PR staleness check) | from environment |
 
-In headless mode, the model ID is selected as: `--model` flag → `.wiki/config.json` `modelOverride` → `WIKI_MODEL` → `~/.wiki/config.json` `defaultModel` → `kimi-k3`.
+In headless mode, the model ID is selected as: `--model` flag → `.wiki/config.json` `modelOverride` → `WIKI_MODEL` → `~/.wiki/config.json` `defaultModel` → `glm-5.3-flash`.
 
 The provider mode, API key, and base URL resolve via `WIKI_PROVIDER_*` env vars (or the legacy `WIKI_OLLAMA_*` aliases) first, then the global config. See [Configuration](../configuration.md) for the full precedence.
 
