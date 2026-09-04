@@ -41,7 +41,7 @@ describe("config", () => {
     test("returns default config when file does not exist", async () => {
       const config = await loadGlobalConfig();
       expect(config.mode).toBe("local");
-      expect(config.defaultModel).toBe("kimi-k3");
+      expect(config.defaultModel).toBe("glm-5.3-flash");
     });
 
     test("reads existing config file", async () => {
@@ -66,13 +66,13 @@ describe("config", () => {
 
       const config = await loadGlobalConfig();
       expect(config.mode).toBe("local");
-      expect(config.defaultModel).toBe("kimi-k3");
+      expect(config.defaultModel).toBe("glm-5.3-flash");
     });
   });
 
   describe("saveGlobalConfig", () => {
     test("creates directory and writes config with 0o600 permissions", async () => {
-      await saveGlobalConfig({ mode: "local", defaultModel: "kimi-k3" });
+      await saveGlobalConfig({ mode: "local", defaultModel: "glm-5.3-flash" });
       const configPath = path.join(getGlobalConfigDir(), "config.json");
       const content = await readFile(configPath, "utf8");
       expect(JSON.parse(content).mode).toBe("local");
@@ -135,7 +135,7 @@ describe("config", () => {
       const projectRoot = await tempDir();
       const config = await resolveConfig(projectRoot);
 
-      expect(config.model).toBe("kimi-k3");
+      expect(config.model).toBe("glm-5.3-flash");
       await rm(projectRoot, { recursive: true, force: true });
     });
   });
