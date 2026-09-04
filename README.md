@@ -58,7 +58,7 @@ cd your-project
 wiki --init
 ```
 
-This launches the TUI where you select the provider (Ollama Local, Ollama Cloud, or OpenAI-compatible) and enter your API key (required for cloud and OpenAI modes). The default model is `kimi-k3`.
+This launches the TUI where you select the provider (Ollama Local, Ollama Cloud, or OpenAI-compatible) and enter your API key (required for cloud and OpenAI modes). The default model is `glm-5.3-flash`.
 
 ### 3. Use
 
@@ -124,7 +124,7 @@ For local (default — no API key required):
 ```json
 {
   "mode": "local",
-  "defaultModel": "kimi-k3",
+  "defaultModel": "glm-5.3-flash",
   "embeddingProvider": "local",
   "embeddingModel": "nomic-embed-text",
   "embeddingHost": "http://localhost:11434"
@@ -137,7 +137,7 @@ For cloud:
 {
   "mode": "cloud",
   "apiKey": "your-api-key",
-  "defaultModel": "kimi-k3",
+  "defaultModel": "glm-5.3-flash",
   "embeddingProvider": "local",
   "embeddingModel": "nomic-embed-text",
   "embeddingHost": "http://localhost:11434"
@@ -218,7 +218,7 @@ GitHub wikis must be initialized once through the UI before they can be pushed t
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `WIKI_MODEL` | `kimi-k3` | Model ID override |
+| `WIKI_MODEL` | `glm-5.3-flash` | Model ID override |
 
 ## Output
 
