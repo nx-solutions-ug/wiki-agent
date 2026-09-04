@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
-import { saveGlobalConfig, defaultBaseUrl, type GlobalConfig, type ResolvedConfig, type ProviderMode } from "../config.js";
+import { saveGlobalConfig, defaultBaseUrl, DEFAULT_MODEL, type GlobalConfig, type ResolvedConfig, type ProviderMode } from "../config.js";
 import type { EmbeddingProvider } from "../embeddings.js";
 
 interface CredentialsSetupProps {
@@ -19,7 +19,7 @@ type SetupStep =
   | "embedding-host"
   | "saving";
 
-const DEFAULT_LLM_MODEL = "kimi-k3";
+const DEFAULT_LLM_MODEL = DEFAULT_MODEL;
 const DEFAULT_EMBEDDING_MODEL = "nomic-embed-text";
 
 export function CredentialsSetup({
