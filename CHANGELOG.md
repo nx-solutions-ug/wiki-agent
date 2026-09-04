@@ -1,3 +1,10 @@
+# [1.20.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.19.0...v1.20.0) (2026-09-04)
+
+
+### Features
+
+* default model to glm-5.3-flash across TUI and workflows ([3150372](https://github.com/nx-solutions-ug/wiki-agent/commit/31503726773281593a373392d877e564c2a2eef2))
+
 # [1.19.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.18.0...v1.19.0) (2026-08-27)
 
 
