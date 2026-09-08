@@ -51,4 +51,18 @@ describe("createWorkflowFile", () => {
     expect(content).not.toContain("name: Publish to wiki repo");
     expect(content).toContain("name: Create wiki staging snapshot pull request");
   });
+
+  test("schedules workflow once daily at 12:00 AM without push on main", async () => {
+    await createWorkflowFile(projectRoot, false);
+
+    const content = await readFile(
+      path.join(projectRoot, ".github", "workflows", "update-wiki.yml"),
+      "utf8",
+    );
+
+    expect(content).toContain("workflow_dispatch:");
+    expect(content).toContain('    - cron: "0 0 * * *"');
+    expect(content).not.toContain("push:");
+    expect(content).not.toContain("branches:");
+  });
 });
