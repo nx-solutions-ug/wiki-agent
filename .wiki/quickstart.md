@@ -3,7 +3,7 @@ type: Quickstart
 title: Quickstart
 description: Install, configure, and run Wiki Agent to generate a wiki for any repository.
 tags: [ quickstart, install, setup ]
-last_updated: 2026-08-31T16:03:31.104Z
+last_updated: 2026-09-07T14:08:17.858Z
 updated_by: wiki-agent
 ---
 
@@ -27,7 +27,7 @@ cd wiki-agent
 bun install
 bun run build
 bun pm pack
-cd ~/.bun/install/global && bun add /path/to/wiki-agent/wiki-agent-1.19.0.tgz
+cd ~/.bun/install/global && bun add /path/to/wiki-agent/chronova-wiki-agent-1.20.0.tgz
 ```
 
 After install, the `wiki` command is on `PATH` (entrypoint: `dist/cli.js`, declared as the `bin` in `package.json`).
