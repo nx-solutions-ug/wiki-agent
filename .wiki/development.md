@@ -67,7 +67,7 @@ The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.H
 bun pm pack
 ```
 
-Produces `chronova-wiki-agent-1.20.0.tgz` (the `bun pm pack` output name for the scoped package `@chronova/wiki-agent`; `npm pack` names it `@chronova+wiki-agent-1.20.0.tgz`). The tarball includes `dist/`, `README.md`, and `LICENSE` per the `files` array in `package.json`. Workflows are generated into target repos by `--init`, not shipped in the package.
+Produces `chronova-wiki-agent-1.20.0.tgz` (the `bun pm pack` and `npm pack` output name for the scoped package `@chronova/wiki-agent`). The tarball includes `dist/`, `README.md`, and `LICENSE` per the `files` array in `package.json`. Workflows are generated into target repos by `--init`, not shipped in the package.
 
 ## Project layout
 
