@@ -3,7 +3,7 @@ type: Quickstart
 title: Quickstart
 description: Install, configure, and run Wiki Agent to generate a wiki for any repository.
 tags: [ quickstart, install, setup ]
-last_updated: 2026-09-07T14:08:17.858Z
+last_updated: 2026-09-09T03:47:55.683Z
 updated_by: wiki-agent
 ---
 
@@ -80,7 +80,7 @@ The first run will create `.wiki/quickstart.md` plus a small set of section page
 
 ## 4. Update from CI
 
-Running `wiki --init` writes `.github/workflows/update-wiki.yml` into your repo. Set `WIKI_PROVIDER_API_KEY` (or the legacy `WIKI_OLLAMA_API_KEY`) as a secret to enable the scheduled job for cloud/openai mode. By default the generated workflow runs `wiki --update --print --verbose --wiki` and pushes the flattened pages directly to the repository's **GitHub Wiki tab**; it also opens a staging pull request with the `.wiki/` changes in the main repo. Note that the workflow itself hardcodes `--wiki`, so the CI job always attempts wiki publishing; the local `--wiki` flag only controls what is written into the workflow template. See [GitHub Actions](./automation/github-actions.md).
+Running `wiki --init` writes `.github/workflows/update-wiki.yml` into your repo. Set `WIKI_PROVIDER_API_KEY` (or the legacy `WIKI_OLLAMA_API_KEY`) as a secret to enable the scheduled job for cloud/openai mode. By default the generated workflow runs `wiki --update --print --verbose` and opens a staging pull request with the `.wiki/` changes in the main repo. When `--wiki` is passed to `--init`, the workflow template additionally contains the flatten/publish steps and its run step uses `wiki --update --print --verbose --wiki`, pushing the flattened pages directly to the repository's **GitHub Wiki tab**. See [GitHub Actions](./automation/github-actions.md).
 
 ## What gets generated
 
@@ -95,4 +95,4 @@ Wiki Agent writes only inside `.wiki/`. Each page starts with YAML frontmatter (
 - `.wiki/automation/` — CI integrations
 - `.wiki/development.md` — build, test, and release
 
-After the run, `index.md` files in each subdirectory are regenerated to list the contained files using their frontmatter titles and descriptions. A local `.wiki/wiki.db` and run-metadata files (`.last-updated.json`, `.last-update-report.md`, `.last-update-title.txt`) are also gitignored.
+After the run, `index.md` files in each subdirectory are regenerated to list the contained files using their frontmatter titles and descriptions. A local `.wiki/wiki.db` and the run-metadata files (`.last-update-report.md`, `.last-update-title.txt`) are gitignored; `.last-updated.json` is also covered by the gitignore even though nothing currently writes it.

@@ -4,7 +4,7 @@ title: OMP Automation Workflows
 description: GitHub Actions workflows that run OMP for issue triage, PR
   labeling, PR review, and on-demand chat commands.
 tags: [ github-actions, ci, automation, omp ]
-last_updated: 2026-09-03T18:43:23.511Z
+last_updated: 2026-09-09T03:48:59.547Z
 updated_by: wiki-agent
 ---
 
@@ -27,7 +27,7 @@ Both jobs generate a GitHub App token with `actions/create-github-app-token@v3` 
 
 On-demand OMP invocation triggered by comments:
 
-- Fires on `issue_comment` and `pull_request_review_comment` events, but only when the comment body starts with `/omp` or contains ` /omp` (also accepts `/oc`).
+- Fires on `issue_comment` and `pull_request_review_comment` events, but only when the comment body starts with `/omp` or contains ` /omp`. The prompt extractor additionally strips a leading `/oc` alias, but `/oc` comments do not by themselves trigger the run.
 - Generates a GitHub App token, authenticates `gh`, installs the `gh-pr-review` extension (`agynio/gh-pr-review`) pinned to `v1.6.2`, and sets up git push credentials. This extension is required by the PR review prompt even though this workflow also serves issue comments.
 - Installs OMP and authenticates it against Ollama Cloud using `secrets.OLLAMA_API_KEY`.
 - Extracts the command name and arguments from the comment. If the comment matches a `.omp/commands/<command>.md` file, that prompt is expanded by replacing `$ARGUMENTS`. For freeform prompts that do not match a command file, the raw prompt is written; and for PR comments (but not issue comments), `.omp/commands/_pr-commit-push.md` is appended after substituting `__PR_NUMBER__` so the agent checks out the PR branch and commits/pushes any changes.
@@ -45,7 +45,7 @@ After each triage run, `omp-ci.yml` dispatches `.github/workflows/omp-fix-issue.
 
 ### `.github/workflows/omp-code-review.yml`
 
-Dedicated PR code review workflow, split from `omp-ci.yml` in commit `9102bab`. Triggered by PR open/update/ready_for_review/review_requested, PR review submission, PR review comment, or manual dispatch. Concurrency group per-PR (`omp-code-review-<pr>`) makes `cancel-in-progress` conditional since commit `f5f92fe`: only `pull_request` and `workflow_dispatch` events may supersede an in-flight run; `pull_request_review` and `pull_request_review_comment` runs queue behind the in-flight run instead of cancelling it. This fixes a race where a review posted while the `pull_request`-triggered run was in flight would cancel that run, the replacement review-triggered run would then be skipped by the Jules-gated job conditions, and the required `code-review` check would wedge at CANCELLED with the PR stuck UNSTABLE.
+Dedicated PR code review workflow, split from `omp-ci.yml`. Triggered by PR open/update/ready_for_review/review_requested, PR review submission, PR review comment, or manual dispatch. Concurrency group per-PR (`omp-code-review-<pr>`) makes `cancel-in-progress` conditional: only `pull_request` and `workflow_dispatch` events may supersede an in-flight run; `pull_request_review` and `pull_request_review_comment` runs queue behind the in-flight run instead of cancelling it. This fixes a race where a review posted while the `pull_request`-triggered run was in flight would cancel that run, the replacement review-triggered run would then be skipped by the Jules-gated job conditions, and the required `code-review` check would wedge at CANCELLED with the PR stuck UNSTABLE.
 
 - **`dependency-review`** — runs only for PRs authored by `renovate[bot]` or `dependabot[bot]`. Expands `.omp/commands/dependency-review.md` (researches changelogs, assesses breaking changes) and verifies a review or comment was actually posted.
 - **`code-review`** — runs for human-authored PRs and `workflow_dispatch`. Skips agent-authored re-reviews on `synchronize` (checks head commit author/committer for `opencode-agent`, `opencode`, `github-actions`, `omp-agent`, `chronova-agent`), but honors explicit `review_requested` re-triggers. Detects Jules involvement (Jules-authored PR, Jules review, or Jules review comment) and passes context to `.omp/commands/review-pr.md`. Verifies at least one review or comment exists; skips verification when the PR modifies the review workflow itself.
