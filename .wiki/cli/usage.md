@@ -4,7 +4,7 @@ title: CLI Usage
 description: Commands, flags, environment variables, and the headless / TUI
   dispatch of the wiki binary.
 tags: [ cli, commands, flags, environment-variables ]
-last_updated: 2026-09-04T10:26:55.931Z
+last_updated: 2026-09-09T03:47:51.401Z
 updated_by: wiki-agent
 ---
 
@@ -23,7 +23,7 @@ Exactly one of `--init` or `--update` is required. If neither is present, the he
 | Command | Effect |
 |---------|--------|
 | `wiki --init` | Initialize wiki documentation. Drives the model with the "init" user message and writes `.github/workflows/update-wiki.yml`. |
-| `wiki --update` | Refresh an existing wiki. Drives the model with the "update" user message and recent git history. Produces `.wiki/.last-update-report.md` and `.wiki/.last-updated.json` when content changes. |
+| `wiki --update` | Refresh an existing wiki. Drives the model with the "update" user message and recent git history. Produces `.wiki/.last-update-report.md` and `.wiki/.last-update-title.txt` when content changes. |
 | `wiki --version` | Print the current package version (read from `package.json`) and exit. |
 | `wiki --get-config` | Print the merged effective configuration as JSON and exit. Useful for debugging config resolution. |
 | `wiki --help` / `-h` | Print the help text and exit. |
@@ -32,7 +32,7 @@ Exactly one of `--init` or `--update` is required. If neither is present, the he
 
 | Flag | Effect |
 |------|--------|
-| `--wiki` | Meaningful with `--init`: the generated `.github/workflows/update-wiki.yml` will also publish to the repository's GitHub Wiki tab. Note that the generated workflow itself hardcodes `--wiki` in its `wiki --update --print --verbose --wiki` step, so the CI job always attempts wiki publishing regardless of whether `--wiki` was passed locally. |
+| `--wiki` | Meaningful with `--init`: the generated `.github/workflows/update-wiki.yml` will also publish to the repository's GitHub Wiki tab. Both the `wiki --update` run flags and the flatten/publish steps are written into the workflow template only when `--wiki` is passed; without it, the workflow runs the update and opens the staging PR but never touches the wiki tab. |
 | `--print` | Run headless: write events to stdout/stderr instead of launching the TUI. Required for CI. |
 | `--model <id>` | Override the model for this run. Higher priority than env vars and config files. |
 | `--mcp stdio` | Start the MCP server on stdin/stdout. No `--init`/`--update` required; runs standalone. |
@@ -106,9 +106,9 @@ Conversion rules:
 - Internal relative markdown links are rewritten to flat wiki page names, e.g. `[Text](./cli/usage.md)` → `[Text](CLI-Usage)`.
 - YAML frontmatter is stripped because GitHub Wiki renders it as literal text.
 - `_Sidebar.md` is generated from page frontmatter titles.
-- Metadata files (`.last-update-report.md`, `.last-updated.json`, `.last-update-title.txt`, `config.json`, `_plan.md`) are excluded.
+- Metadata files (`.last-update-report.md`, `.last-updated.json`, `config.json`, `_plan.md`) are excluded; non-markdown files (including `.last-update-title.txt`) are never collected in the first place.
 
-The GitHub Actions workflow created by `wiki --init --wiki` invokes `wiki-flatten` before pushing to `<repo>.wiki.git`.
+The GitHub Actions workflow created by `wiki --init --wiki` invokes `wiki-flatten` before pushing to `<repo>.wiki.git`. Workflows generated without `--wiki` do not call `wiki-flatten` at all.
 
 ## MCP mode
 

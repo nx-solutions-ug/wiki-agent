@@ -4,7 +4,7 @@ title: Architecture Overview
 description: How Wiki Agent is organized — the agent loop, tools, TUI, and
   post-run index synchronization.
 tags: [ architecture, agent, ollama ]
-last_updated: 2026-08-31T16:04:03.693Z
+last_updated: 2026-09-09T03:46:45.338Z
 updated_by: wiki-agent
 ---
 
@@ -46,7 +46,7 @@ See [Configuration](../configuration.md) for the data model, [Tools](../tools.md
 3. Stream or batch the response. Collect `content` and any `tool_calls` returned by the model.
 4. Append the assistant message to the history. If there are tool calls, append a `tool` message per call; Ollama uses `tool_name`, while OpenAI uses `tool_call_id`.
 5. Loop up to `WIKI_RECURSION_LIMIT` iterations (default `200`). A response with no tool calls ends the loop.
-6. After the loop, call `createWorkflowFile` (from `src/workflow.ts`) to generate the GitHub Actions workflow, run `synchronizeWikiIndexes(.wiki)` to regenerate every directory `index.md`, write `.wiki/.last-updated.json`, write `.wiki/.last-update-report.md` (via `generateUpdateReport`), and write `.wiki/.last-update-title.txt` (via `generateUpdateTitle`), then emit a `done` event. The write/edit tools themselves strip reasoning/thinking tags from persisted content before it reaches disk, and they auto-inject `last_updated`/`updated_by` frontmatter on every markdown write (see [Tools](../tools.md)). On `init`, `agent.ts:appendWikiAgentFrontmatter` also appends (or refreshes) an idempotent `## Wiki Agent` section in `AGENTS.md`/`CLAUDE.md` — creating `AGENTS.md` with a `# Repository Guidelines` preamble when neither file exists — and `runAgent` writes `.wiki/.gitignore` to keep run metadata and the embeddings database out of git.
+6. After the loop, call `createWorkflowFile` (from `src/workflow.ts`) to generate the GitHub Actions workflow, run `synchronizeWikiIndexes(.wiki)` to regenerate every directory `index.md`, write `.wiki/.last-update-report.md` (via `generateUpdateReport`), and write `.wiki/.last-update-title.txt` (via `generateUpdateTitle`), then emit a `done` event. (`.wiki/.last-updated.json` is a reserved run-metadata name — gitignored and excluded from publishing — but nothing in `agent.ts` writes it.) The write/edit tools themselves strip reasoning/thinking tags from persisted content before it reaches disk, and they auto-inject `last_updated`/`updated_by` frontmatter on every markdown write (see [Tools](../tools.md)). On `init`, `agent.ts:appendWikiAgentFrontmatter` also appends (or refreshes) an idempotent `## Wiki Agent` section in `AGENTS.md`/`CLAUDE.md` — creating `AGENTS.md` with a `# Repository Guidelines` preamble when neither file exists — and `runAgent` writes `.wiki/.gitignore` to keep run metadata and the embeddings database out of git.
 
 Errors from the LLM SDK are surfaced through the `error` event stream. If the model had already produced content, the loop exits with a `done` summary that includes the error message; otherwise it emits `error` and stops.
 
@@ -109,7 +109,7 @@ The agent keeps its nested `.wiki/` directory structure, but GitHub Wikis requir
 - `.wiki/cli/usage.md` → `CLI-Usage.md`
 - Internal links are rewritten from relative `.md` paths to flat wiki page names, e.g. `[Text](./cli/usage.md)` → `[Text](CLI-Usage)`.
 - `_Sidebar.md` is generated automatically from the page structure.
-- Metadata files (`.last-update-report.md`, `.last-updated.json`, `.last-update-title.txt`, `config.json`, `_plan.md`) are excluded from the flatten.
+- Metadata files (`.last-update-report.md`, `.last-updated.json`, `config.json`, `_plan.md`) are excluded from the flatten; non-markdown files (including `.last-update-title.txt`) are not collected in the first place.
 
 This step is invoked by `.github/workflows/update-wiki.yml` (when `--wiki` was passed to `--init`) immediately before the wiki repo is cloned and rsynced. See [GitHub Actions](../automation/github-actions.md).
 
