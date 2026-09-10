@@ -19,7 +19,7 @@ export async function createWorkflowFile(projectRoot: string, wikiPublish: boole
     "on:",
     "  workflow_dispatch:",
     "  schedule:",
-    '    - cron: "0 0 * * *"',
+    '    - cron: "0 8 * * *"',
     "",
     "permissions:",
     "  contents: write",
