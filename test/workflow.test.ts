@@ -61,7 +61,7 @@ describe("createWorkflowFile", () => {
     );
 
     expect(content).toContain("workflow_dispatch:");
-    expect(content).toContain('    - cron: "0 0 * * *"');
+    expect(content).toContain('    - cron: "0 8 * * *"');
     expect(content).not.toContain("push:");
     expect(content).not.toContain("branches:");
   });
