@@ -1,3 +1,11 @@
+## [1.20.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.20.0...v1.20.1) (2026-09-10)
+
+
+### Bug Fixes
+
+* update cron ([8c89058](https://github.com/nx-solutions-ug/wiki-agent/commit/8c890582ff4c01460137764235953f3ae84e679d))
+* Update cron schedule in workflow test ([86ececa](https://github.com/nx-solutions-ug/wiki-agent/commit/86ececab2629fbafdc59cb1cf0c1c83949b76cce))
+
 # [1.20.0](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.19.0...v1.20.0) (2026-09-04)
 
 
