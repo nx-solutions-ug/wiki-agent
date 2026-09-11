@@ -4,7 +4,7 @@ title: Development
 description: Build, test, release workflow, and repository automation for the
   wiki-agent project.
 tags: [ development, build, test, release ]
-last_updated: 2026-09-09T03:48:59.549Z
+last_updated: 2026-09-11T03:28:15.497Z
 updated_by: wiki-agent
 ---
 
@@ -67,7 +67,7 @@ The tests use `mkdtemp` for hermetic filesystem state and back up `process.env.H
 bun pm pack
 ```
 
-Produces `chronova-wiki-agent-1.20.0.tgz` (the `bun pm pack` and `npm pack` output name for the scoped package `@chronova/wiki-agent`). The tarball includes `dist/`, `README.md`, and `LICENSE` per the `files` array in `package.json`. Workflows are generated into target repos by `--init`, not shipped in the package.
+Produces `chronova-wiki-agent-1.20.1.tgz` (the `bun pm pack` and `npm pack` output name for the scoped package `@chronova/wiki-agent`). The tarball includes `dist/`, `README.md`, and `LICENSE` per the `files` array in `package.json`. Workflows are generated into target repos by `--init`, not shipped in the package.
 
 ## Project layout
 

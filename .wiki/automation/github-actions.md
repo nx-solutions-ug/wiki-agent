@@ -4,13 +4,13 @@ title: GitHub Actions
 description: Scheduled and on-demand wiki updates using the bundled workflow and
   headless mode.
 tags: [ github-actions, ci, automation, cron ]
-last_updated: 2026-09-09T03:47:46.452Z
+last_updated: 2026-09-11T03:27:58.095Z
 updated_by: wiki-agent
 ---
 
 # GitHub Actions
 
-Running `wiki --init` creates `.github/workflows/update-wiki.yml` (via `src/workflow.ts:createWorkflowFile`). When `--wiki` is passed to `--init`, the workflow also publishes the generated pages to the repository's **GitHub Wiki tab** (via the separate `<repo>.wiki.git` Git remote), pushing directly to `master`. In all cases it opens a staging PR with the `.wiki/` changes in the main repo. The workflow can be triggered manually via `workflow_dispatch` or on its daily schedule (`cron: "0 0 * * *"`, 00:00 UTC); it has no push trigger.
+Running `wiki --init` creates `.github/workflows/update-wiki.yml` (via `src/workflow.ts:createWorkflowFile`). When `--wiki` is passed to `--init`, the workflow also publishes the generated pages to the repository's **GitHub Wiki tab** (via the separate `<repo>.wiki.git` Git remote), pushing directly to `master`. In all cases it opens a staging PR with the `.wiki/` changes in the main repo. The workflow can be triggered manually via `workflow_dispatch` or on its daily schedule (`cron: "0 8 * * *"`, 08:00 UTC); it has no push trigger.
 
 ## What the workflow does
 
@@ -48,7 +48,7 @@ The staging PR body is read from `.wiki/.last-update-report.md` after the run, s
 The default triggers are:
 
 - `workflow_dispatch` — manual run from the Actions tab. This is the recommended trigger for the first run after bootstrapping the wiki, because it lets you verify the workflow before the schedule fires.
-- `schedule: cron: "0 0 * * *"` — daily at 00:00 UTC.
+- `schedule: cron: "0 8 * * *"` — daily at 08:00 UTC.
 
 Adjust the cron expression to taste; remember that GitHub Actions cron is UTC.
 
