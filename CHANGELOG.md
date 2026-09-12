@@ -1,3 +1,10 @@
+## [1.20.3](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.20.2...v1.20.3) (2026-09-12)
+
+
+### Bug Fixes
+
+* **ci:** quote command descriptions containing a colon ([80d7357](https://github.com/nx-solutions-ug/wiki-agent/commit/80d7357fa9d44819080fd0dfb7b9763da9d2f5e6))
+
 ## [1.20.2](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.20.1...v1.20.2) (2026-09-12)
 
 

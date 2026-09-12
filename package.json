@@ -1,6 +1,6 @@
 {
   "name": "@chronova/wiki-agent",
-  "version": "1.20.2",
+  "version": "1.20.3",
   "description": "Standalone documentation agent for Ollama and OpenAI-compatible providers",
   "license": "ISC",
   "type": "module",
