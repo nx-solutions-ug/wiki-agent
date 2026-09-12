@@ -1,5 +1,5 @@
 ---
-description: "Review a Renovate/Dependabot pull request: research changelogs and assess the impact of the update"
+description: 'Review a Renovate/Dependabot pull request: research changelogs and assess the impact of the update'
 argument-hint: <pr-number>
 ---
 
@@ -27,6 +27,7 @@ gh pr view $ARGUMENTS --json title,body,author,headRefOid --jq '{title: .title, 
 **Read the diff from the local checkout, never via `gh pr diff`.** The GitHub diff API refuses any PR above 300 files with HTTP 406 (`PullRequest.diff too_large`) and `gh pr diff` then silently prints nothing. The repository is checked out at full depth (`fetch-depth: 0`).
 
 Determine from `git diff "origin/main"...HEAD`:
+
 - Which packages were updated
 - Old and new versions
 - The update type (patch / minor / major)
@@ -36,6 +37,7 @@ Focus on `package.json`, `bun.lock`, and GitHub Actions workflow files.
 ## Step 2: Research Release Notes
 
 For EACH updated dependency, find the actual changelog or release notes:
+
 - **npm/bun packages**: Check GitHub releases via `gh api /repos/{owner}/{repo}/releases` or inspect `CHANGELOG.md`.
 - **GitHub Actions**: Check the action repository's releases via `gh api /repos/{owner}/{repo}/releases`.
 
@@ -44,6 +46,7 @@ If you cannot find release notes, state so explicitly. Do NOT fabricate changes.
 ## Step 3: Assess Impact on wiki-agent
 
 wiki-agent is a TypeScript/Node.js CLI built with:
+
 - **Runtime**: Node.js >=22 (execution); Bun (package manager + packer). Do not confuse them.
 - **Package manager**: Bun (`bun install`, `bun.lock`). There is no `package-lock.json` or `yarn.lock`.
 - **Build**: `tsc -p tsconfig.json` only — no bundler. Output in `dist/`.
@@ -52,6 +55,7 @@ wiki-agent is a TypeScript/Node.js CLI built with:
 - **Code conventions**: ESM `.js` extensions on relative imports; `node:` prefix for built-ins (`node:fs/promises`, `node:path`, `node:child_process`).
 
 Check:
+
 - Whether version constraints in `package.json` are compatible.
 - For library updates: check if deprecated or removed APIs are used in `src/` (scan imports across `src/`).
 - Whether `bun.lock` must be regenerated (note that renovate/dependabot target `package.json`, not `bun.lock`).
@@ -80,11 +84,13 @@ Submit a GitHub review via the pulls API:
 ## Dependency Update Summary
 
 ### Changes
-| Package | From | To | Type |
-|---------|------|----|------|
+
+| Package        | From          | To            | Type                |
+| -------------- | ------------- | ------------- | ------------------- |
 | [package-name] | [old-version] | [new-version] | [patch/minor/major] |
 
 ### Release Highlights
+
 - **Security fixes**: CVEs or security patches (if any)
 - **Bug fixes**: Notable fixes relevant to our usage
 - **Breaking changes**: Anything that could affect us
@@ -92,16 +98,19 @@ Submit a GitHub review via the pulls API:
 - **New features**: Anything we might want to leverage
 
 ### Impact Assessment
+
 - [ ] No breaking changes detected
 - [ ] Version constraints are compatible
 - [ ] No deprecated API usage found in codebase
 - [ ] bun.lock is consistent with package.json changes
 
 ### Recommendation
+
 [SAFE TO MERGE / REVIEW RECOMMENDED / ACTION REQUIRED] with reasoning
 ```
 
 Submit using the GitHub API:
+
 - For safe patches and minor updates with no breaking changes:
   ```bash
   HEAD_SHA=$(gh pr view $ARGUMENTS --json headRefOid --jq .headRefOid)
@@ -126,6 +135,7 @@ Submit using the GitHub API:
   ```
 
 ## Rules
+
 - Do NOT push commits or modify repository files.
 - Do NOT merge the PR.
 - Always use $REPO_SLUG for API calls.

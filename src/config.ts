@@ -1,12 +1,12 @@
-import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
-import path from "node:path";
-import os from "node:os";
-import { Ollama } from "ollama";
-import OpenAI from "openai";
-import { type LLMClient, OpenAIAdapter, OllamaAdapter } from "./llm.js";
-import type { EmbeddingProvider, EmbeddingConfig } from "./embeddings.js";
+import { mkdir, readFile, writeFile, chmod } from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
+import { Ollama } from 'ollama';
+import OpenAI from 'openai';
+import { type LLMClient, OpenAIAdapter, OllamaAdapter } from './llm.js';
+import type { EmbeddingProvider, EmbeddingConfig } from './embeddings.js';
 
-export type ProviderMode = "local" | "cloud" | "openai";
+export type ProviderMode = 'local' | 'cloud' | 'openai';
 
 export interface GlobalConfig {
   mode: ProviderMode;
@@ -34,38 +34,47 @@ export interface ResolvedConfig {
 }
 
 function getGlobalConfigDir(): string {
-  return path.join(os.homedir(), ".wiki");
+  return path.join(os.homedir(), '.wiki');
 }
 function getGlobalConfigPath(): string {
-  return path.join(getGlobalConfigDir(), "config.json");
+  return path.join(getGlobalConfigDir(), 'config.json');
 }
 
-const DEFAULT_LOCAL_HOST = "http://localhost:11434";
-const DEFAULT_CLOUD_HOST = "https://ollama.com";
-const DEFAULT_OPENAI_HOST = "https://api.openai.com/v1";
-const DEFAULT_MODEL = "glm-5.3-flash";
-const DEFAULT_EMBEDDING_MODEL = "nomic-embed-text";
+const DEFAULT_LOCAL_HOST = 'http://localhost:11434';
+const DEFAULT_CLOUD_HOST = 'https://ollama.com';
+const DEFAULT_OPENAI_HOST = 'https://api.openai.com/v1';
+const DEFAULT_MODEL = 'glm-5.3-flash';
+const DEFAULT_EMBEDDING_MODEL = 'nomic-embed-text';
 
 /** Returns the default base URL for a given provider mode. */
 export function defaultBaseUrl(mode: ProviderMode): string {
   switch (mode) {
-    case "openai": return DEFAULT_OPENAI_HOST;
-    case "cloud": return DEFAULT_CLOUD_HOST;
-    default: return DEFAULT_LOCAL_HOST;
+    case 'openai':
+      return DEFAULT_OPENAI_HOST;
+    case 'cloud':
+      return DEFAULT_CLOUD_HOST;
+    default:
+      return DEFAULT_LOCAL_HOST;
   }
 }
 
 const MAX_TOOL_RESULT_LENGTH = 10_000;
 
 function defaultGlobalConfig(): GlobalConfig {
-  return { mode: "local", defaultModel: DEFAULT_MODEL, embeddingProvider: "local", embeddingModel: DEFAULT_EMBEDDING_MODEL, embeddingHost: DEFAULT_LOCAL_HOST };
+  return {
+    mode: 'local',
+    defaultModel: DEFAULT_MODEL,
+    embeddingProvider: 'local',
+    embeddingModel: DEFAULT_EMBEDDING_MODEL,
+    embeddingHost: DEFAULT_LOCAL_HOST,
+  };
 }
 
 export { getGlobalConfigDir };
 
 export async function loadGlobalConfig(): Promise<GlobalConfig> {
   try {
-    const raw = await readFile(getGlobalConfigPath(), "utf8");
+    const raw = await readFile(getGlobalConfigPath(), 'utf8');
     return JSON.parse(raw) as GlobalConfig;
   } catch {
     return defaultGlobalConfig();
@@ -76,30 +85,25 @@ export async function saveGlobalConfig(config: GlobalConfig): Promise<void> {
   const dir = getGlobalConfigDir();
   await mkdir(dir, { recursive: true, mode: 0o700 });
   const configPath = getGlobalConfigPath();
-  await writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf8");
+  await writeFile(configPath, JSON.stringify(config, null, 2) + '\n', 'utf8');
   await chmod(configPath, 0o600);
 }
 
-export async function loadProjectConfig(
-  projectRoot: string,
-): Promise<ProjectConfig> {
-  const configPath = path.join(projectRoot, ".wiki", "config.json");
+export async function loadProjectConfig(projectRoot: string): Promise<ProjectConfig> {
+  const configPath = path.join(projectRoot, '.wiki', 'config.json');
   try {
-    const raw = await readFile(configPath, "utf8");
+    const raw = await readFile(configPath, 'utf8');
     return JSON.parse(raw) as ProjectConfig;
   } catch {
     return {};
   }
 }
 
-export async function saveProjectConfig(
-  projectRoot: string,
-  config: ProjectConfig,
-): Promise<void> {
-  const configDir = path.join(projectRoot, ".wiki");
+export async function saveProjectConfig(projectRoot: string, config: ProjectConfig): Promise<void> {
+  const configDir = path.join(projectRoot, '.wiki');
   await mkdir(configDir, { recursive: true });
-  const configPath = path.join(configDir, "config.json");
-  await writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf8");
+  const configPath = path.join(configDir, 'config.json');
+  await writeFile(configPath, JSON.stringify(config, null, 2) + '\n', 'utf8');
 }
 
 /**
@@ -122,14 +126,21 @@ export async function resolveConfig(
   const env = process.env;
 
   let mode = globalConfig.mode;
-  if (env.WIKI_PROVIDER_MODE === "cloud" || env.WIKI_PROVIDER_MODE === "local" || env.WIKI_PROVIDER_MODE === "openai") {
+  if (
+    env.WIKI_PROVIDER_MODE === 'cloud' ||
+    env.WIKI_PROVIDER_MODE === 'local' ||
+    env.WIKI_PROVIDER_MODE === 'openai'
+  ) {
     mode = env.WIKI_PROVIDER_MODE as ProviderMode;
-  } else if (env.WIKI_OLLAMA_MODE === "cloud" || env.WIKI_OLLAMA_MODE === "local" || env.WIKI_OLLAMA_MODE === "openai") {
+  } else if (
+    env.WIKI_OLLAMA_MODE === 'cloud' ||
+    env.WIKI_OLLAMA_MODE === 'local' ||
+    env.WIKI_OLLAMA_MODE === 'openai'
+  ) {
     mode = env.WIKI_OLLAMA_MODE as ProviderMode;
   }
 
-  const apiKey =
-    (env.WIKI_PROVIDER_API_KEY || env.WIKI_OLLAMA_API_KEY) ?? globalConfig.apiKey;
+  const apiKey = (env.WIKI_PROVIDER_API_KEY || env.WIKI_OLLAMA_API_KEY) ?? globalConfig.apiKey;
 
   const baseUrl =
     (env.WIKI_PROVIDER_BASE_URL || env.WIKI_OLLAMA_BASE_URL) ??
@@ -144,20 +155,15 @@ export async function resolveConfig(
     DEFAULT_MODEL;
 
   // Embedding configuration
-  let embeddingProvider = globalConfig.embeddingProvider ?? "local";
-  if (env.WIKI_EMBEDDING_PROVIDER === "local" || env.WIKI_EMBEDDING_PROVIDER === "ollama") {
+  let embeddingProvider = globalConfig.embeddingProvider ?? 'local';
+  if (env.WIKI_EMBEDDING_PROVIDER === 'local' || env.WIKI_EMBEDDING_PROVIDER === 'ollama') {
     embeddingProvider = env.WIKI_EMBEDDING_PROVIDER;
   }
 
   const embeddingModel =
-    env.WIKI_EMBEDDING_MODEL ??
-    globalConfig.embeddingModel ??
-    DEFAULT_EMBEDDING_MODEL;
+    env.WIKI_EMBEDDING_MODEL ?? globalConfig.embeddingModel ?? DEFAULT_EMBEDDING_MODEL;
 
-  const embeddingHost =
-    env.WIKI_EMBEDDING_HOST ??
-    globalConfig.embeddingHost ??
-    DEFAULT_LOCAL_HOST;
+  const embeddingHost = env.WIKI_EMBEDDING_HOST ?? globalConfig.embeddingHost ?? DEFAULT_LOCAL_HOST;
 
   return { mode, apiKey, baseUrl, model, embeddingProvider, embeddingModel, embeddingHost };
 }
@@ -166,17 +172,21 @@ export async function resolveConfig(
  * Creates an LLM client (Ollama or OpenAI) from resolved config.
  */
 export function createLLMClient(config: ResolvedConfig): LLMClient {
-  if (config.mode === "openai") {
-    return new OpenAIAdapter(new OpenAI({
-      apiKey: config.apiKey,
-      baseURL: config.baseUrl,
-    }));
+  if (config.mode === 'openai') {
+    return new OpenAIAdapter(
+      new OpenAI({
+        apiKey: config.apiKey,
+        baseURL: config.baseUrl,
+      }),
+    );
   }
-  if (config.mode === "cloud" && config.apiKey) {
-    return new OllamaAdapter(new Ollama({
-      host: config.baseUrl,
-      headers: { Authorization: `Bearer ${config.apiKey}` },
-    }));
+  if (config.mode === 'cloud' && config.apiKey) {
+    return new OllamaAdapter(
+      new Ollama({
+        host: config.baseUrl,
+        headers: { Authorization: `Bearer ${config.apiKey}` },
+      }),
+    );
   }
 
   return new OllamaAdapter(new Ollama({ host: config.baseUrl }));
@@ -198,7 +208,7 @@ export function truncateResult(result: string): string {
     return result;
   }
 
-  return result.slice(0, MAX_TOOL_RESULT_LENGTH) + "\n... (truncated)";
+  return result.slice(0, MAX_TOOL_RESULT_LENGTH) + '\n... (truncated)';
 }
 
 export { DEFAULT_MODEL, DEFAULT_EMBEDDING_MODEL, MAX_TOOL_RESULT_LENGTH };

@@ -102,13 +102,13 @@ wiki --mcp stdio
 
 This exposes 5 tools to MCP clients (e.g. Claude Desktop, Cursor, any MCP-compatible assistant):
 
-| Tool | Description |
-|------|-------------|
-| `read_wiki_page` | Read a wiki page by relative path |
-| `list_wiki_pages` | List all wiki pages |
-| `search_wiki` | Semantic search over wiki content using embeddings |
-| `update_wiki` | Trigger a wiki-agent update run |
-| `rebuild_embeddings` | Rebuild the embeddings database from wiki content |
+| Tool                 | Description                                        |
+| -------------------- | -------------------------------------------------- |
+| `read_wiki_page`     | Read a wiki page by relative path                  |
+| `list_wiki_pages`    | List all wiki pages                                |
+| `search_wiki`        | Semantic search over wiki content using embeddings |
+| `update_wiki`        | Trigger a wiki-agent update run                    |
+| `rebuild_embeddings` | Rebuild the embeddings database from wiki content  |
 
 The embeddings database (`.wiki/wiki.db`) uses SQLite + sqlite-vec for vector search. Two embedding backends are supported:
 
@@ -158,7 +158,6 @@ For OpenAI or any OpenAI-compatible endpoint (OpenAI, Azure OpenAI, local server
 }
 ```
 
-
 ### Project config (`.wiki/config.json`)
 
 ```json
@@ -173,20 +172,20 @@ For OpenAI or any OpenAI-compatible endpoint (OpenAI, Azure OpenAI, local server
 
 ### Environment variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `WIKI_PROVIDER_MODE` | `"local"`, `"cloud"`, or `"openai"` (provider-agnostic; takes precedence over `WIKI_OLLAMA_MODE`) | from config |
-| `WIKI_PROVIDER_API_KEY` | API key for cloud or openai mode (takes precedence over `WIKI_OLLAMA_API_KEY`) | from config |
-| `WIKI_PROVIDER_BASE_URL` | Override provider base URL (takes precedence over `WIKI_OLLAMA_BASE_URL`; for `openai` mode this is the OpenAI-compatible endpoint) | `http://localhost:11434` / `https://ollama.com` / `https://api.openai.com/v1` |
-| `WIKI_OLLAMA_MODE` | `"local"`, `"cloud"`, or `"openai"` | from config |
-| `WIKI_OLLAMA_API_KEY` | API key (required for cloud and openai modes) | from config |
-| `WIKI_OLLAMA_BASE_URL` | Override Ollama server URL | `http://localhost:11434` / `https://ollama.com` |
-| `WIKI_MODEL` | Override model ID | from config |
-| `WIKI_RECURSION_LIMIT` | Max agent iterations | `200` |
-| `WIKI_EMBEDDING_PROVIDER` | Embedding provider: `"local"` (Transformers.js, on-device) or `"ollama"` | `local` |
-| `WIKI_EMBEDDING_MODEL` | Ollama embedding model (only used when provider is `ollama`) | `nomic-embed-text` |
-| `WIKI_EMBEDDING_HOST` | Ollama server URL for embeddings | `http://localhost:11434` |
-| `GH_TOKEN` | GitHub token for the `gh` CLI tool (read-only inspection plus staging PR close/comment; used in CI for the staging PR staleness check) | from environment |
+| Variable                  | Description                                                                                                                            | Default                                                                       |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| `WIKI_PROVIDER_MODE`      | `"local"`, `"cloud"`, or `"openai"` (provider-agnostic; takes precedence over `WIKI_OLLAMA_MODE`)                                      | from config                                                                   |
+| `WIKI_PROVIDER_API_KEY`   | API key for cloud or openai mode (takes precedence over `WIKI_OLLAMA_API_KEY`)                                                         | from config                                                                   |
+| `WIKI_PROVIDER_BASE_URL`  | Override provider base URL (takes precedence over `WIKI_OLLAMA_BASE_URL`; for `openai` mode this is the OpenAI-compatible endpoint)    | `http://localhost:11434` / `https://ollama.com` / `https://api.openai.com/v1` |
+| `WIKI_OLLAMA_MODE`        | `"local"`, `"cloud"`, or `"openai"`                                                                                                    | from config                                                                   |
+| `WIKI_OLLAMA_API_KEY`     | API key (required for cloud and openai modes)                                                                                          | from config                                                                   |
+| `WIKI_OLLAMA_BASE_URL`    | Override Ollama server URL                                                                                                             | `http://localhost:11434` / `https://ollama.com`                               |
+| `WIKI_MODEL`              | Override model ID                                                                                                                      | from config                                                                   |
+| `WIKI_RECURSION_LIMIT`    | Max agent iterations                                                                                                                   | `200`                                                                         |
+| `WIKI_EMBEDDING_PROVIDER` | Embedding provider: `"local"` (Transformers.js, on-device) or `"ollama"`                                                               | `local`                                                                       |
+| `WIKI_EMBEDDING_MODEL`    | Ollama embedding model (only used when provider is `ollama`)                                                                           | `nomic-embed-text`                                                            |
+| `WIKI_EMBEDDING_HOST`     | Ollama server URL for embeddings                                                                                                       | `http://localhost:11434`                                                      |
+| `GH_TOKEN`                | GitHub token for the `gh` CLI tool (read-only inspection plus staging PR close/comment; used in CI for the staging PR staleness check) | from environment                                                              |
 
 Environment variables take priority over config files.
 
@@ -207,17 +206,17 @@ GitHub wikis must be initialized once through the UI before they can be pushed t
 
 ### Required secrets
 
-| Secret | Required | Description |
-|--------|----------|-------------|
-| `WIKI_OLLAMA_API_KEY` (or `WIKI_PROVIDER_API_KEY`) | Yes | API key — required when mode is `cloud` or `openai`. `WIKI_PROVIDER_API_KEY` takes precedence when both are set. |
-| `APP_CLIENT_ID` | No | GitHub App client ID for token generation (falls back to `GITHUB_TOKEN`) |
-| `APP_PRIVATE_KEY` | No | GitHub App private key |
-| `WIKI_PUSH_TOKEN` | No | PAT with `repo` scope used to push to the wiki repo. If unset, the GitHub App token or `GITHUB_TOKEN` is used. Set this only if the default token cannot push to the wiki repo. |
+| Secret                                             | Required | Description                                                                                                                                                                     |
+| -------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `WIKI_OLLAMA_API_KEY` (or `WIKI_PROVIDER_API_KEY`) | Yes      | API key — required when mode is `cloud` or `openai`. `WIKI_PROVIDER_API_KEY` takes precedence when both are set.                                                                |
+| `APP_CLIENT_ID`                                    | No       | GitHub App client ID for token generation (falls back to `GITHUB_TOKEN`)                                                                                                        |
+| `APP_PRIVATE_KEY`                                  | No       | GitHub App private key                                                                                                                                                          |
+| `WIKI_PUSH_TOKEN`                                  | No       | PAT with `repo` scope used to push to the wiki repo. If unset, the GitHub App token or `GITHUB_TOKEN` is used. Set this only if the default token cannot push to the wiki repo. |
 
 ### Optional variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
+| Variable     | Default         | Description       |
+| ------------ | --------------- | ----------------- |
 | `WIKI_MODEL` | `glm-5.3-flash` | Model ID override |
 
 ## Output
@@ -245,6 +244,7 @@ Run-metadata files are written to `.wiki/` on every run but are gitignored — t
 - `index.md` files — auto-generated for each directory, listing pages and subdirectories with frontmatter titles/descriptions
 
 Every wiki markdown file written by the agent includes two metadata frontmatter entries:
+
 - `last_updated` — ISO timestamp of the update (e.g. `2026-08-26T07:34:13.000Z`)
 - `updated_by` — author attribution (`"wiki-agent"` for automated CI runs, `"mcp-server"` for MCP updates, or the user's Git `user.name`)
 

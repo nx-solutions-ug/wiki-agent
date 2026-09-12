@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { readFile, writeFile, mkdir, rm, readdir } from "node:fs/promises";
-import path from "node:path";
+import { readFile, writeFile, mkdir, rm, readdir } from 'node:fs/promises';
+import path from 'node:path';
 
 /**
  * Characters forbidden in GitHub Wiki page filenames.
@@ -10,10 +10,10 @@ const FORBIDDEN_CHARS = /[\\/:*?"<>|]/g;
 
 /** Files excluded from the wiki publish (metadata, config, plan). */
 const EXCLUDED = new Set([
-  ".last-update-report.md",
-  ".last-updated.json",
-  "config.json",
-  "_plan.md",
+  '.last-update-report.md',
+  '.last-updated.json',
+  'config.json',
+  '_plan.md',
 ]);
 
 /**
@@ -26,7 +26,7 @@ function toWikiPageName(filename: string): string {
   return filename
     .split(/[-_]/)
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join("-");
+    .join('-');
 }
 
 /**
@@ -35,10 +35,10 @@ function toWikiPageName(filename: string): string {
  */
 function cleanWikiFilename(name: string): string {
   return name
-    .replace(FORBIDDEN_CHARS, "-")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
+    .replace(FORBIDDEN_CHARS, '-')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
 /**
@@ -52,18 +52,18 @@ function cleanWikiFilename(name: string): string {
  */
 function flatWikiFilename(relPath: string): string {
   const parts = relPath.split(path.sep);
-  const basename = parts[parts.length - 1].replace(/\.md$/, "");
+  const basename = parts[parts.length - 1].replace(/\.md$/, '');
 
-  if (basename === "index") {
+  if (basename === 'index') {
     if (parts.length === 1) {
-      return "Home.md";
+      return 'Home.md';
     }
     return `${toWikiPageName(parts[parts.length - 2])}.md`;
   }
 
   const nameParts = parts.slice(0, -1).map((p) => toWikiPageName(p));
   nameParts.push(toWikiPageName(basename));
-  return `${cleanWikiFilename(nameParts.join("-"))}.md`;
+  return `${cleanWikiFilename(nameParts.join('-'))}.md`;
 }
 
 /**
@@ -72,9 +72,9 @@ function flatWikiFilename(relPath: string): string {
 function extractTitle(content: string, wikiName: string): string {
   const fmMatch = content.match(/^---\n[\s\S]*?title:\s*(.+?)\n[\s\S]*?---/);
   if (fmMatch) {
-    return fmMatch[1].trim().replace(/['"]/g, "");
+    return fmMatch[1].trim().replace(/['"]/g, '');
   }
-  return wikiName.replace(/-/g, " ");
+  return wikiName.replace(/-/g, ' ');
 }
 
 /**
@@ -108,7 +108,7 @@ async function collectMarkdownFiles(
 
       if (entry.isDirectory()) {
         await walk(absPath);
-      } else if (entry.name.endsWith(".md") && !EXCLUDED.has(entry.name)) {
+      } else if (entry.name.endsWith('.md') && !EXCLUDED.has(entry.name)) {
         results.push({ relPath, absPath });
       }
     }
@@ -129,65 +129,54 @@ async function collectMarkdownFiles(
  * @param sourceRelDir - the directory of the source file, relative to .wiki/ (e.g. "cli", "")
  * @param pathMap - map of source-relative .md paths (without ./ prefix) → flat wiki names
  */
-function rewriteLinks(
-  content: string,
-  sourceRelDir: string,
-  pathMap: Map<string, string>,
-): string {
-  return content.replace(
-    /\[([^\]]*)\]\(([^)]+)\)/g,
-    (match, text: string, url: string) => {
-      // Only rewrite internal .md links or directory links (not http URLs)
-      if (url.startsWith("http://") || url.startsWith("https://")) {
-        return match;
-      }
-
-      // Split off anchor fragment
-      const hashIdx = url.indexOf("#");
-      const anchor = hashIdx >= 0 ? url.slice(hashIdx) : "";
-      const linkPath = hashIdx >= 0 ? url.slice(0, hashIdx) : url;
-
-      // Resolve the link relative to the source file's directory
-      const resolved = path
-        .normalize(path.join(sourceRelDir, linkPath))
-        .replace(/^\.\//, "");
-
-      // Look up in the path map
-      const wikiName = pathMap.get(resolved);
-      if (wikiName) {
-        return `[${text}](${wikiName}${anchor})`;
-      }
-
-      // Handle directory links (e.g. ./architecture/ → architecture/index.md)
-      if (!linkPath.endsWith(".md")) {
-        const dirIndex = pathMap.get(`${resolved}/index.md`);
-        if (dirIndex) {
-          return `[${text}](${dirIndex}${anchor})`;
-        }
-        const dirIndexNoSlash = pathMap.get(`${resolved.replace(/\/$/, "")}/index.md`);
-        if (dirIndexNoSlash) {
-          return `[${text}](${dirIndexNoSlash}${anchor})`;
-        }
-      }
-
-      // Leave unresolvable links as-is
+function rewriteLinks(content: string, sourceRelDir: string, pathMap: Map<string, string>): string {
+  return content.replace(/\[([^\]]*)\]\(([^)]+)\)/g, (match, text: string, url: string) => {
+    // Only rewrite internal .md links or directory links (not http URLs)
+    if (url.startsWith('http://') || url.startsWith('https://')) {
       return match;
-    },
-  );
+    }
+
+    // Split off anchor fragment
+    const hashIdx = url.indexOf('#');
+    const anchor = hashIdx >= 0 ? url.slice(hashIdx) : '';
+    const linkPath = hashIdx >= 0 ? url.slice(0, hashIdx) : url;
+
+    // Resolve the link relative to the source file's directory
+    const resolved = path.normalize(path.join(sourceRelDir, linkPath)).replace(/^\.\//, '');
+
+    // Look up in the path map
+    const wikiName = pathMap.get(resolved);
+    if (wikiName) {
+      return `[${text}](${wikiName}${anchor})`;
+    }
+
+    // Handle directory links (e.g. ./architecture/ → architecture/index.md)
+    if (!linkPath.endsWith('.md')) {
+      const dirIndex = pathMap.get(`${resolved}/index.md`);
+      if (dirIndex) {
+        return `[${text}](${dirIndex}${anchor})`;
+      }
+      const dirIndexNoSlash = pathMap.get(`${resolved.replace(/\/$/, '')}/index.md`);
+      if (dirIndexNoSlash) {
+        return `[${text}](${dirIndexNoSlash}${anchor})`;
+      }
+    }
+
+    // Leave unresolvable links as-is
+    return match;
+  });
 }
 
 /**
  * Generates the _Sidebar.md content from the collected pages, grouped by
  * their original top-level directory (or "Guides" for root-level pages).
  */
-function generateSidebar(
-  pages: { relPath: string; wikiName: string; title: string }[],
-): string {
+function generateSidebar(pages: { relPath: string; wikiName: string; title: string }[]): string {
   const sections = new Map<string, { wikiName: string; title: string }[]>();
 
   for (const page of pages) {
     const parts = page.relPath.split(path.sep);
-    const section = parts.length > 1 ? parts[0] : "Guides";
+    const section = parts.length > 1 ? parts[0] : 'Guides';
     const key = toWikiPageName(section);
 
     if (!sections.has(key)) {
@@ -196,18 +185,18 @@ function generateSidebar(
     sections.get(key)!.push({ wikiName: page.wikiName, title: page.title });
   }
 
-  const lines: string[] = ["# Navigation", "", "- [Home](Home)", ""];
+  const lines: string[] = ['# Navigation', '', '- [Home](Home)', ''];
 
   for (const [sectionName, sectionPages] of sections) {
-    lines.push(`## ${sectionName}`, "");
+    lines.push(`## ${sectionName}`, '');
     for (const page of sectionPages) {
-      if (page.wikiName === "Home") continue;
+      if (page.wikiName === 'Home') continue;
       lines.push(`- [${page.title}](${page.wikiName})`);
     }
-    lines.push("");
+    lines.push('');
   }
 
-  return lines.join("\n");
+  return lines.join('\n');
 }
 
 /**
@@ -228,10 +217,7 @@ function generateSidebar(
  * @param wikiRoot - path to the .wiki/ directory (source)
  * @param outputDir - path to the output directory (will be created/cleaned)
  */
-export async function flattenWiki(
-  wikiRoot: string,
-  outputDir: string,
-): Promise<void> {
+export async function flattenWiki(wikiRoot: string, outputDir: string): Promise<void> {
   // Clean and create output dir
   await rm(outputDir, { recursive: true, force: true });
   await mkdir(outputDir, { recursive: true });
@@ -243,18 +229,18 @@ export async function flattenWiki(
   // e.g. "cli/usage.md" → "CLI-Usage", "index.md" → "Home"
   const pathMap = new Map<string, string>();
   for (const file of files) {
-    const flatName = flatWikiFilename(file.relPath).replace(/\.md$/, "");
+    const flatName = flatWikiFilename(file.relPath).replace(/\.md$/, '');
     pathMap.set(file.relPath, flatName);
   }
 
   const pageInfos = await Promise.all(
     files.map(async (file) => {
-      const content = await readFile(file.absPath, "utf8");
+      const content = await readFile(file.absPath, 'utf8');
       const wikiName = pathMap.get(file.relPath)!;
-      const flatFile = wikiName + ".md";
+      const flatFile = wikiName + '.md';
 
       // Determine the source file's directory relative to .wiki/
-      const sourceRelDir = path.dirname(file.relPath) === "." ? "" : path.dirname(file.relPath);
+      const sourceRelDir = path.dirname(file.relPath) === '.' ? '' : path.dirname(file.relPath);
 
       // Rewrite links on the frontmatter-stripped body. GitHub Wiki renders
       // frontmatter as literal text, so strip it before publishing.
@@ -265,26 +251,26 @@ export async function flattenWiki(
       const title = extractTitle(content, wikiName);
 
       // Write the file
-      await writeFile(path.join(outputDir, flatFile), rewritten, "utf8");
+      await writeFile(path.join(outputDir, flatFile), rewritten, 'utf8');
 
       return { relPath: file.relPath, wikiName, title };
-    })
+    }),
   );
 
   // Generate _Sidebar.md
   const sidebar = generateSidebar(pageInfos);
-  await writeFile(path.join(outputDir, "_Sidebar.md"), sidebar, "utf8");
+  await writeFile(path.join(outputDir, '_Sidebar.md'), sidebar, 'utf8');
 }
 
 // CLI entrypoint: wiki-flatten <wiki-root> <output-dir>
 // Match both the compiled filename (flatten-wiki.js) and the bin symlink
 // name (wiki-flatten) so it works under `node dist/flatten-wiki.js` and
 // `wiki-flatten` (Bun/npm global install) alike.
-const entrypoint = process.argv[1] ?? "";
-if (entrypoint.endsWith("flatten-wiki.js") || entrypoint.endsWith("wiki-flatten")) {
+const entrypoint = process.argv[1] ?? '';
+if (entrypoint.endsWith('flatten-wiki.js') || entrypoint.endsWith('wiki-flatten')) {
   const [wikiRoot, outputDir] = process.argv.slice(2);
   if (!wikiRoot || !outputDir) {
-    console.error("Usage: wiki-flatten <wiki-root> <output-dir>");
+    console.error('Usage: wiki-flatten <wiki-root> <output-dir>');
     process.exit(1);
   }
   flattenWiki(wikiRoot, outputDir)

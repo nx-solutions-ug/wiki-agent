@@ -18,6 +18,7 @@ cli.tsx (entry, bin: ./dist/cli.js)
 ```
 
 **Agent loop** (`src/agent.ts`, `runAgent`):
+
 1. Builds system prompt (`prompt.ts:createSystemPrompt`) — embeds repo instructions from `AGENTS.md`/`CLAUDE.md`.
 2. Builds user message (`prompt.ts:createUserMessage`) — `init` or `update`, with a `git log --oneline -30` summary.
 3. Sends messages to Ollama `client.chat()` with tool definitions (`tools.ts:createTools`).
@@ -85,15 +86,18 @@ wiki --update --print --model llama3.2
 **Naming**: files kebab-case (`index-middleware.ts`); functions camelCase (`runAgent`, `resolveConfig`); types/interfaces PascalCase (`AgentEvent`, `ResolvedConfig`); constants UPPER_SNAKE (`DEFAULT_MODEL`, `MAX_TOOL_RESULT_LENGTH`).
 
 **Imports**: ES modules with `.js` extensions on relative imports (required by `nodenext`):
+
 ```typescript
-import { runAgent } from "./agent.js";
-import { saveGlobalConfig, type GlobalConfig } from "../config.js";
+import { runAgent } from './agent.js';
+import { saveGlobalConfig, type GlobalConfig } from '../config.js';
 ```
+
 Node built-ins use the `node:` prefix (`node:fs/promises`, `node:path`, `node:child_process`).
 
 **Async**: all I/O is `async/await`. No raw `.then()` chains. Tool handlers return `Promise<string>`.
 
 **Error handling**: tool execution catches errors and returns them as string `Error: <message>` results to the model — tools never throw to the agent loop. The agent loop catches `client.chat` failures and emits an `error`/`done` event. Path-safety violations throw inside handlers but are caught by `executeTool`'s try/catch and returned as error strings. Example pattern (`tools.ts:executeTool`):
+
 ```typescript
 try {
   return await tool.handler(args, projectRoot);
@@ -104,6 +108,7 @@ try {
 ```
 
 **Path safety** (two-tier, in `tools.ts`):
+
 - `resolveWikiPath` — for writes. Resolves relative to project root and enforces the result stays under `.wiki/`. Throws on escape (`../`, absolute paths outside).
 - `resolveProjectPath` — for reads. Enforces the result stays within the project root. Used by `read_file`, `ls`, `grep`, `glob`.
 
@@ -112,43 +117,44 @@ try {
 **Result truncation**: all tool results are truncated to `MAX_TOOL_RESULT_LENGTH = 10_000` chars (`truncateResult`); file reads also cap at `MAX_READ_LENGTH = 50_000`.
 
 **Config resolution precedence** (`config.ts:resolveConfig`), highest first:
+
 1. Env vars: `WIKI_PROVIDER_MODE` (or legacy `WIKI_OLLAMA_MODE`), `WIKI_PROVIDER_API_KEY` (or legacy `WIKI_OLLAMA_API_KEY`), `WIKI_PROVIDER_BASE_URL` (or legacy `WIKI_OLLAMA_BASE_URL`), `WIKI_MODEL`, `WIKI_EMBEDDING_PROVIDER`, `WIKI_EMBEDDING_MODEL`, `WIKI_EMBEDDING_HOST`
 2. CLI `--model` flag
 3. Project config `.wiki/config.json` (`modelOverride`)
 4. Global config `~/.wiki/config.json`
 5. Built-in defaults (`mode: "local"`, `model: "glm-5.3-flash"`, local `http://localhost:11434`, cloud `https://ollama.com`, openai `https://api.openai.com/v1`)
 
-
 Note: `resolveConfig` reads env vars and global config in the same pass — env wins over global for each field independently.
 
 **Event model** (`agent.ts:AgentEvent`): a discriminated union the agent emits via the `onEvent` callback:
+
 ```typescript
 type AgentEvent =
-  | { type: "assistant"; content: string }
-  | { type: "tool"; name: string; result: string }
-  | { type: "error"; message: string }
-  | { type: "done"; summary: string };
+  | { type: 'assistant'; content: string }
+  | { type: 'tool'; name: string; result: string }
+  | { type: 'error'; message: string }
+  | { type: 'done'; summary: string };
 ```
+
 Headless mode (`cli.tsx:runHeadless`) prints these to stdout/stderr; the TUI (`RunView.tsx`) converts them to `DisplayEvent` and renders.
 
 **TUI pattern** (Ink/React): components use `React.createElement` (not JSX) throughout. The agent run is kicked off inside `RunView`'s `useEffect` with `stream: true`; events accumulate in a `useRef` + `useState` pair. `App` watches for `q`/Ctrl-C via `useInput` and calls `useApp().exit()`.
 
 ## Important Files
 
-| File | Role |
-|------|------|
-| `src/cli.tsx` | CLI entry (`bin: ./dist/cli.js`). `parseArgs`, `runHeadless`, `main`. Top-level error boundary. |
-| `src/agent.ts` | `runAgent(client, RunOptions)` — the core loop. `AgentEvent`, `RunOptions`, `createWorkflowFile`, `generateUpdateReport`. |
-| `src/tools.ts` | `createTools(projectRoot): Tool[]` — all 7 model tools. `executeTool(name, args, projectRoot)` — dispatcher. `Tool` interface (`{ definition, handler }`). |
-| `src/config.ts` | `resolveConfig`, `createOllamaClient`, `loadGlobalConfig`/`saveGlobalConfig`, `loadProjectConfig`/`saveProjectConfig`. `GlobalConfig`, `ProjectConfig`, `ResolvedConfig`, `OllamaMode`. |
-| `src/prompt.ts` | `createSystemPrompt(projectRoot)` — reads `AGENTS.md`/`CLAUDE.md` (first match wins), embeds them. `createUserMessage`, `getHelpText`, `WikiCommand` type. |
-| `src/index-middleware.ts` | `synchronizeWikiIndexes(wikiRoot)` — regenerates per-directory `index.md` from frontmatter. |
-| `src/tui/App.tsx` | Root Ink component; routes to `CredentialsSetup` when cloud mode lacks an API key. |
-| `src/tui/RunView.tsx` | Starts `runAgent` in `useEffect`, renders event stream. |
-| `src/tui/CredentialsSetup.tsx` | Multi-step wizard (`mode-select → api-key → model → saving`). |
-| `package.json` | `bin`, scripts, deps, `engines.node >=22`. |
-| `tsconfig.json` | strict, ES2022, nodenext, jsx `react-jsx`. |
-
+| File                           | Role                                                                                                                                                                                    |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/cli.tsx`                  | CLI entry (`bin: ./dist/cli.js`). `parseArgs`, `runHeadless`, `main`. Top-level error boundary.                                                                                         |
+| `src/agent.ts`                 | `runAgent(client, RunOptions)` — the core loop. `AgentEvent`, `RunOptions`, `createWorkflowFile`, `generateUpdateReport`.                                                               |
+| `src/tools.ts`                 | `createTools(projectRoot): Tool[]` — all 7 model tools. `executeTool(name, args, projectRoot)` — dispatcher. `Tool` interface (`{ definition, handler }`).                              |
+| `src/config.ts`                | `resolveConfig`, `createOllamaClient`, `loadGlobalConfig`/`saveGlobalConfig`, `loadProjectConfig`/`saveProjectConfig`. `GlobalConfig`, `ProjectConfig`, `ResolvedConfig`, `OllamaMode`. |
+| `src/prompt.ts`                | `createSystemPrompt(projectRoot)` — reads `AGENTS.md`/`CLAUDE.md` (first match wins), embeds them. `createUserMessage`, `getHelpText`, `WikiCommand` type.                              |
+| `src/index-middleware.ts`      | `synchronizeWikiIndexes(wikiRoot)` — regenerates per-directory `index.md` from frontmatter.                                                                                             |
+| `src/tui/App.tsx`              | Root Ink component; routes to `CredentialsSetup` when cloud mode lacks an API key.                                                                                                      |
+| `src/tui/RunView.tsx`          | Starts `runAgent` in `useEffect`, renders event stream.                                                                                                                                 |
+| `src/tui/CredentialsSetup.tsx` | Multi-step wizard (`mode-select → api-key → model → saving`).                                                                                                                           |
+| `package.json`                 | `bin`, scripts, deps, `engines.node >=22`.                                                                                                                                              |
+| `tsconfig.json`                | strict, ES2022, nodenext, jsx `react-jsx`.                                                                                                                                              |
 
 ## Known Source Inconsistencies
 
@@ -169,18 +175,25 @@ None currently known.
 **Structure**: `describe`/`test` blocks, descriptive names reflecting behavior (`write_file rejects paths outside .wiki/`). Assertions use `expect().toBe()`, `.toContain()`, `.toBeTruthy()`.
 
 **Fixtures**: every test file uses a `tempDir()` helper (`mkdtemp` under `os.tmpdir()`) with `beforeEach`/`afterEach` cleanup:
+
 ```typescript
 function tempDir(): Promise<string> {
-  return mkdtemp(path.join(os.tmpdir(), "wiki-tools-test-"));
+  return mkdtemp(path.join(os.tmpdir(), 'wiki-tools-test-'));
 }
-beforeEach(async () => { projectRoot = await tempDir(); });
-afterEach(async () => { await rm(projectRoot, { recursive: true, force: true }); });
+beforeEach(async () => {
+  projectRoot = await tempDir();
+});
+afterEach(async () => {
+  await rm(projectRoot, { recursive: true, force: true });
+});
 ```
+
 `config.test.ts` additionally stubs `process.env.HOME` to isolate the global config file (`~/.wiki/config.json`), restoring it in `afterEach`.
 
 **What's tested**: tools (path safety, read/write/edit, self-invocation guard), config (load/save/resolve precedence), prompt (content assertions for role, frontmatter, loop-prevention section), index-middleware (frontmatter→index rendering). No integration tests touch the Ollama SDK — it is not mocked in the suite; tests cover the deterministic filesystem/config/prompt logic.
 
 **Running**:
+
 ```bash
 npm test                 # full suite
 npx vitest run test/tools.test.ts   # single file

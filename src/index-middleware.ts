@@ -1,10 +1,10 @@
-import { readFile, writeFile, readdir, stat } from "node:fs/promises";
-import path from "node:path";
-import { parse } from "yaml";
-import { resolveUpdatedBy } from "./cli-helpers.js";
+import { readFile, writeFile, readdir, stat } from 'node:fs/promises';
+import path from 'node:path';
+import { parse } from 'yaml';
+import { resolveUpdatedBy } from './cli-helpers.js';
 
-const INDEX_FILE = "index.md";
-const EXCLUDED_FILES = new Set([INDEX_FILE, "_plan.md"]);
+const INDEX_FILE = 'index.md';
+const EXCLUDED_FILES = new Set([INDEX_FILE, '_plan.md']);
 
 interface Link {
   href: string;
@@ -36,7 +36,7 @@ export async function synchronizeWikiIndexes(
     return;
   }
 
-  const updatedBy = options?.updatedBy ?? await resolveUpdatedBy(path.dirname(wikiRoot));
+  const updatedBy = options?.updatedBy ?? (await resolveUpdatedBy(path.dirname(wikiRoot)));
   const lastUpdated = options?.lastUpdated ?? new Date().toISOString();
 
   await synchronizeDirectory(wikiRoot, wikiRoot, { updatedBy, lastUpdated });
@@ -66,7 +66,7 @@ async function synchronizeDirectory(
   for (let i = 0; i < entries.length; i += CHUNK_SIZE) {
     await Promise.all(
       entries.slice(i, i + CHUNK_SIZE).map(async (entry) => {
-        if (!entry.name || entry.name.startsWith(".")) return;
+        if (!entry.name || entry.name.startsWith('.')) return;
 
         if (entry.isDir) {
           directories.push({ href: `${encodeURIComponent(entry.name)}/`, label: entry.name });
@@ -74,7 +74,7 @@ async function synchronizeDirectory(
           return;
         }
 
-        if (path.extname(entry.name).toLowerCase() !== ".md") return;
+        if (path.extname(entry.name).toLowerCase() !== '.md') return;
         if (EXCLUDED_FILES.has(entry.name)) return;
 
         const filePath = path.join(dirPath, entry.name);
@@ -82,15 +82,14 @@ async function synchronizeDirectory(
         files.push({
           description: metadata.description,
           href: encodeURIComponent(entry.name),
-          label: metadata.title ?? path.basename(entry.name, ".md"),
+          label: metadata.title ?? path.basename(entry.name, '.md'),
         });
       }),
     );
   }
 
   const indexPath = path.join(dirPath, INDEX_FILE);
-  const title =
-    dirPath === root ? "Wiki" : titleFromSlug(path.basename(dirPath));
+  const title = dirPath === root ? 'Wiki' : titleFromSlug(path.basename(dirPath));
   const content = renderIndex(title, files, directories, {
     last_updated: syncOptions.lastUpdated,
     updated_by: syncOptions.updatedBy,
@@ -98,7 +97,7 @@ async function synchronizeDirectory(
 
   let existing: string | null = null;
   try {
-    existing = await readFile(indexPath, "utf8");
+    existing = await readFile(indexPath, 'utf8');
   } catch {
     // index.md doesn't exist yet
   }
@@ -115,7 +114,7 @@ async function synchronizeDirectory(
     if (existing === content) return;
   }
 
-  await writeFile(indexPath, content, "utf8");
+  await writeFile(indexPath, content, 'utf8');
 }
 
 async function collectEntries(dirPath: string): Promise<DirectoryEntry[]> {
@@ -133,14 +132,14 @@ function renderIndex(
   metadata?: { last_updated?: string; updated_by?: string },
 ): string {
   const sections = [
-    renderLinks("Files", files, true),
-    renderLinks("Directories", directories, false),
+    renderLinks('Files', files, true),
+    renderLinks('Directories', directories, false),
   ]
     .filter(Boolean)
-    .join("\n\n");
+    .join('\n\n');
 
   const fields: string[] = [
-    "type: Documentation Index",
+    'type: Documentation Index',
     `title: ${JSON.stringify(title)}`,
     `description: ${JSON.stringify(`Files and subdirectories in ${title}.`)}`,
   ];
@@ -151,26 +150,20 @@ function renderIndex(
     fields.push(`updated_by: ${JSON.stringify(metadata.updated_by)}`);
   }
 
-  return `---\n${fields.join("\n")}\n---\n\n${sections}\n`;
+  return `---\n${fields.join('\n')}\n---\n\n${sections}\n`;
 }
 
-function renderLinks(
-  heading: string,
-  links: Link[],
-  includeDescription: boolean,
-): string {
-  if (links.length === 0) return "";
+function renderLinks(heading: string, links: Link[], includeDescription: boolean): string {
+  if (links.length === 0) return '';
 
   links.sort((left, right) => left.href.localeCompare(right.href));
 
   const items = links.map(({ description, href, label }) => {
     const link = `- [${escapeLabel(label)}](${href})`;
-    return includeDescription && description
-      ? `${link} - ${description}`
-      : link;
+    return includeDescription && description ? `${link} - ${description}` : link;
   });
 
-  return `# ${heading}\n\n${items.join("\n")}`;
+  return `# ${heading}\n\n${items.join('\n')}`;
 }
 
 export interface FrontmatterMetadata {
@@ -180,13 +173,11 @@ export interface FrontmatterMetadata {
   updated_by?: string;
 }
 
-async function parseFrontmatter(
-  filePath: string,
-): Promise<FrontmatterMetadata> {
+async function parseFrontmatter(filePath: string): Promise<FrontmatterMetadata> {
   let content: string;
 
   try {
-    content = await readFile(filePath, "utf8");
+    content = await readFile(filePath, 'utf8');
   } catch {
     return {};
   }
@@ -200,7 +191,7 @@ async function parseFrontmatter(
   try {
     fields = parse(`\n${block}`, {
       maxAliasCount: 100,
-      schema: "core",
+      schema: 'core',
       uniqueKeys: true,
     }) as unknown;
   } catch (error) {
@@ -209,28 +200,25 @@ async function parseFrontmatter(
     );
   }
 
-  if (fields === null || typeof fields !== "object" || Array.isArray(fields)) {
+  if (fields === null || typeof fields !== 'object' || Array.isArray(fields)) {
     throw new Error(`${filePath} YAML front matter must be a mapping.`);
   }
 
   const { description, title, last_updated, updated_by } = fields as Record<string, unknown>;
 
-  if (
-    description !== undefined &&
-    (typeof description !== "string" || !description.trim())
-  ) {
+  if (description !== undefined && (typeof description !== 'string' || !description.trim())) {
     throw new Error(`${filePath} YAML description must be a non-empty string.`);
   }
 
-  if (title !== undefined && typeof title !== "string") {
+  if (title !== undefined && typeof title !== 'string') {
     throw new Error(`${filePath} YAML title must be a string.`);
   }
 
-  if (last_updated !== undefined && typeof last_updated !== "string") {
+  if (last_updated !== undefined && typeof last_updated !== 'string') {
     throw new Error(`${filePath} YAML last_updated must be a string.`);
   }
 
-  if (updated_by !== undefined && typeof updated_by !== "string") {
+  if (updated_by !== undefined && typeof updated_by !== 'string') {
     throw new Error(`${filePath} YAML updated_by must be a string.`);
   }
 
@@ -247,12 +235,9 @@ function titleFromSlug(slug: string): string {
     .split(/[-_\s]+/u)
     .filter(Boolean)
     .map((word) => word[0].toUpperCase() + word.slice(1))
-    .join(" ");
+    .join(' ');
 }
 
 function escapeLabel(value: string): string {
-  return value
-    .replaceAll("\\", "\\\\")
-    .replaceAll("[", "\\[")
-    .replaceAll("]", "\\]");
+  return value.replaceAll('\\', '\\\\').replaceAll('[', '\\[').replaceAll(']', '\\]');
 }

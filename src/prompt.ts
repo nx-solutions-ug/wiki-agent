@@ -1,8 +1,8 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
-import { VERSION } from "./version.js";
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
+import { VERSION } from './version.js';
 
-export type WikiCommand = "init" | "update";
+export type WikiCommand = 'init' | 'update';
 
 /**
  * Reads AGENTS.md or CLAUDE.md from the project root, if either exists.
@@ -10,14 +10,14 @@ export type WikiCommand = "init" | "update";
  */
 async function loadRepoInstructions(projectRoot: string): Promise<string | null> {
   const [agents, claude] = await Promise.allSettled([
-    readFile(path.join(projectRoot, "AGENTS.md"), "utf8"),
-    readFile(path.join(projectRoot, "CLAUDE.md"), "utf8"),
+    readFile(path.join(projectRoot, 'AGENTS.md'), 'utf8'),
+    readFile(path.join(projectRoot, 'CLAUDE.md'), 'utf8'),
   ]);
 
-  if (agents.status === "fulfilled") {
+  if (agents.status === 'fulfilled') {
     return agents.value.trim();
   }
-  if (claude.status === "fulfilled") {
+  if (claude.status === 'fulfilled') {
     return claude.value.trim();
   }
 
@@ -28,8 +28,8 @@ export async function createSystemPrompt(projectRoot: string): Promise<string> {
   const repoInstructions = await loadRepoInstructions(projectRoot);
 
   const instructionsSection = repoInstructions
- ? `\n\nRepository instructions (from AGENTS.md or CLAUDE.md in the project root):\nYou MUST follow these rules when generating documentation. Acknowledge and respect all conventions, code style rules, and constraints documented here:\n\n${repoInstructions}\n`
- : "";
+    ? `\n\nRepository instructions (from AGENTS.md or CLAUDE.md in the project root):\nYou MUST follow these rules when generating documentation. Acknowledge and respect all conventions, code style rules, and constraints documented here:\n\n${repoInstructions}\n`
+    : '';
   return `
 You are Wiki Agent, an expert technical writer, software architect, and product analyst.
 
@@ -59,7 +59,7 @@ You are a completely independent, non-interactive agent. There is no human prese
   - .wiki/cli/usage.md becomes CLI-Usage.md
   - A _Sidebar.md navigation file is generated automatically from the page structure
   - Internal markdown links (e.g. [Text](./architecture/overview.md)) are rewritten to flat wiki page names (e.g. [Text](Architecture-Overview))
-- Keep using nested directory paths and relative .md links in your source files — the conversion step handles the flattening. Never use the characters \ / : * ? " < > | in wiki file names.
+- Keep using nested directory paths and relative .md links in your source files — the conversion step handles the flattening. Never use the characters  / : * ? " < > | in wiki file names.
 - Never write markdown files outside .wiki/.
 - Each wiki page must start with YAML frontmatter:
   ---
@@ -121,11 +121,8 @@ ${instructionsSection}
 `.trim();
 }
 
-export function createUserMessage(
-  command: WikiCommand,
-  gitSummary?: string,
-): string {
-  if (command === "init") {
+export function createUserMessage(command: WikiCommand, gitSummary?: string): string {
+  if (command === 'init') {
     return `
 Initialize wiki documentation for this repository.
 
@@ -136,7 +133,7 @@ Start with .wiki/quickstart.md as the entrypoint. Then create section directorie
 Make one focused discovery pass, then write the plan and proceed to documentation. Do not loop on repeated exploration steps.
 
 Git context:
-${gitSummary ?? "(not available)"}
+${gitSummary ?? '(not available)'}
 `.trim();
   }
 
@@ -148,7 +145,7 @@ Inspect .wiki/, identify recent source changes or newly relevant evidence, and r
 Make one focused discovery pass to identify what changed, then proceed to surgical edits. Do not loop on repeated exploration steps. Before writing any files, perform the staging PR staleness check described in the system prompt — if a newer open staging PR exists, abandon the update.
 
 Git change summary:
-${gitSummary ?? "(not available)"}
+${gitSummary ?? '(not available)'}
 `.trim();
 }
 

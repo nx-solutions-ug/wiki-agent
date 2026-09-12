@@ -1,24 +1,18 @@
-import { describe, expect, test, beforeEach, afterEach } from "vitest";
-import { mkdtemp, rm, writeFile, mkdir } from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
+import { describe, expect, test, beforeEach, afterEach } from 'vitest';
+import { mkdtemp, rm, writeFile, mkdir } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import {
   readWikiPage,
   listWikiPages,
   createMcpServer,
   getCachedEmbedder,
   clearEmbedderCache,
-  rebuildEmbeddings,
-  syncEmbeddingsTool,
-} from "../src/mcp-server.js";
-import {
-  indexWiki,
-  VectorStore,
-  type Embedder,
-} from "../src/embeddings.js";
+} from '../src/mcp-server.js';
+import { indexWiki, VectorStore, type Embedder } from '../src/embeddings.js';
 
 function tempDir(): Promise<string> {
-  return mkdtemp(path.join(os.tmpdir(), "wiki-mcp-test-"));
+  return mkdtemp(path.join(os.tmpdir(), 'wiki-mcp-test-'));
 }
 
 // Deterministic mock embedder for testing
@@ -39,81 +33,85 @@ class MockEmbedder implements Embedder {
   }
 }
 
-describe("MCP server tools", () => {
+describe('MCP server tools', () => {
   let projectRoot: string;
 
   beforeEach(async () => {
     projectRoot = await tempDir();
-    await mkdir(path.join(projectRoot, ".wiki"), { recursive: true });
+    await mkdir(path.join(projectRoot, '.wiki'), { recursive: true });
   });
 
   afterEach(async () => {
     await rm(projectRoot, { recursive: true, force: true });
   });
 
-  describe("readWikiPage", () => {
-    test("reads a wiki page by relative path", async () => {
-      await writeFile(path.join(projectRoot, ".wiki", "quickstart.md"), "# Quickstart\n\nWelcome.");
+  describe('readWikiPage', () => {
+    test('reads a wiki page by relative path', async () => {
+      await writeFile(path.join(projectRoot, '.wiki', 'quickstart.md'), '# Quickstart\n\nWelcome.');
 
-      const content = await readWikiPage(projectRoot, "quickstart");
-      expect(content).toContain("# Quickstart");
-      expect(content).toContain("Welcome.");
+      const content = await readWikiPage(projectRoot, 'quickstart');
+      expect(content).toContain('# Quickstart');
+      expect(content).toContain('Welcome.');
     });
 
-    test("reads a wiki page with .md extension", async () => {
-      await writeFile(path.join(projectRoot, ".wiki", "guide.md"), "# Guide");
+    test('reads a wiki page with .md extension', async () => {
+      await writeFile(path.join(projectRoot, '.wiki', 'guide.md'), '# Guide');
 
-      const content = await readWikiPage(projectRoot, "guide.md");
-      expect(content).toContain("# Guide");
+      const content = await readWikiPage(projectRoot, 'guide.md');
+      expect(content).toContain('# Guide');
     });
 
-    test("reads nested wiki pages", async () => {
-      await mkdir(path.join(projectRoot, ".wiki", "architecture"));
-      await writeFile(path.join(projectRoot, ".wiki", "architecture", "overview.md"), "# Overview");
+    test('reads nested wiki pages', async () => {
+      await mkdir(path.join(projectRoot, '.wiki', 'architecture'));
+      await writeFile(path.join(projectRoot, '.wiki', 'architecture', 'overview.md'), '# Overview');
 
-      const content = await readWikiPage(projectRoot, "architecture/overview");
-      expect(content).toContain("# Overview");
+      const content = await readWikiPage(projectRoot, 'architecture/overview');
+      expect(content).toContain('# Overview');
     });
 
-    test("throws on path outside .wiki/", async () => {
-      await expect(readWikiPage(projectRoot, "../etc/passwd")).rejects.toThrow();
+    test('throws on path outside .wiki/', async () => {
+      await expect(readWikiPage(projectRoot, '../etc/passwd')).rejects.toThrow();
     });
 
-    test("throws on non-existent page", async () => {
-      await expect(readWikiPage(projectRoot, "nonexistent")).rejects.toThrow("not found");
+    test('throws on non-existent page', async () => {
+      await expect(readWikiPage(projectRoot, 'nonexistent')).rejects.toThrow('not found');
     });
   });
 
-  describe("listWikiPages", () => {
-    test("lists all wiki pages", async () => {
-      await writeFile(path.join(projectRoot, ".wiki", "page1.md"), "# Page 1");
-      await writeFile(path.join(projectRoot, ".wiki", "page2.md"), "# Page 2");
-      await mkdir(path.join(projectRoot, ".wiki", "subdir"));
-      await writeFile(path.join(projectRoot, ".wiki", "subdir", "page3.md"), "# Page 3");
+  describe('listWikiPages', () => {
+    test('lists all wiki pages', async () => {
+      await writeFile(path.join(projectRoot, '.wiki', 'page1.md'), '# Page 1');
+      await writeFile(path.join(projectRoot, '.wiki', 'page2.md'), '# Page 2');
+      await mkdir(path.join(projectRoot, '.wiki', 'subdir'));
+      await writeFile(path.join(projectRoot, '.wiki', 'subdir', 'page3.md'), '# Page 3');
 
       const pages = await listWikiPages(projectRoot);
       expect(pages).toHaveLength(3);
-      expect(pages).toContain("page1.md");
-      expect(pages).toContain("page2.md");
-      expect(pages).toContain(path.join("subdir", "page3.md"));
+      expect(pages).toContain('page1.md');
+      expect(pages).toContain('page2.md');
+      expect(pages).toContain(path.join('subdir', 'page3.md'));
     });
 
-    test("returns empty array when no wiki exists", async () => {
+    test('returns empty array when no wiki exists', async () => {
       // Remove .wiki dir
-      await rm(path.join(projectRoot, ".wiki"), { recursive: true, force: true });
+      await rm(path.join(projectRoot, '.wiki'), { recursive: true, force: true });
       await expect(listWikiPages(projectRoot)).rejects.toThrow();
     });
   });
 
-  describe("indexWiki + search integration", () => {
-    test("indexes wiki files and searches them", async () => {
-      const wikiRoot = path.join(projectRoot, ".wiki");
-      const dbPath = path.join(wikiRoot, "wiki.db");
+  describe('indexWiki + search integration', () => {
+    test('indexes wiki files and searches them', async () => {
+      const wikiRoot = path.join(projectRoot, '.wiki');
+      const dbPath = path.join(wikiRoot, 'wiki.db');
 
-      await writeFile(path.join(wikiRoot, "quickstart.md"),
-        "---\ntitle: Quickstart\ndescription: Getting started\n---\n\n# Quickstart\n\nInstall the agent and run it.");
-      await writeFile(path.join(wikiRoot, "architecture.md"),
-        "---\ntitle: Architecture\ndescription: System design\n---\n\n# Architecture\n\nThe system uses a manual tool-calling loop.");
+      await writeFile(
+        path.join(wikiRoot, 'quickstart.md'),
+        '---\ntitle: Quickstart\ndescription: Getting started\n---\n\n# Quickstart\n\nInstall the agent and run it.',
+      );
+      await writeFile(
+        path.join(wikiRoot, 'architecture.md'),
+        '---\ntitle: Architecture\ndescription: System design\n---\n\n# Architecture\n\nThe system uses a manual tool-calling loop.',
+      );
 
       const embedder = new MockEmbedder(16);
       const result = await indexWiki(wikiRoot, dbPath, embedder);
@@ -122,23 +120,23 @@ describe("MCP server tools", () => {
 
       // Open the store and search
       const store = new VectorStore(dbPath, embedder.dimension());
-      const queryVec = await embedder.embed("Install the agent and run it.");
+      const queryVec = await embedder.embed('Install the agent and run it.');
       const searchResults = store.search(queryVec, 2);
 
       expect(searchResults).toHaveLength(2);
       // The quickstart page should score higher for a query about installing
-      expect(searchResults[0].path).toBe("quickstart.md");
+      expect(searchResults[0].path).toBe('quickstart.md');
 
       store.close();
     });
   });
 
-  describe("getCachedEmbedder", () => {
+  describe('getCachedEmbedder', () => {
     afterEach(() => {
       clearEmbedderCache();
     });
 
-    test("caches embedder per projectRoot", async () => {
+    test('caches embedder per projectRoot', async () => {
       const embedderPromise1 = getCachedEmbedder(projectRoot);
       const embedderPromise2 = getCachedEmbedder(projectRoot);
       expect(embedderPromise1).toBe(embedderPromise2);
@@ -148,7 +146,7 @@ describe("MCP server tools", () => {
       expect(embedder1).toBe(embedder2);
     });
 
-    test("clearEmbedderCache resets cached instances", async () => {
+    test('clearEmbedderCache resets cached instances', async () => {
       const embedderPromise1 = getCachedEmbedder(projectRoot);
       clearEmbedderCache();
       const embedderPromise2 = getCachedEmbedder(projectRoot);
@@ -156,8 +154,8 @@ describe("MCP server tools", () => {
     });
   });
 
-  describe("createMcpServer", () => {
-    test("creates server instance successfully", () => {
+  describe('createMcpServer', () => {
+    test('creates server instance successfully', () => {
       const server = createMcpServer({ projectRoot });
       expect(server).toBeDefined();
     });

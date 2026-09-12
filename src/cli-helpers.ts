@@ -3,8 +3,8 @@
  * by other entry points (e.g. the MCP server).
  */
 
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
 
@@ -14,13 +14,13 @@ const execFileAsync = promisify(execFile);
  */
 export async function getGitSummary(cwd: string): Promise<string> {
   try {
-    const { stdout } = await execFileAsync("git", ["log", "--oneline", "-30"], {
+    const { stdout } = await execFileAsync('git', ['log', '--oneline', '-30'], {
       cwd,
       maxBuffer: 1024 * 1024,
     });
     return stdout.trim();
   } catch {
-    return "(git not available or not a git repository)";
+    return '(git not available or not a git repository)';
   }
 }
 
@@ -30,7 +30,7 @@ export async function getGitSummary(cwd: string): Promise<string> {
  */
 export async function getGitUserName(cwd?: string): Promise<string | null> {
   try {
-    const { stdout } = await execFileAsync("git", ["config", "user.name"], {
+    const { stdout } = await execFileAsync('git', ['config', 'user.name'], {
       cwd: cwd || process.cwd(),
       maxBuffer: 1024 * 1024,
     });
@@ -66,19 +66,19 @@ export async function resolveUpdatedBy(
     return process.env.WIKI_UPDATED_BY;
   }
 
-  if (options?.isMcp || process.env.WIKI_MCP === "true" || process.env.WIKI_MCP === "1") {
-    return "mcp-server";
+  if (options?.isMcp || process.env.WIKI_MCP === 'true' || process.env.WIKI_MCP === '1') {
+    return 'mcp-server';
   }
 
   const isAutomated =
     options?.isAutomated ||
     Boolean(process.env.CI) ||
     Boolean(process.env.GITHUB_ACTIONS) ||
-    process.env.WIKI_AUTOMATED === "true" ||
-    process.env.WIKI_AUTOMATED === "1";
+    process.env.WIKI_AUTOMATED === 'true' ||
+    process.env.WIKI_AUTOMATED === '1';
 
   if (isAutomated) {
-    return "wiki-agent";
+    return 'wiki-agent';
   }
 
   const gitUser = await getGitUserName(projectRoot);
@@ -86,10 +86,5 @@ export async function resolveUpdatedBy(
     return gitUser;
   }
 
-  return (
-    process.env.GIT_AUTHOR_NAME ||
-    process.env.USER ||
-    process.env.USERNAME ||
-    "wiki-agent"
-  );
+  return process.env.GIT_AUTHOR_NAME || process.env.USER || process.env.USERNAME || 'wiki-agent';
 }

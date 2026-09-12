@@ -1,18 +1,18 @@
-import { readFile, writeFile, readdir, mkdir } from "node:fs/promises";
-import { createReadStream } from "node:fs";
-import readline from "node:readline";
-import { execFile } from "node:child_process";
-import path from "node:path";
-import { promisify } from "node:util";
-import { parseDocument } from "yaml";
-import { resolveUpdatedBy } from "./cli-helpers.js";
+import { readFile, writeFile, readdir, mkdir } from 'node:fs/promises';
+import { createReadStream } from 'node:fs';
+import readline from 'node:readline';
+import { execFile } from 'node:child_process';
+import path from 'node:path';
+import { promisify } from 'node:util';
+import { parseDocument } from 'yaml';
+import { resolveUpdatedBy } from './cli-helpers.js';
 
 const execFileAsync = promisify(execFile);
 
 // Directories excluded from system file-traversal tools (grep/find). These
 // are massive/generated/VCS directories that tools like `grep` and `find`
 // would otherwise traverse even though no useful results live inside.
-const EXCLUDED_DIRS = ["node_modules", ".git", "dist", ".wiki"];
+const EXCLUDED_DIRS = ['node_modules', '.git', 'dist', '.wiki'];
 
 export function parseArgsStringToArgv(value: string): string[] {
   const tokens: string[] = [];
@@ -54,7 +54,6 @@ export function parseArgsStringToArgv(value: string): string[] {
   return tokens;
 }
 
-
 const MAX_READ_LENGTH = 50_000;
 const MAX_TOOL_RESULT_LENGTH = 10_000;
 
@@ -91,17 +90,17 @@ const THINKING_TAG_ORPHAN_RE = /<\/?(?:think|thinking|reasoning|reflection)\b[^>
  * are left intact rather than partially consumed.
  */
 export function stripThinkingTags(content: string): string {
-  if (!content.includes("<")) return content;
+  if (!content.includes('<')) return content;
   let stripped = content;
   let prev: string;
   do {
     prev = stripped;
-    stripped = stripped.replace(THINKING_TAG_PAIR_RE, "");
+    stripped = stripped.replace(THINKING_TAG_PAIR_RE, '');
   } while (stripped !== prev);
-  stripped = stripped.replace(THINKING_TAG_ORPHAN_RE, "");
+  stripped = stripped.replace(THINKING_TAG_ORPHAN_RE, '');
   // A leading thinking block often leaves leading blank lines before the
   // frontmatter or heading; trim them so the file starts cleanly.
-  return stripped.replace(/^\s+/, "");
+  return stripped.replace(/^\s+/, '');
 }
 
 /**
@@ -109,7 +108,7 @@ export function stripThinkingTags(content: string): string {
  */
 export function isMarkdownFile(filePath: string): boolean {
   const ext = path.extname(filePath).toLowerCase();
-  return ext === ".md" || ext === ".markdown";
+  return ext === '.md' || ext === '.markdown';
 }
 
 /**
@@ -128,30 +127,30 @@ export function injectOrUpdateFrontmatter(
     const rest = content.slice(match[0].length);
     try {
       const doc = parseDocument(rawYaml);
-      doc.set("last_updated", metadata.last_updated);
-      doc.set("updated_by", metadata.updated_by);
+      doc.set('last_updated', metadata.last_updated);
+      doc.set('updated_by', metadata.updated_by);
       const updatedYaml = doc.toString().trim();
       const prefix = `---\n${updatedYaml}\n---`;
       if (!rest) {
-        return prefix + "\n";
+        return prefix + '\n';
       }
-      return `${prefix}\n${rest.startsWith("\n") ? rest : "\n" + rest}`;
+      return `${prefix}\n${rest.startsWith('\n') ? rest : '\n' + rest}`;
     } catch {
       // Fallback on parse error: append fields
-      const doc = parseDocument("");
-      doc.set("last_updated", metadata.last_updated);
-      doc.set("updated_by", metadata.updated_by);
+      const doc = parseDocument('');
+      doc.set('last_updated', metadata.last_updated);
+      doc.set('updated_by', metadata.updated_by);
       const updatedYaml = doc.toString().trim();
-      return `---\n${rawYaml.trim()}\n${updatedYaml}\n---\n${rest.startsWith("\n") ? rest : "\n" + rest}`;
+      return `---\n${rawYaml.trim()}\n${updatedYaml}\n---\n${rest.startsWith('\n') ? rest : '\n' + rest}`;
     }
   }
 
   // No existing frontmatter
-  const doc = parseDocument("");
-  doc.set("last_updated", metadata.last_updated);
-  doc.set("updated_by", metadata.updated_by);
+  const doc = parseDocument('');
+  doc.set('last_updated', metadata.last_updated);
+  doc.set('updated_by', metadata.updated_by);
   const yamlStr = doc.toString().trim();
-  const trimmedLeading = content.replace(/^\r?\n+/, "");
+  const trimmedLeading = content.replace(/^\r?\n+/, '');
   if (!trimmedLeading) {
     return `---\n${yamlStr}\n---\n`;
   }
@@ -164,7 +163,7 @@ export interface ToolOptions {
 }
 
 interface ToolDefinition {
-  type: "function";
+  type: 'function';
   function: {
     name: string;
     description: string;
@@ -178,10 +177,7 @@ interface ToolDefinition {
 
 export interface Tool {
   definition: ToolDefinition;
-  handler: (
-    args: Record<string, unknown>,
-    projectRoot: string,
-  ) => Promise<string>;
+  handler: (args: Record<string, unknown>, projectRoot: string) => Promise<string>;
 }
 
 function truncateResult(result: string): string {
@@ -189,18 +185,15 @@ function truncateResult(result: string): string {
     return result;
   }
 
-  return result.slice(0, MAX_TOOL_RESULT_LENGTH) + "\n... (truncated)";
+  return result.slice(0, MAX_TOOL_RESULT_LENGTH) + '\n... (truncated)';
 }
 
 /**
  * Resolves a path relative to the project root and validates it stays within
  * the `.wiki/` directory. Throws on escape attempts.
  */
-function resolveWikiPath(
-  relativePath: string,
-  projectRoot: string,
-): string {
-  const wikiRoot = path.resolve(projectRoot, ".wiki");
+function resolveWikiPath(relativePath: string, projectRoot: string): string {
+  const wikiRoot = path.resolve(projectRoot, '.wiki');
   const resolved = path.resolve(projectRoot, relativePath);
 
   if (!resolved.startsWith(wikiRoot + path.sep) && resolved !== wikiRoot) {
@@ -215,16 +208,11 @@ function resolveWikiPath(
 /**
  * Resolves a path relative to the project root (for read-only operations).
  */
-function resolveProjectPath(
-  relativePath: string,
-  projectRoot: string,
-): string {
+function resolveProjectPath(relativePath: string, projectRoot: string): string {
   const resolved = path.resolve(projectRoot, relativePath);
 
   if (!resolved.startsWith(projectRoot + path.sep) && resolved !== projectRoot) {
-    throw new Error(
-      `Path ${relativePath} resolves outside the project root.`,
-    );
+    throw new Error(`Path ${relativePath} resolves outside the project root.`);
   }
 
   return resolved;
@@ -233,28 +221,27 @@ function resolveProjectPath(
 function createReadFileTool(projectRoot: string): Tool {
   return {
     definition: {
-      type: "function",
+      type: 'function',
       function: {
-        name: "read_file",
-        description:
-          "Read the contents of a file from the project root. Use a relative path.",
+        name: 'read_file',
+        description: 'Read the contents of a file from the project root. Use a relative path.',
         parameters: {
-          type: "object",
+          type: 'object',
           properties: {
             path: {
-              type: "string",
-              description: "Relative path to the file (e.g. src/index.ts)",
+              type: 'string',
+              description: 'Relative path to the file (e.g. src/index.ts)',
             },
             offset: {
-              type: "number",
-              description: "Line offset to start reading from (0-indexed). Default: 0",
+              type: 'number',
+              description: 'Line offset to start reading from (0-indexed). Default: 0',
             },
             limit: {
-              type: "number",
-              description: "Maximum number of lines to read. Default: 500",
+              type: 'number',
+              description: 'Maximum number of lines to read. Default: 500',
             },
           },
-          required: ["path"],
+          required: ['path'],
         },
       },
     },
@@ -269,7 +256,7 @@ function createReadFileTool(projectRoot: string): Tool {
       // Using createReadStream with readline processes lines lazily and aborts reading
       // immediately after reaching the desired slice (offset + limit).
       const selectedLines: string[] = [];
-      const stream = createReadStream(filePath, { encoding: "utf8" });
+      const stream = createReadStream(filePath, { encoding: 'utf8' });
       const rl = readline.createInterface({ input: stream, crlfDelay: Infinity });
 
       let currentLine = 0;
@@ -285,7 +272,7 @@ function createReadFileTool(projectRoot: string): Tool {
         }
       }
 
-      const result = selectedLines.join("\n");
+      const result = selectedLines.join('\n');
       return truncateResult(result);
     },
   };
@@ -294,24 +281,24 @@ function createReadFileTool(projectRoot: string): Tool {
 function createWriteFileTool(projectRoot: string, options?: ToolOptions): Tool {
   return {
     definition: {
-      type: "function",
+      type: 'function',
       function: {
-        name: "write_file",
+        name: 'write_file',
         description:
-          "Write content to a file under .wiki/. Creates parent directories if needed. The path must be relative and start with .wiki/.",
+          'Write content to a file under .wiki/. Creates parent directories if needed. The path must be relative and start with .wiki/.',
         parameters: {
-          type: "object",
+          type: 'object',
           properties: {
             path: {
-              type: "string",
-              description: "Relative path under .wiki/ (e.g. .wiki/quickstart.md)",
+              type: 'string',
+              description: 'Relative path under .wiki/ (e.g. .wiki/quickstart.md)',
             },
             content: {
-              type: "string",
-              description: "The full content to write",
+              type: 'string',
+              description: 'The full content to write',
             },
           },
-          required: ["path", "content"],
+          required: ['path', 'content'],
         },
       },
     },
@@ -320,7 +307,7 @@ function createWriteFileTool(projectRoot: string, options?: ToolOptions): Tool {
       let content = stripThinkingTags(args.content as string);
 
       if (isMarkdownFile(filePath)) {
-        const updater = options?.updatedBy ?? await resolveUpdatedBy(projectRoot);
+        const updater = options?.updatedBy ?? (await resolveUpdatedBy(projectRoot));
         const lastUpdated = options?.lastUpdated ?? new Date().toISOString();
         content = injectOrUpdateFrontmatter(content, {
           last_updated: lastUpdated,
@@ -329,7 +316,7 @@ function createWriteFileTool(projectRoot: string, options?: ToolOptions): Tool {
       }
 
       await mkdir(path.dirname(filePath), { recursive: true });
-      await writeFile(filePath, content, "utf8");
+      await writeFile(filePath, content, 'utf8');
 
       return `Wrote ${args.path}`;
     },
@@ -339,28 +326,28 @@ function createWriteFileTool(projectRoot: string, options?: ToolOptions): Tool {
 function createEditFileTool(projectRoot: string, options?: ToolOptions): Tool {
   return {
     definition: {
-      type: "function",
+      type: 'function',
       function: {
-        name: "edit_file",
+        name: 'edit_file',
         description:
-          "Replace text in a file under .wiki/. Finds old_string and replaces with new_string.",
+          'Replace text in a file under .wiki/. Finds old_string and replaces with new_string.',
         parameters: {
-          type: "object",
+          type: 'object',
           properties: {
             path: {
-              type: "string",
-              description: "Relative path under .wiki/ (e.g. .wiki/quickstart.md)",
+              type: 'string',
+              description: 'Relative path under .wiki/ (e.g. .wiki/quickstart.md)',
             },
             old_string: {
-              type: "string",
-              description: "The text to find",
+              type: 'string',
+              description: 'The text to find',
             },
             new_string: {
-              type: "string",
-              description: "The replacement text",
+              type: 'string',
+              description: 'The replacement text',
             },
           },
-          required: ["path", "old_string", "new_string"],
+          required: ['path', 'old_string', 'new_string'],
         },
       },
     },
@@ -369,7 +356,7 @@ function createEditFileTool(projectRoot: string, options?: ToolOptions): Tool {
       const oldString = args.old_string as string;
       const newString = stripThinkingTags(args.new_string as string);
 
-      const content = await readFile(filePath, "utf8");
+      const content = await readFile(filePath, 'utf8');
       let newContent = content.replace(oldString, newString);
 
       if (newContent === content) {
@@ -377,7 +364,7 @@ function createEditFileTool(projectRoot: string, options?: ToolOptions): Tool {
       }
 
       if (isMarkdownFile(filePath)) {
-        const updater = options?.updatedBy ?? await resolveUpdatedBy(projectRoot);
+        const updater = options?.updatedBy ?? (await resolveUpdatedBy(projectRoot));
         const lastUpdated = options?.lastUpdated ?? new Date().toISOString();
         newContent = injectOrUpdateFrontmatter(newContent, {
           last_updated: lastUpdated,
@@ -385,7 +372,7 @@ function createEditFileTool(projectRoot: string, options?: ToolOptions): Tool {
         });
       }
 
-      await writeFile(filePath, newContent, "utf8");
+      await writeFile(filePath, newContent, 'utf8');
 
       return `Edited ${args.path}`;
     },
@@ -395,17 +382,16 @@ function createEditFileTool(projectRoot: string, options?: ToolOptions): Tool {
 function createLsTool(projectRoot: string): Tool {
   return {
     definition: {
-      type: "function",
+      type: 'function',
       function: {
-        name: "ls",
-        description:
-          "List the contents of a directory. Returns file and directory names.",
+        name: 'ls',
+        description: 'List the contents of a directory. Returns file and directory names.',
         parameters: {
-          type: "object",
+          type: 'object',
           properties: {
             path: {
-              type: "string",
-              description: "Relative path to the directory (default: project root)",
+              type: 'string',
+              description: 'Relative path to the directory (default: project root)',
             },
           },
           required: [],
@@ -413,17 +399,14 @@ function createLsTool(projectRoot: string): Tool {
       },
     },
     handler: async (args) => {
-      const dirPath = resolveProjectPath(
-        (args.path as string) ?? ".",
-        projectRoot,
-      );
+      const dirPath = resolveProjectPath((args.path as string) ?? '.', projectRoot);
       const entries = await readdir(dirPath, { withFileTypes: true });
       const result = entries
-        .map((e) => `${e.isDirectory() ? e.name + "/" : e.name}`)
+        .map((e) => `${e.isDirectory() ? e.name + '/' : e.name}`)
         .sort()
-        .join("\n");
+        .join('\n');
 
-      return truncateResult(result || "(empty directory)");
+      return truncateResult(result || '(empty directory)');
     },
   };
 }
@@ -431,50 +414,60 @@ function createLsTool(projectRoot: string): Tool {
 function createGrepTool(projectRoot: string): Tool {
   return {
     definition: {
-      type: "function",
+      type: 'function',
       function: {
-        name: "grep",
+        name: 'grep',
         description:
-          "Search for a text pattern in files. Uses the system grep. Searches from the project root.",
+          'Search for a text pattern in files. Uses the system grep. Searches from the project root.',
         parameters: {
-          type: "object",
+          type: 'object',
           properties: {
             pattern: {
-              type: "string",
-              description: "The text pattern to search for",
+              type: 'string',
+              description: 'The text pattern to search for',
             },
             path: {
-              type: "string",
-              description: "Relative path to search in (default: project root)",
+              type: 'string',
+              description: 'Relative path to search in (default: project root)',
             },
             glob: {
-              type: "string",
-              description: "Optional glob pattern to filter files (e.g. *.ts)",
+              type: 'string',
+              description: 'Optional glob pattern to filter files (e.g. *.ts)',
             },
           },
-          required: ["pattern"],
+          required: ['pattern'],
         },
       },
     },
     handler: async (args) => {
       const pattern = args.pattern as string;
-      const searchPath = resolveProjectPath(
-        (args.path as string) ?? ".",
-        projectRoot,
-      );
-      const globPattern = (args.glob as string) ?? "";
+      const searchPath = resolveProjectPath((args.path as string) ?? '.', projectRoot);
+      const globPattern = (args.glob as string) ?? '';
 
       // SECURITY: Use execFileAsync (not execAsync) to bypass the shell
       // entirely. Arguments are passed as an array, so model-controlled
       // pattern/path/glob values cannot trigger shell command injection.
       const defaultIncludes = [
-        "*.ts", "*.tsx", "*.js", "*.jsx", "*.py", "*.go", "*.rs",
-        "*.java", "*.rb", "*.php", "*.md", "*.yml", "*.yaml",
-        "*.json", "*.toml", "*.sh",
+        '*.ts',
+        '*.tsx',
+        '*.js',
+        '*.jsx',
+        '*.py',
+        '*.go',
+        '*.rs',
+        '*.java',
+        '*.rb',
+        '*.php',
+        '*.md',
+        '*.yml',
+        '*.yaml',
+        '*.json',
+        '*.toml',
+        '*.sh',
       ];
       const includeFlags = globPattern
-        ? ["--include=" + globPattern]
-        : defaultIncludes.map((g) => "--include=" + g);
+        ? ['--include=' + globPattern]
+        : defaultIncludes.map((g) => '--include=' + g);
 
       // PERFORMANCE OPTIMIZATION (Bolt ⚡):
       // System `grep` does not respect `.gitignore` by default. Invoking `grep -rn`
@@ -483,22 +476,22 @@ function createGrepTool(projectRoot: string): Tool {
       // Explicitly excluding these generated/VCS directories reduces search time significantly
       // (e.g., from ~13ms to ~4ms for a 1000-file node_modules/ in local tests).
       const cmdArgs = [
-        "-rn",
+        '-rn',
         ...EXCLUDED_DIRS.map((dir) => `--exclude-dir=${dir}`),
         ...includeFlags,
-        "--",
+        '--',
         pattern,
         searchPath,
       ];
 
       try {
-        const { stdout } = await execFileAsync("grep", cmdArgs, {
+        const { stdout } = await execFileAsync('grep', cmdArgs, {
           cwd: projectRoot,
           maxBuffer: 1024 * 1024,
         });
-        return truncateResult(stdout || "(no matches)");
+        return truncateResult(stdout || '(no matches)');
       } catch {
-        return "(no matches)";
+        return '(no matches)';
       }
     },
   };
@@ -507,33 +500,31 @@ function createGrepTool(projectRoot: string): Tool {
 function createGlobTool(projectRoot: string): Tool {
   return {
     definition: {
-      type: "function",
+      type: 'function',
       function: {
-        name: "glob",
+        name: 'glob',
         description:
-          "Find files matching a filename pattern. Uses the system find command, which searches recursively from the given path.",
+          'Find files matching a filename pattern. Uses the system find command, which searches recursively from the given path.',
         parameters: {
-          type: "object",
+          type: 'object',
           properties: {
             pattern: {
-              type: "string",
-              description: "Glob pattern matched against filenames. * matches within a filename (e.g. *.ts, *.test.ts). find searches recursively, so *.ts matches at any depth without **. Use the path parameter to scope to a subdirectory.",
+              type: 'string',
+              description:
+                'Glob pattern matched against filenames. * matches within a filename (e.g. *.ts, *.test.ts). find searches recursively, so *.ts matches at any depth without **. Use the path parameter to scope to a subdirectory.',
             },
             path: {
-              type: "string",
-              description: "Relative path to search in (default: project root)",
+              type: 'string',
+              description: 'Relative path to search in (default: project root)',
             },
           },
-          required: ["pattern"],
+          required: ['pattern'],
         },
       },
     },
     handler: async (args) => {
       const pattern = args.pattern as string;
-      const searchPath = resolveProjectPath(
-        (args.path as string) ?? ".",
-        projectRoot,
-      );
+      const searchPath = resolveProjectPath((args.path as string) ?? '.', projectRoot);
 
       // SECURITY: Use execFileAsync (not execAsync) to bypass the shell
       // entirely. Arguments are passed as an array, so model-controlled
@@ -541,24 +532,24 @@ function createGlobTool(projectRoot: string): Tool {
       // Normalize ** patterns: find -name uses fnmatch where ** is literal,
       // not recursive. Strip leading **/ and collapse internal **/ since
       // find already searches recursively — *.ts matches at any depth.
-      const findPattern = pattern
-        .replace(/^\*\*\//, "")
-        .replace(/\*\*\//g, "");
+      const findPattern = pattern.replace(/^\*\*\//, '').replace(/\*\*\//g, '');
       const cmdArgs = [
         searchPath,
-        "-name", findPattern,
-        "-type", "f",
-        ...EXCLUDED_DIRS.flatMap((dir) => ["-not", "-path", `*/${dir}/*`]),
+        '-name',
+        findPattern,
+        '-type',
+        'f',
+        ...EXCLUDED_DIRS.flatMap((dir) => ['-not', '-path', `*/${dir}/*`]),
       ];
 
       try {
-        const { stdout } = await execFileAsync("find", cmdArgs, {
+        const { stdout } = await execFileAsync('find', cmdArgs, {
           cwd: projectRoot,
           maxBuffer: 1024 * 1024,
         });
-        return truncateResult(stdout || "(no files found)");
+        return truncateResult(stdout || '(no files found)');
       } catch {
-        return "(no files found)";
+        return '(no files found)';
       }
     },
   };
@@ -567,26 +558,26 @@ function createGlobTool(projectRoot: string): Tool {
 function createGitTool(projectRoot: string): Tool {
   return {
     definition: {
-      type: "function",
+      type: 'function',
       function: {
-        name: "git",
+        name: 'git',
         description:
-          "Run a read-only git subcommand in the project root. Use for git log, git diff, git show, git ls-files, git blame, etc. The agent has no general shell access — only git is exposed for repository history and inspection.",
+          'Run a read-only git subcommand in the project root. Use for git log, git diff, git show, git ls-files, git blame, etc. The agent has no general shell access — only git is exposed for repository history and inspection.',
         parameters: {
-          type: "object",
+          type: 'object',
           properties: {
             args: {
-              type: "string",
+              type: 'string',
               description:
                 "Git subcommand and arguments, without the leading 'git'. Example: 'log --oneline -30', 'diff --stat', 'ls-files', 'show HEAD:README.md'.",
             },
           },
-          required: ["args"],
+          required: ['args'],
         },
       },
     },
     handler: async (args) => {
-      const argString = (args.args as string) ?? "";
+      const argString = (args.args as string) ?? '';
 
       // Only read-only / inspection subcommands are permitted. The agent
       // cannot mutate the repository state through this tool. Flags that
@@ -594,14 +585,24 @@ function createGitTool(projectRoot: string): Tool {
       // metacharacter guard below for any subcommand that accepts them, but
       // the list itself excludes mutating subcommands entirely.
       const ALLOWED_GIT_SUBCOMMANDS: Record<string, true> = {
-        log: true, diff: true, show: true, "ls-files": true, blame: true,
-        status: true, remote: true, describe: true, "rev-parse": true,
-        shortlog: true, "name-rev": true, "ls-tree": true, "cat-file": true,
+        log: true,
+        diff: true,
+        show: true,
+        'ls-files': true,
+        blame: true,
+        status: true,
+        remote: true,
+        describe: true,
+        'rev-parse': true,
+        shortlog: true,
+        'name-rev': true,
+        'ls-tree': true,
+        'cat-file': true,
         reflog: true,
       };
 
       const tokens = parseArgsStringToArgv(argString);
-      const subcommand = tokens[0] ?? "";
+      const subcommand = tokens[0] ?? '';
       if (!ALLOWED_GIT_SUBCOMMANDS[subcommand]) {
         return `Error: git subcommand '${subcommand}' is not permitted. Only read-only inspection subcommands are allowed (log, diff, show, ls-files, blame, status, remote, describe, rev-parse, shortlog, name-rev, ls-tree, cat-file, reflog).`;
       }
@@ -609,19 +610,19 @@ function createGitTool(projectRoot: string): Tool {
       // Reject shell metacharacters as defense-in-depth, although execFile
       // prevents command chaining or shell evaluation.
       if (/[;&|`$()<>]/.test(argString)) {
-        return "Error: shell metacharacters are not permitted in git arguments.";
+        return 'Error: shell metacharacters are not permitted in git arguments.';
       }
 
       try {
         // execFile bypasses the shell, so flag values cannot trigger shell evaluation.
-        const { stdout, stderr } = await execFileAsync("git", tokens, {
+        const { stdout, stderr } = await execFileAsync('git', tokens, {
           cwd: projectRoot,
           maxBuffer: 1024 * 1024,
           timeout: 30_000,
         });
 
-        const result = stdout + (stderr ? `\n${stderr}` : "");
-        return truncateResult(result || "(no output)");
+        const result = stdout + (stderr ? `\n${stderr}` : '');
+        return truncateResult(result || '(no output)');
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         return truncateResult(`Error: ${message}`);
@@ -633,79 +634,69 @@ function createGitTool(projectRoot: string): Tool {
 function createAstGrepTool(projectRoot: string): Tool {
   return {
     definition: {
-      type: "function",
+      type: 'function',
       function: {
-        name: "ast_grep",
+        name: 'ast_grep',
         description:
-          "Search code by AST pattern using ast-grep. Matches code structure (not text), so metavariables and node shapes work. Requires an explicit language. Use for precise structural queries like finding all calls to a function, all exports, or a specific control-flow shape.",
+          'Search code by AST pattern using ast-grep. Matches code structure (not text), so metavariables and node shapes work. Requires an explicit language. Use for precise structural queries like finding all calls to a function, all exports, or a specific control-flow shape.',
         parameters: {
-          type: "object",
+          type: 'object',
           properties: {
             pattern: {
-              type: "string",
+              type: 'string',
               description:
                 "AST pattern to match. Use $NAME for a single node metavariable and $$$ARGS for zero-or-more. Example: 'console.log($$$)'",
             },
             lang: {
-              type: "string",
+              type: 'string',
               description:
-                "Language of the pattern. Supported: bash, c, cpp, csharp, css, elixir, go, haskell, html, java, javascript, json, jsx, kotlin, lua, nix, php, python, ruby, rust, scala, solidity, swift, tsx, typescript, yaml.",
+                'Language of the pattern. Supported: bash, c, cpp, csharp, css, elixir, go, haskell, html, java, javascript, json, jsx, kotlin, lua, nix, php, python, ruby, rust, scala, solidity, swift, tsx, typescript, yaml.',
             },
             path: {
-              type: "string",
-              description: "Relative path to search in (default: project root)",
+              type: 'string',
+              description: 'Relative path to search in (default: project root)',
             },
             selector: {
-              type: "string",
+              type: 'string',
               description:
-                "Optional AST kind to extract as the actual matcher (ast-grep --selector).",
+                'Optional AST kind to extract as the actual matcher (ast-grep --selector).',
             },
             strictness: {
-              type: "string",
+              type: 'string',
               description:
-                "Optional pattern strictness: cst, smart, ast, relaxed, signature, template.",
+                'Optional pattern strictness: cst, smart, ast, relaxed, signature, template.',
             },
           },
-          required: ["pattern", "lang"],
+          required: ['pattern', 'lang'],
         },
       },
     },
     handler: async (args) => {
       const pattern = args.pattern as string;
       const lang = args.lang as string;
-      const searchPath = resolveProjectPath(
-        (args.path as string) ?? ".",
-        projectRoot,
-      );
+      const searchPath = resolveProjectPath((args.path as string) ?? '.', projectRoot);
 
-      const argv = [
-        "run",
-        "--json=compact",
-        "--lang",
-        lang,
-        "--pattern",
-        pattern,
-      ];
+      const argv = ['run', '--json=compact', '--lang', lang, '--pattern', pattern];
 
       const selector = args.selector as string | undefined;
       if (selector) {
-        argv.push("--selector", selector);
+        argv.push('--selector', selector);
       }
 
       const strictness = args.strictness as string | undefined;
       if (strictness) {
-        argv.push("--strictness", strictness);
+        argv.push('--strictness', strictness);
       }
 
       argv.push(searchPath);
 
       try {
-        const { stdout } = await execFileAsync("ast-grep", argv, {
+        const { stdout } = await execFileAsync('ast-grep', argv, {
           cwd: projectRoot,
           maxBuffer: 1024 * 1024,
           timeout: 30_000,
         });
-        return truncateResult(stdout || "(no matches)");
+        return truncateResult(stdout || '(no matches)');
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         return truncateResult(`Error: ${message}`);
@@ -717,25 +708,25 @@ function createAstGrepTool(projectRoot: string): Tool {
 function createAstSearchTool(projectRoot: string): Tool {
   return {
     definition: {
-      type: "function",
+      type: 'function',
       function: {
-        name: "ast_search",
+        name: 'ast_search',
         description:
           "Search code using an ast-grep YAML rule (inline). More powerful than ast_grep: supports relational/inside/has constraints and multiple rules separated by '---'. Use for complex structural queries that a single pattern cannot express.",
         parameters: {
-          type: "object",
+          type: 'object',
           properties: {
             rule: {
-              type: "string",
+              type: 'string',
               description:
                 "Inline ast-grep YAML rule(s). Must have id, language, and rule fields. Multiple rules separated by '---'.",
             },
             path: {
-              type: "string",
-              description: "Relative path to search in (default: project root)",
+              type: 'string',
+              description: 'Relative path to search in (default: project root)',
             },
           },
-          required: ["rule"],
+          required: ['rule'],
         },
       },
     },
@@ -743,32 +734,29 @@ function createAstSearchTool(projectRoot: string): Tool {
       const rule = args.rule as string;
       if (
         !rule ||
-        typeof rule !== "string" ||
+        typeof rule !== 'string' ||
         !/\bid\s*:/i.test(rule) ||
         !/\blanguage\s*:/i.test(rule) ||
         !/\b(rule|rules)\s*:/i.test(rule)
       ) {
         return truncateResult(
-          "Error: Invalid ast-grep rule. Must be YAML containing id, language, and rule/rules fields.",
+          'Error: Invalid ast-grep rule. Must be YAML containing id, language, and rule/rules fields.',
         );
       }
 
-      const searchPath = resolveProjectPath(
-        (args.path as string) ?? ".",
-        projectRoot,
-      );
+      const searchPath = resolveProjectPath((args.path as string) ?? '.', projectRoot);
 
       try {
         const { stdout } = await execFileAsync(
-          "ast-grep",
-          ["scan", "--json=compact", "--inline-rules", rule, searchPath],
+          'ast-grep',
+          ['scan', '--json=compact', '--inline-rules', rule, searchPath],
           {
             cwd: projectRoot,
             maxBuffer: 1024 * 1024,
             timeout: 30_000,
           },
         );
-        return truncateResult(stdout || "(no matches)");
+        return truncateResult(stdout || '(no matches)');
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         return truncateResult(`Error: ${message}`);
@@ -780,56 +768,81 @@ function createAstSearchTool(projectRoot: string): Tool {
 function createGhTool(projectRoot: string): Tool {
   return {
     definition: {
-      type: "function",
+      type: 'function',
       function: {
-        name: "gh",
+        name: 'gh',
         description:
-          "Run a GitHub CLI (gh) subcommand in the project root. Read-only inspection (pr list, pr view, pr diff, repo view, issue list, etc.) is always allowed. Two mutating operations are permitted but ONLY on wiki staging PRs (branches matching wiki/staging-*): `gh pr close <number>` and `gh pr comment <number> --body <text>`. Use to inspect open PRs, check staging branch timestamps, and close stale wiki staging PRs with a comment.",
+          'Run a GitHub CLI (gh) subcommand in the project root. Read-only inspection (pr list, pr view, pr diff, repo view, issue list, etc.) is always allowed. Two mutating operations are permitted but ONLY on wiki staging PRs (branches matching wiki/staging-*): `gh pr close <number>` and `gh pr comment <number> --body <text>`. Use to inspect open PRs, check staging branch timestamps, and close stale wiki staging PRs with a comment.',
         parameters: {
-          type: "object",
+          type: 'object',
           properties: {
             args: {
-              type: "string",
+              type: 'string',
               description:
                 "gh subcommand and arguments, without the leading 'gh'. Example: 'pr list --state open --json number,headRefName,title', 'pr view <number> --json headRefName', 'pr close <number> --comment \"This branch is from an earlier staging run and is stale. Closing\"', 'pr comment <number> --body \"stale\"'.",
             },
           },
-          required: ["args"],
+          required: ['args'],
         },
       },
     },
     handler: async (args) => {
-      const argString = (args.args as string) ?? "";
+      const argString = (args.args as string) ?? '';
 
       const ALLOWED_GH_SUBCOMMANDS: Record<string, true> = {
-        pr: true, issue: true, repo: true, run: true, api: true,
-        "search": true, release: true, label: true, workflow: true,
+        pr: true,
+        issue: true,
+        repo: true,
+        run: true,
+        api: true,
+        search: true,
+        release: true,
+        label: true,
+        workflow: true,
       };
 
       // Actions that are always blocked (never safe for an automated agent).
       const BLOCKED_ACTIONS: Record<string, true> = {
-        create: true, edit: true, reopen: true, merge: true,
-        delete: true, ready: true, review: true,
-        lock: true, unlock: true, assign: true, unassign: true,
-        label: true, unlabel: true, transfer: true, archive: true,
-        unarchive: true, deploy: true, rerun: true, cancel: true,
-        publish: true, set: true, add: true, remove: true,
+        create: true,
+        edit: true,
+        reopen: true,
+        merge: true,
+        delete: true,
+        ready: true,
+        review: true,
+        lock: true,
+        unlock: true,
+        assign: true,
+        unassign: true,
+        label: true,
+        unlabel: true,
+        transfer: true,
+        archive: true,
+        unarchive: true,
+        deploy: true,
+        rerun: true,
+        cancel: true,
+        publish: true,
+        set: true,
+        add: true,
+        remove: true,
       };
 
       // Actions allowed ONLY on wiki staging PRs (branches matching
       // wiki/staging-*). The handler verifies the PR's headRefName before
       // executing these.
       const STAGING_ONLY_ACTIONS: Record<string, true> = {
-        close: true, comment: true,
+        close: true,
+        comment: true,
       };
 
       const tokens = parseArgsStringToArgv(argString);
-      const subcommand = tokens[0] ?? "";
+      const subcommand = tokens[0] ?? '';
       if (!ALLOWED_GH_SUBCOMMANDS[subcommand]) {
         return `Error: gh subcommand '${subcommand}' is not permitted. Only inspection subcommands and pr close/comment on wiki staging PRs are allowed (pr, issue, repo, run, api, search, release, label, workflow).`;
       }
 
-      const action = tokens[1] ?? "";
+      const action = tokens[1] ?? '';
 
       if (BLOCKED_ACTIONS[action]) {
         return `Error: gh ${subcommand} ${action} is a blocked operation.`;
@@ -838,8 +851,8 @@ function createGhTool(projectRoot: string): Tool {
       // For close/comment on PRs, verify the target is a wiki staging PR.
       // The PR number is the third token: 'gh pr close <number>' or
       // 'gh pr comment <number> --body ...'.
-      if (STAGING_ONLY_ACTIONS[action] && subcommand === "pr") {
-        const prNumber = tokens[2] ?? "";
+      if (STAGING_ONLY_ACTIONS[action] && subcommand === 'pr') {
+        const prNumber = tokens[2] ?? '';
         if (!/^\d+$/.test(prNumber)) {
           return `Error: a valid PR number is required for gh pr ${action}.`;
         }
@@ -847,12 +860,13 @@ function createGhTool(projectRoot: string): Tool {
         // Fetch the PR's headRefName to verify it's a wiki staging branch.
         try {
           const { stdout } = await execFileAsync(
-            "gh", ["pr", "view", prNumber, "--json", "headRefName"],
-            { cwd: projectRoot, maxBuffer: 1024 * 1024, timeout: 30_000 }
+            'gh',
+            ['pr', 'view', prNumber, '--json', 'headRefName'],
+            { cwd: projectRoot, maxBuffer: 1024 * 1024, timeout: 30_000 },
           );
           const parsed = JSON.parse(stdout) as { headRefName?: string };
-          if (!parsed.headRefName?.startsWith("wiki/staging-")) {
-            return `Error: gh pr ${action} is only permitted on wiki staging PRs (branches matching wiki/staging-*). PR #${prNumber} has headRefName '${parsed.headRefName ?? "unknown"}'.`;
+          if (!parsed.headRefName?.startsWith('wiki/staging-')) {
+            return `Error: gh pr ${action} is only permitted on wiki staging PRs (branches matching wiki/staging-*). PR #${prNumber} has headRefName '${parsed.headRefName ?? 'unknown'}'.`;
           }
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
@@ -865,20 +879,18 @@ function createGhTool(projectRoot: string): Tool {
       // Reject shell metacharacters as defense-in-depth, although execFile
       // prevents command chaining or shell evaluation.
       if (/[;&|`$()<>]/.test(argString)) {
-        return "Error: shell metacharacters are not permitted in gh arguments.";
+        return 'Error: shell metacharacters are not permitted in gh arguments.';
       }
 
       try {
-
-
-        const { stdout, stderr } = await execFileAsync("gh", tokens, {
+        const { stdout, stderr } = await execFileAsync('gh', tokens, {
           cwd: projectRoot,
           maxBuffer: 1024 * 1024,
           timeout: 30_000,
         });
 
-        const result = stdout + (stderr ? `\n${stderr}` : "");
-        return truncateResult(result || "(no output)");
+        const result = stdout + (stderr ? `\n${stderr}` : '');
+        return truncateResult(result || '(no output)');
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         return truncateResult(`Error: ${message}`);

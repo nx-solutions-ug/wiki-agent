@@ -34,11 +34,13 @@ echo "JULES_CONTEXT=${JULES_CONTEXT:-}"
 ```
 
 The workflow sets `IS_JULES=true` when Jules (`google-labs-jules[bot]`) is involved. The `JULES_CONTEXT` value indicates the trigger:
+
 - `jules-authored-pr`: Jules created this PR (either as author or on behalf of a human) — review it and address Jules directly
 - `jules-review-submitted`: Jules posted a review — read Jules' review and respond
 - `jules-review-comment`: Jules posted a review comment/suggestion — address the specific suggestion
 
 After reading the PR in Step 1, also verify Jules involvement from the PR data:
+
 - PR author login contains `jules`
 - PR body contains `created automatically by Jules`
 - Any comment author login contains `jules`
@@ -99,6 +101,7 @@ Developers or PR authors often reply explaining intentional design decisions, ar
 ## Step 3: Auto-Resolve Fixed or Justified Issues
 
 For each unresolved review thread (comments with `is_resolved: false`):
+
 1. **Resolved by code change**: Code was modified, removed, or refactored so the reported issue no longer exists, OR the comment has `is_outdated: true`.
 2. **Resolved by valid justification**: The author or reviewer provided a sound, validated explanation in thread comments (evaluated in Step 2) demonstrating that the implementation is intentional and correct.
 
@@ -142,6 +145,7 @@ git diff "$BASE"...HEAD -- src/tui/
 ### Review Criteria (wiki-agent Standards)
 
 Check for ALL of the following (backed by `AGENTS.md`):
+
 - **Imports**: ESM `.js` extensions on ALL relative imports (required by `nodenext`): `import { runAgent } from "./agent.js"`. Never extensionless relative imports. Node built-ins use the `node:` prefix (`node:fs/promises`, `node:path`, `node:child_process`).
 - **Type Safety**: TypeScript strict mode compliance. NEVER allow `as any` or `@ts-ignore` / `@ts-expect-error` (tool-call arg narrowing uses precise casts such as `args.path as string` — flag anything looser).
 - **Path safety**: All file writes MUST go through `resolveWikiPath` (enforces the resolved path stays under `.wiki/`, throws on `../` or absolute escapes). All file reads (`read_file`, `ls`, `grep`, `glob`) MUST go through `resolveProjectPath` (enforces the path stays within the project root). Direct `path.join`/`path.resolve` bypasses are path-safety violations.
@@ -154,12 +158,14 @@ Check for ALL of the following (backed by `AGENTS.md`):
 - **Testing**: Vitest 4, tests in `test/` importing source directly from `../src/<file>.ts` (never `dist/`). Every test file MUST isolate the filesystem via a `tempDir()` helper (`mkdtemp` under `os.tmpdir()`) with `beforeEach`/`afterEach` cleanup. Tests are deterministic — no network calls, no real Ollama client. New behavior requires new tests following this pattern.
 
 **What to Avoid**:
+
 - Do NOT comment on pre-existing code outside of this PR's diff.
 - Do NOT comment on formatting that a formatter handles.
 
 ## Step 5: Deduplicate Findings
 
 For each finding identified in Step 4, check UNRESOLVED threads for semantic matches:
+
 - Same file + same issue type within nearby lines (allow ±5 line shift) = DUPLICATE (skip)
 - Already discussed and pending resolution in an active thread = DUPLICATE (skip)
 - Same file + different function/root cause = NEW (include)
@@ -169,6 +175,7 @@ Categorize into **new_issues** and **old_issues**.
 ## Step 6: Mapping Findings to Diff Lines
 
 GitHub inline review comments MUST reference a line that exists in the PR diff:
+
 - **Added/context lines** (RIGHT side): `--side RIGHT`, count line numbers from `+NEW_START` in the diff hunk header.
 - **Removed lines** (LEFT side): `--side LEFT`, count line numbers from `-OLD_START` in the diff hunk header.
 - Findings that do not map to a specific diff line belongs in the review `--body` summary, not inline.
@@ -176,6 +183,7 @@ GitHub inline review comments MUST reference a line that exists in the PR diff:
 ## Step 7: Post Review
 
 **Decision logic:**
+
 1. `new_issues` has items -> Submit review with `event=REQUEST_CHANGES` and all inline comments.
 2. `new_issues` empty + unresolved threads == 0 (all issues either fixed, justified & resolved, or clean) -> Submit review with `event=APPROVE` (no comments).
 3. `new_issues` empty + unresolved threads > 0 (genuine issues still legitimately outstanding without sound justification) -> **Do NOT submit a review** (existing inline comments remain visible).
@@ -213,8 +221,9 @@ Summary of findings..."
 ```
 
 Comment body conventions:
+
 - Start each inline body with severity tag: `[P0]` critical/security, `[P1]` high-impact bug, `[P2]` defect/convention violation, `[P3]` nit.
-- **Include a `suggestion` block whenever proposing a concrete code fix.** GitHub renders `` ```suggestion `` fenced blocks inside inline review comments as apply-able "Commit suggestion" buttons.
+- **Include a `suggestion` block whenever proposing a concrete code fix.** GitHub renders ` ```suggestion ` fenced blocks inside inline review comments as apply-able "Commit suggestion" buttons.
 - The suggestion block content MUST be valid replacement code without diff markers (`+`/`-`).
 
 ### For APPROVE (clean PR, single atomic call):
@@ -229,6 +238,7 @@ gh api \
 ```
 
 ### When Jules is involved (`IS_JULES=true`):
+
 The review body MUST start with `@jules` on the first line so Jules detects and acts on the review:
 
 ```markdown
@@ -246,6 +256,7 @@ Reviewed PR #$ARGUMENTS: <APPROVE / REQUEST_CHANGES / COMMENT> — <one-line sum
 ```
 
 ## Rules
+
 - Do NOT push commits or modify repository files.
 - Do NOT apply labels or merge the PR.
 - Always read diff locally against `origin/${BASE_REF:-main}`, never via `gh pr diff`.

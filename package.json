@@ -2,8 +2,13 @@
   "name": "@chronova/wiki-agent",
   "version": "1.20.3",
   "description": "Standalone documentation agent for Ollama and OpenAI-compatible providers",
+  "homepage": "https://github.com/nx-solutions-ug/wiki-agent#readme",
   "license": "ISC",
-  "type": "module",
+  "author": "nx-solutions-ug",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nx-solutions-ug/wiki-agent.git"
+  },
   "bin": {
     "wiki": "dist/cli.js",
     "wiki-flatten": "dist/flatten-wiki.js"
@@ -13,14 +18,24 @@
     "README.md",
     "LICENSE"
   ],
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "clean": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
     "prebuild": "bun run clean",
     "test": "vitest run",
     "pack": "bun pm pack",
-    "prepublishOnly": "npm run build",
-    "semantic-release": "semantic-release"
+    "prepublishOnly": "bun run build",
+    "semantic-release": "semantic-release",
+    "type-check": "tsc --noEmit",
+    "lint": "oxlint --react-plugin --vitest-plugin --import-plugin",
+    "lint:fix": "oxlint --react-plugin --vitest-plugin --import-plugin --fix",
+    "format": "oxfmt",
+    "format:check": "oxfmt --check",
+    "prepare": "husky"
   },
   "dependencies": {
     "@ast-grep/cli": "^0.45.0",
@@ -47,6 +62,9 @@
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^26.1.1",
     "@types/react": "^19.1.0",
+    "husky": "^9.1.7",
+    "oxfmt": "^0.67.0",
+    "oxlint": "^1.82.0",
     "semantic-release": "^25.0.0",
     "tsx": "^4.20.0",
     "typescript": "^5.9.0",
@@ -55,17 +73,8 @@
   "engines": {
     "node": ">=22"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/nx-solutions-ug/wiki-agent.git"
-  },
-  "homepage": "https://github.com/nx-solutions-ug/wiki-agent#readme",
-  "author": "nx-solutions-ug",
-  "publishConfig": {
-    "access": "public"
-  },
+  "packageManager": "bun@1.4.2",
   "trustedDependencies": [
     "@ast-grep/cli"
-  ],
-  "packageManager": "bun@1.4.2"
+  ]
 }

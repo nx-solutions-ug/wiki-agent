@@ -12,17 +12,17 @@
  * in `.wiki/wiki.db`.
  */
 
-import { readFile, readdir, stat, mkdir, unlink } from "node:fs/promises";
-import path from "node:path";
-import Database from "better-sqlite3";
-import * as sqliteVec from "sqlite-vec";
-import { Ollama } from "ollama";
+import { readFile, readdir, stat, mkdir, unlink } from 'node:fs/promises';
+import path from 'node:path';
+import Database from 'better-sqlite3';
+import * as sqliteVec from 'sqlite-vec';
+import { Ollama } from 'ollama';
 
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
 
-export type EmbeddingProvider = "local" | "ollama";
+export type EmbeddingProvider = 'local' | 'ollama';
 
 export interface EmbeddingConfig {
   provider: EmbeddingProvider;
@@ -53,7 +53,7 @@ export interface Embedder {
 
 // ---- Local (Transformers.js) -----------------------------------------------
 
-const LOCAL_MODEL_ID = "Xenova/all-MiniLM-L6-v2";
+const LOCAL_MODEL_ID = 'Xenova/all-MiniLM-L6-v2';
 const LOCAL_DIMENSION = 384;
 
 type FeatureExtractionPipeline = (
@@ -64,8 +64,8 @@ type FeatureExtractionPipeline = (
 export function defaultModelCacheDir(): string {
   return path.join(
     process.env.HOME || process.env.USERPROFILE || process.cwd(),
-    ".wiki",
-    "model-cache",
+    '.wiki',
+    'model-cache',
   );
 }
 
@@ -86,8 +86,8 @@ export class LocalEmbedder implements Embedder {
         // Dynamic import required: @huggingface/transformers is ESM-only and
         // loading it eagerly would break CommonJS consumers. The specifier is
         // a literal but the package exports map only resolves under ESM.
-        const mod = await import("@huggingface/transformers");
-        const extractor = await mod.pipeline("feature-extraction", LOCAL_MODEL_ID);
+        const mod = await import('@huggingface/transformers');
+        const extractor = await mod.pipeline('feature-extraction', LOCAL_MODEL_ID);
         return extractor as FeatureExtractionPipeline;
       })();
     }
@@ -100,7 +100,7 @@ export class LocalEmbedder implements Embedder {
 
   async embed(text: string): Promise<Float32Array> {
     const extractor = await this.getPipeline();
-    const result = await extractor(text, { pooling: "mean", normalize: true });
+    const result = await extractor(text, { pooling: 'mean', normalize: true });
     const data = result.data;
     if (data instanceof Float32Array) {
       return data;
@@ -142,13 +142,13 @@ export class OllamaEmbedder implements Embedder {
 // ---- Factory ---------------------------------------------------------------
 
 export async function createEmbedder(config: EmbeddingConfig): Promise<Embedder> {
-  if (config.provider === "local") {
+  if (config.provider === 'local') {
     return new LocalEmbedder();
   }
   const ollama = new Ollama({ host: config.ollamaHost });
   const probeResponse = await ollama.embed({
     model: config.ollamaModel,
-    input: "dimension probe",
+    input: 'dimension probe',
   });
   const probeEmbedding = probeResponse.embeddings?.[0];
   if (!probeEmbedding || probeEmbedding.length === 0) {
@@ -210,47 +210,53 @@ export class VectorStore {
    * Removes all chunks for a given page path.
    */
   clearPage(pagePath: string): void {
-    this.db.prepare("DELETE FROM wiki_pages WHERE path = ?").run(pagePath);
-    this.db.prepare("DELETE FROM page_meta WHERE path = ?").run(pagePath);
+    this.db.prepare('DELETE FROM wiki_pages WHERE path = ?').run(pagePath);
+    this.db.prepare('DELETE FROM page_meta WHERE path = ?').run(pagePath);
   }
-
 
   /**
    * Stores or updates metadata for a page (mtime, chunk count, title).
    * Called after inserting all chunks for a page.
    */
   upsertPageMeta(pagePath: string, mtime: number, chunkCount: number, title: string): void {
-    this.db.prepare(`
+    this.db
+      .prepare(`
       INSERT INTO page_meta (path, mtime, chunk_count, title)
       VALUES (?, ?, ?, ?)
       ON CONFLICT(path) DO UPDATE SET mtime = excluded.mtime, chunk_count = excluded.chunk_count, title = excluded.title
-    `).run(pagePath, mtime, chunkCount, title);
+    `)
+      .run(pagePath, mtime, chunkCount, title);
   }
 
   /**
    * Removes metadata for a page. Called when a page is deleted or cleared.
    */
   deletePageMeta(pagePath: string): void {
-    this.db.prepare("DELETE FROM page_meta WHERE path = ?").run(pagePath);
+    this.db.prepare('DELETE FROM page_meta WHERE path = ?').run(pagePath);
   }
 
   /**
    * Returns metadata for all indexed pages, keyed by path.
    */
   allPageMeta(): Map<string, { mtime: number; chunkCount: number; title: string }> {
-    const rows = this.db.prepare("SELECT path, mtime, chunk_count, title FROM page_meta").all() as {
-      path: string; mtime: number; chunk_count: number; title: string;
+    const rows = this.db.prepare('SELECT path, mtime, chunk_count, title FROM page_meta').all() as {
+      path: string;
+      mtime: number;
+      chunk_count: number;
+      title: string;
     }[];
-    return new Map(rows.map(r => [r.path, { mtime: r.mtime, chunkCount: r.chunk_count, title: r.title }]));
+    return new Map(
+      rows.map((r) => [r.path, { mtime: r.mtime, chunkCount: r.chunk_count, title: r.title }]),
+    );
   }
   /**
    * Inserts a chunk with its embedding.
    */
   insertChunk(pagePath: string, title: string, chunk: string, embedding: Float32Array): void {
     const buf = Buffer.from(embedding.buffer);
-    this.db.prepare(
-      "INSERT INTO wiki_pages (path, title, chunk, embedding) VALUES (?, ?, ?, ?)",
-    ).run(pagePath, title, chunk, buf);
+    this.db
+      .prepare('INSERT INTO wiki_pages (path, title, chunk, embedding) VALUES (?, ?, ?, ?)')
+      .run(pagePath, title, chunk, buf);
   }
 
   /**
@@ -258,7 +264,8 @@ export class VectorStore {
    */
   search(queryEmbedding: Float32Array, k: number = 5): SearchResult[] {
     const buf = Buffer.from(queryEmbedding.buffer);
-    const rows = this.db.prepare(`
+    const rows = this.db
+      .prepare(`
       SELECT
         path,
         title,
@@ -267,9 +274,10 @@ export class VectorStore {
       FROM wiki_pages
       ORDER BY distance ASC
       LIMIT ?
-    `).all(buf, k) as { path: string; title: string; chunk: string; distance: number }[];
+    `)
+      .all(buf, k) as { path: string; title: string; chunk: string; distance: number }[];
 
-    return rows.map(r => ({
+    return rows.map((r) => ({
       path: r.path,
       title: r.title,
       chunk: r.chunk,
@@ -281,7 +289,7 @@ export class VectorStore {
    * Returns the total number of embedded chunks.
    */
   count(): number {
-    const row = this.db.prepare("SELECT COUNT(*) AS cnt FROM wiki_pages").get() as { cnt: number };
+    const row = this.db.prepare('SELECT COUNT(*) AS cnt FROM wiki_pages').get() as { cnt: number };
     return row.cnt;
   }
 
@@ -289,8 +297,10 @@ export class VectorStore {
    * Returns all distinct page paths in the store.
    */
   pagePaths(): string[] {
-    const rows = this.db.prepare("SELECT DISTINCT path FROM wiki_pages ORDER BY path").all() as { path: string }[];
-    return rows.map(r => r.path);
+    const rows = this.db.prepare('SELECT DISTINCT path FROM wiki_pages ORDER BY path').all() as {
+      path: string;
+    }[];
+    return rows.map((r) => r.path);
   }
 
   close(): void {
@@ -316,18 +326,18 @@ const CHUNK_OVERLAP = 150;
  */
 export function chunkMarkdown(content: string): string[] {
   // Strip frontmatter
-  const withoutFrontmatter = content.replace(/^---[\s\S]*?---\s*/, "");
+  const withoutFrontmatter = content.replace(/^---[\s\S]*?---\s*/, '');
   const paragraphs = withoutFrontmatter.split(/\n\s*\n/);
   const chunks: string[] = [];
-  let current = "";
+  let current = '';
 
   for (const para of paragraphs) {
     if (current.length + para.length + 2 > MAX_CHUNK_LENGTH && current.length > 0) {
       chunks.push(current.trim());
       const overlap = current.slice(-CHUNK_OVERLAP);
-      current = overlap + "\n\n" + para;
+      current = overlap + '\n\n' + para;
     } else {
-      current = current ? current + "\n\n" + para : para;
+      current = current ? current + '\n\n' + para : para;
     }
   }
 
@@ -342,13 +352,13 @@ export function chunkMarkdown(content: string): string[] {
       result.push(chunk);
     } else {
       const sentences = chunk.split(/(?<=[.!?])\s+/);
-      let buf = "";
+      let buf = '';
       for (const sentence of sentences) {
         if (buf.length + sentence.length + 1 > MAX_CHUNK_LENGTH && buf.length > 0) {
           result.push(buf.trim());
           buf = sentence;
         } else {
-          buf = buf ? buf + " " + sentence : sentence;
+          buf = buf ? buf + ' ' + sentence : sentence;
         }
       }
       if (buf.trim().length > 0) {
@@ -357,7 +367,7 @@ export function chunkMarkdown(content: string): string[] {
     }
   }
 
-  return result.length > 0 ? result : [withoutFrontmatter.trim()].filter(s => s.length > 0);
+  return result.length > 0 ? result : [withoutFrontmatter.trim()].filter((s) => s.length > 0);
 }
 
 /**
@@ -367,14 +377,14 @@ export function extractTitle(content: string): string {
   // Try YAML frontmatter title field
   const fmMatch = content.match(/^---[\s\S]*?^title:\s*(.+)$/m);
   if (fmMatch) {
-    return fmMatch[1].trim().replace(/^["']|["']$/g, "");
+    return fmMatch[1].trim().replace(/^["']|["']$/g, '');
   }
   // Try first markdown heading
   const headingMatch = content.match(/^#\s+(.+)$/m);
   if (headingMatch) {
     return headingMatch[1].trim();
   }
-  return "";
+  return '';
 }
 
 /**
@@ -388,7 +398,7 @@ export async function collectMarkdownFiles(dirPath: string): Promise<string[]> {
     if (entry.isDirectory()) {
       const subResults = await collectMarkdownFiles(fullPath);
       results.push(...subResults);
-    } else if (entry.isFile() && entry.name.endsWith(".md")) {
+    } else if (entry.isFile() && entry.name.endsWith('.md')) {
       results.push(fullPath);
     }
   }
@@ -424,9 +434,9 @@ export async function indexWiki(
 
   // Collect all markdown files, excluding index.md and _plan.md
   const allFiles = await collectMarkdownFiles(wikiRoot);
-  const mdFiles = allFiles.filter(f => {
+  const mdFiles = allFiles.filter((f) => {
     const base = path.basename(f);
-    return base !== "index.md" && base !== "_plan.md";
+    return base !== 'index.md' && base !== '_plan.md';
   });
 
   let chunksIndexed = 0;
@@ -436,7 +446,7 @@ export async function indexWiki(
     const relativePath = path.relative(wikiRoot, filePath);
 
     try {
-      const content = await readFile(filePath, "utf8");
+      const content = await readFile(filePath, 'utf8');
       const title = extractTitle(content);
       const chunks = chunkMarkdown(content);
       const fileStat = await stat(filePath);
@@ -468,7 +478,10 @@ export async function indexWiki(
  * Opens an existing vector store for querying, or returns null if the
  * database doesn't exist yet.
  */
-export async function openVectorStore(dbPath: string, dimension: number): Promise<VectorStore | null> {
+export async function openVectorStore(
+  dbPath: string,
+  dimension: number,
+): Promise<VectorStore | null> {
   try {
     const s = await stat(dbPath);
     if (!s.isFile()) {
@@ -512,9 +525,9 @@ export async function detectStaleFiles(
     const metaMap = store.allPageMeta();
 
     const allFiles = await collectMarkdownFiles(wikiRoot);
-    const mdFiles = allFiles.filter(f => {
+    const mdFiles = allFiles.filter((f) => {
       const base = path.basename(f);
-      return base !== "index.md" && base !== "_plan.md";
+      return base !== 'index.md' && base !== '_plan.md';
     });
 
     const currentPaths = new Set<string>();
@@ -622,7 +635,7 @@ export async function syncEmbeddings(
     for (const relativePath of changedPaths) {
       const filePath = path.join(wikiRoot, relativePath);
       try {
-        const content = await readFile(filePath, "utf8");
+        const content = await readFile(filePath, 'utf8');
         const title = extractTitle(content);
         const chunks = chunkMarkdown(content);
         const fileStat = await stat(filePath);
