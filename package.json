@@ -35,7 +35,7 @@
     "lint:fix": "oxlint --react-plugin --vitest-plugin --import-plugin --fix",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
-    "prepare": "husky"
+    "prepare": "husky || true"
   },
   "dependencies": {
     "@ast-grep/cli": "^0.45.0",
