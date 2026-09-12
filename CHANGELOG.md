@@ -1,3 +1,10 @@
+## [1.20.4](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.20.3...v1.20.4) (2026-09-12)
+
+
+### Bug Fixes
+
+* do not fail pack/publish when husky is unavailable ([a8424be](https://github.com/nx-solutions-ug/wiki-agent/commit/a8424bec13ef8e3986ed42aeccec9d18f32bc1ab))
+
 ## [1.20.3](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.20.2...v1.20.3) (2026-09-12)
 
 
