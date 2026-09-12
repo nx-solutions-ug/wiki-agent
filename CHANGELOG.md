@@ -1,3 +1,10 @@
+## [1.20.2](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.20.1...v1.20.2) (2026-09-12)
+
+
+### Bug Fixes
+
+* **ci:** bind the head SHA with real jq, not gh api --jq ([c214b33](https://github.com/nx-solutions-ug/wiki-agent/commit/c214b33dcf4aee41e14a3b219bc5d563cad5d338))
+
 ## [1.20.1](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.20.0...v1.20.1) (2026-09-10)
 
 
