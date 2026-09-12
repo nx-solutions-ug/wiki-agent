@@ -85,7 +85,7 @@ Developers or PR authors often reply explaining intentional design decisions, ar
    - Inspect comments from PR authors, human reviewers, or peer agents in `thread_comments[]`.
    - Extract technical claims, rationale, or domain context provided in comments.
 2. **Ground and verify claims against project standards & codebase**:
-   - Query `AGENTS.md`, `.wiki/`, and surrounding code to verify whether the developer's claim conforms to documented project standards or intentional architecture.
+   - Query `AGENTS.md` and surrounding code to verify whether the developer's claim conforms to documented project standards or intentional architecture.
 3. **Assess the impact of developer justifications**:
    - **Sound & Justified Claims**: If the explanation provides a sound, technically valid justification (e.g. deliberate design override, documented exception, intentional API contract):
      - **Accept the justification**: Do NOT treat this pattern as a violation or re-raise it.
@@ -141,7 +141,7 @@ git diff "$BASE"...HEAD -- src/tui/
 
 ### Review Criteria (wiki-agent Standards)
 
-Check for ALL of the following (backed by `AGENTS.md` and `.wiki/`):
+Check for ALL of the following (backed by `AGENTS.md`):
 - **Imports**: ESM `.js` extensions on ALL relative imports (required by `nodenext`): `import { runAgent } from "./agent.js"`. Never extensionless relative imports. Node built-ins use the `node:` prefix (`node:fs/promises`, `node:path`, `node:child_process`).
 - **Type Safety**: TypeScript strict mode compliance. NEVER allow `as any` or `@ts-ignore` / `@ts-expect-error` (tool-call arg narrowing uses precise casts such as `args.path as string` — flag anything looser).
 - **Path safety**: All file writes MUST go through `resolveWikiPath` (enforces the resolved path stays under `.wiki/`, throws on `../` or absolute escapes). All file reads (`read_file`, `ls`, `grep`, `glob`) MUST go through `resolveProjectPath` (enforces the path stays within the project root). Direct `path.join`/`path.resolve` bypasses are path-safety violations.
@@ -152,7 +152,6 @@ Check for ALL of the following (backed by `AGENTS.md` and `.wiki/`):
 - **Package manager**: Bun (`bun install`, `bun.lock`) manages dependencies and packs (`bun pm pack`). Do NOT introduce or reference `package-lock.json` or `yarn.lock`. Node.js >=22 is the execution runtime.
 - **Build**: `tsc -p tsconfig.json` only — no bundler, no swc. Output is plain ESM in `dist/` (`bin: ./dist/cli.js`).
 - **Testing**: Vitest 4, tests in `test/` importing source directly from `../src/<file>.ts` (never `dist/`). Every test file MUST isolate the filesystem via a `tempDir()` helper (`mkdtemp` under `os.tmpdir()`) with `beforeEach`/`afterEach` cleanup. Tests are deterministic — no network calls, no real Ollama client. New behavior requires new tests following this pattern.
-- **Self-hosting**: `.wiki/` in this repo is the product's own generated output — treat it as generated artifacts (regenerate via `wiki --update`), not hand-authored docs. Note: `.wiki/wiki.db` and `.last-update-*` artifacts are gitignored; markdown pages are tracked.
 
 **What to Avoid**:
 - Do NOT comment on pre-existing code outside of this PR's diff.

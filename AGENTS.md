@@ -49,7 +49,6 @@ test/
   config.test.ts         # Config load/save, resolveConfig precedence
   prompt.test.ts         # System prompt content assertions
   index-middleware.test.ts # index.md generation from frontmatter
-.wiki/                   # Self-generated wiki for this repo (the product's own output)
 .github/workflows/        # Empty here — workflow is written into target repos by --init
 ```
 
@@ -162,7 +161,6 @@ None currently known.
 - **Build**: `tsc -p tsconfig.json` only — no bundler, no swc. Output is plain CommonJS-compatible ESM in `dist/`.
 - **Test runner**: Vitest 4 (`vitest run`). No coverage config; use `--coverage` ad hoc if needed.
 - **Renovate**: `config:recommended`, no custom rules.
-- **Self-hosting note**: this repo's `.wiki/` is its own product's output. When working here, treat `.wiki/` as generated artifacts, not hand-authored docs — regenerate via `wiki --update` rather than editing by hand.
 
 ## Testing & QA
 
@@ -189,16 +187,3 @@ npx vitest run test/tools.test.ts   # single file
 ```
 
 **Adding tests for a new feature**: follow the `tempDir` + `beforeEach`/`afterEach` pattern. Import the function directly from `src/`. Keep tests deterministic and filesystem-isolated — no network calls, no real Ollama client.
-
-<!-- wiki-agent -->
-## Wiki Agent
-
-This repository is managed by [wiki-agent](https://github.com/nx-solutions-ug/wiki-agent).
-Documentation is generated under `.wiki/` and kept in sync via `wiki --update`.
-Do not hand-edit files under `.wiki/` — regenerate them with `wiki --update` instead.
-
-```yaml
-version: 1.17.0
-wiki-path: .wiki/
-initialized: 2026-08-18T07:10:20.443Z
-```
