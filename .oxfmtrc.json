@@ -8,6 +8,7 @@
   "endOfLine": "lf",
   "ignorePatterns": [
     "node_modules/**",
+    "dashboard/**",
     "dist/**",
     "build/**",
     "out/**",

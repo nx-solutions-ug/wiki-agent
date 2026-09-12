@@ -24,5 +24,12 @@
     "vitest/expect-expect": "warn",
     "react-hooks/exhaustive-deps": "warn"
   },
-  "ignorePatterns": ["node_modules/**", "dist/**", "build/**", "out/**", ".worktrees/**"]
+  "ignorePatterns": [
+    "node_modules/**",
+    "dashboard/**",
+    "dist/**",
+    "build/**",
+    "out/**",
+    ".worktrees/**"
+  ]
 }
