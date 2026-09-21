@@ -311,10 +311,10 @@ jobs:
       # scripts. On a plain `pull_request` from a fork GitHub withholds the
       # secrets, but this workflow also triggers on `pull_request_review` and
       # `pull_request_review_comment`, which carry them regardless of where the
-      # PR came from — and the gate for those paths only asks whether the
-      # reviewer's login contains `jules`, which anyone can arrange for their
-      # own PR. Installing first means no privileged token is sitting in the
-      # runner's gh config while PR-controlled code runs.
+      # PR came from — and those paths check out the fork's own head even when
+      # the reviewer genuinely is Jules, which the gate below requires. The
+      # PR's code runs either way; installing first means it does not run next
+      # to a privileged token in the runner's gh config.
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
