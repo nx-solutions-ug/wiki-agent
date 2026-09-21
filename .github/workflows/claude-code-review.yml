@@ -295,6 +295,35 @@ jobs:
           fetch-depth: 0 # Required for git diff against base branch to prevent HTTP 406 on >300 files
           persist-credentials: false
 
+      # The reviewer used to read the diff without ever being able to run the
+      # gates the diff has to pass: no node_modules meant `bun run lint` and
+      # `bun run type-check` failed, and reviews said so instead of verifying.
+      # Versions match test.yml, so what the reviewer sees is what the Lint and
+      # Type Check gates report.
+      #
+      # Installed BEFORE the app token exists, and the order is the security
+      # property. `bun install` runs the checked-out PR's own lifecycle
+      # scripts. On a plain `pull_request` from a fork GitHub withholds the
+      # secrets, but this workflow also triggers on `pull_request_review` and
+      # `pull_request_review_comment`, which carry them regardless of where the
+      # PR came from — and the gate for those paths only asks whether the
+      # reviewer's login contains `jules`, which anyone can arrange for their
+      # own PR. Installing first means no privileged token is sitting in the
+      # runner's gh config while PR-controlled code runs.
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.2'
+
+      - name: Install dependencies
+        id: install
+        # A failing install must not cost the PR its review — a lockfile that
+        # will not resolve is itself worth reviewing. The step's outcome is
+        # handed to Claude as TOOLCHAIN_READY, and the prompt falls back to
+        # reading the diff when it is false.
+        continue-on-error: true
+        run: bun install --frozen-lockfile
+
       - name: Generate app token
         id: app-token
         uses: actions/create-github-app-token@v3
@@ -318,6 +347,10 @@ jobs:
       - name: Run code review
         id: claude
         uses: anthropics/claude-code-action@v1
+        # Consumed by review-pr.md's gate step. Step-level, because job-level
+        # `env` cannot read `steps.*`.
+        env:
+          TOOLCHAIN_READY: ${{ steps.install.outcome == 'success' }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ steps.app-token.outputs.token }}
