@@ -44,6 +44,22 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      # The agent holds Edit and Write and a commit/push contract, so it needs
+      # the gates it is expected to leave green. Versions match test.yml.
+      # Unlike claude-code-review this job checks out the default branch rather
+      # than a PR head, so what runs here is the repository's own code.
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.4.2'
+
+      - name: Install dependencies
+        id: install
+        # A freeform prompt is not worth failing over a lockfile the agent was
+        # probably asked to fix.
+        continue-on-error: true
+        run: bun install --frozen-lockfile
+
       - name: Generate app token
         id: app-token
         uses: actions/create-github-app-token@v3
@@ -130,6 +146,12 @@ jobs:
         if: steps.build-prompt.outputs.has_prompt == 'true'
         id: claude
         uses: anthropics/claude-code-action@v1
+        # `/claude review-pr 42` resolves the same .claude/commands/review-pr.md
+        # that claude-code-review runs, and its gate step reads this. Without it
+        # the reviewer reported a failed install on a path where the install had
+        # just succeeded.
+        env:
+          TOOLCHAIN_READY: ${{ steps.install.outcome == 'success' }}
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ steps.app-token.outputs.token }}
