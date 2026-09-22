@@ -196,12 +196,21 @@ How to read the output:
 - **Lint warnings on changed lines**: report them. Warnings do not fail the Lint
   gate, so a new one reaches `main` unless a reviewer names it. Report the rule
   and what it flags, not a style opinion.
-- **`format:check` failures**: one line in the review body naming the files. Do
-  not post per-line formatting comments.
+- **`format:check` failures**: only the files this PR touched are this PR's to
+  report — one line in the review body naming them, and no per-line formatting
+  comments. `oxfmt` walks the whole workspace and formats JSON as well as TS, so
+  a single unreadable or unparseable file anywhere fails the run with exit 2 and
+  says nothing about the diff. When the named file is outside the diff, re-run
+  the check scoped to the changed files (`bunx oxfmt --check $CHANGED`) and
+  report that result instead. The review body is for the PR: leave the
+  environment's own troubles out of it.
 
 State in the review body which of these you actually ran. A review that claims
 verification it did not perform is worse than one that admits reading only the
-diff.
+diff. The same holds for causes: name one only from output you actually saw in
+this run. The CI action rewrites paths of its own before handing the PR over
+(`.claude/`, `.mcp.json`, `.claude-pr/`, `.husky/`) and logs that it did — that
+log line is not evidence that one of them broke a gate.
 
 ## Step 5: Deduplicate Findings
 
