@@ -196,12 +196,33 @@ How to read the output:
 - **Lint warnings on changed lines**: report them. Warnings do not fail the Lint
   gate, so a new one reaches `main` unless a reviewer names it. Report the rule
   and what it flags, not a style opinion.
-- **`format:check` failures**: one line in the review body naming the files. Do
-  not post per-line formatting comments.
+- **`format:check` failures**: only the files this PR touched are this PR's to
+  report — one line in the review body naming them, and no per-line formatting
+  comments. `oxfmt` walks the whole workspace and formats JSON and Markdown as
+  well as TS, so a single unreadable or unparseable file anywhere fails the run
+  with exit 2 and says nothing about the diff. When the named file is outside
+  the diff, re-check this PR's own files instead and report that:
+
+  ```bash
+  BASE="origin/${BASE_REF:-main}"
+  git diff --name-only --diff-filter=d "$BASE"...HEAD | xargs -r bunx oxfmt --check
+  ```
+
+  Build that list here rather than reusing the lint step's `$CHANGED`: that one
+  is filtered to source extensions, so a PR touching none of them leaves it
+  empty — and `oxfmt --check` with no paths is the whole-workspace check again,
+  reproducing the failure this bullet exists to keep out of the review. The
+  `xargs -r` is what stops an empty list from doing that.
 
 State in the review body which of these you actually ran. A review that claims
 verification it did not perform is worse than one that admits reading only the
-diff.
+diff. The same holds for causes: name one only from output you actually saw in
+this run. Before handing the PR over, the CI action restores its own set of
+paths from the base branch — `.claude`, `.mcp.json`, `.claude.json`,
+`.gitmodules`, `.ripgreprc`, `CLAUDE.md`, `CLAUDE.local.md`, `.husky` — and logs
+that it did; that log line alone is not evidence that one of them broke a gate.
+Note what is not on that list: `.claude-pr/` is written by the action, not
+restored from base, so a failure there is still a failure worth reading.
 
 ## Step 5: Deduplicate Findings
 
