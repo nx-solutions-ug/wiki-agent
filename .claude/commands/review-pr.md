@@ -198,12 +198,21 @@ How to read the output:
   and what it flags, not a style opinion.
 - **`format:check` failures**: only the files this PR touched are this PR's to
   report — one line in the review body naming them, and no per-line formatting
-  comments. `oxfmt` walks the whole workspace and formats JSON as well as TS, so
-  a single unreadable or unparseable file anywhere fails the run with exit 2 and
-  says nothing about the diff. When the named file is outside the diff, re-run
-  the check scoped to the changed files (`bunx oxfmt --check $CHANGED`) and
-  report that result instead. The review body is for the PR: leave the
-  environment's own troubles out of it.
+  comments. `oxfmt` walks the whole workspace and formats JSON and Markdown as
+  well as TS, so a single unreadable or unparseable file anywhere fails the run
+  with exit 2 and says nothing about the diff. When the named file is outside
+  the diff, re-check this PR's own files instead and report that:
+
+  ```bash
+  BASE="origin/${BASE_REF:-main}"
+  git diff --name-only --diff-filter=d "$BASE"...HEAD | xargs -r bunx oxfmt --check
+  ```
+
+  Build that list here rather than reusing the lint step's `$CHANGED`: that one
+  is filtered to source extensions, so a PR touching none of them leaves it
+  empty — and `oxfmt --check` with no paths is the whole-workspace check again,
+  reproducing the failure this bullet exists to keep out of the review. The
+  `xargs -r` is what stops an empty list from doing that.
 
 State in the review body which of these you actually ran. A review that claims
 verification it did not perform is worse than one that admits reading only the
