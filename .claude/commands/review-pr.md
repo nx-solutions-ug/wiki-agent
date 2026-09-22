@@ -217,9 +217,12 @@ How to read the output:
 State in the review body which of these you actually ran. A review that claims
 verification it did not perform is worse than one that admits reading only the
 diff. The same holds for causes: name one only from output you actually saw in
-this run. The CI action rewrites paths of its own before handing the PR over
-(`.claude/`, `.mcp.json`, `.claude-pr/`, `.husky/`) and logs that it did — that
-log line is not evidence that one of them broke a gate.
+this run. Before handing the PR over, the CI action restores its own set of
+paths from the base branch — `.claude`, `.mcp.json`, `.claude.json`,
+`.gitmodules`, `.ripgreprc`, `CLAUDE.md`, `CLAUDE.local.md`, `.husky` — and logs
+that it did; that log line alone is not evidence that one of them broke a gate.
+Note what is not on that list: `.claude-pr/` is written by the action, not
+restored from base, so a failure there is still a failure worth reading.
 
 ## Step 5: Deduplicate Findings
 
