@@ -1,3 +1,10 @@
+## [1.20.5](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.20.4...v1.20.5) (2026-10-05)
+
+
+### Bug Fixes
+
+* **deps:** update dependency ink to v8 ([#195](https://github.com/nx-solutions-ug/wiki-agent/issues/195)) ([306463e](https://github.com/nx-solutions-ug/wiki-agent/commit/306463efd1fa083025e23e79dd80e642f7fdcbc5))
+
 ## [1.20.4](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.20.3...v1.20.4) (2026-09-12)
 
 
