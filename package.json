@@ -38,7 +38,7 @@
     "prepare": "husky || true"
   },
   "dependencies": {
-    "@ast-grep/cli": "^0.45.0",
+    "@ast-grep/cli": "^0.50.0",
     "@huggingface/transformers": "^4.2.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "better-sqlite3": "^13.0.3",
