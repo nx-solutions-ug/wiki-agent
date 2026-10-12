@@ -1,3 +1,10 @@
+## [1.20.7](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.20.6...v1.20.7) (2026-10-12)
+
+
+### Bug Fixes
+
+* **ci:** run the Claude agent as chronova-agent[bot] and allow it in dependency review ([#199](https://github.com/nx-solutions-ug/wiki-agent/issues/199)) ([f5b113c](https://github.com/nx-solutions-ug/wiki-agent/commit/f5b113c33a5e7c3708a09fbecadbed14b6e72e9a))
+
 ## [1.20.6](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.20.5...v1.20.6) (2026-10-12)
 
 
