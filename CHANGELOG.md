@@ -1,3 +1,10 @@
+## [1.20.8](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.20.7...v1.20.8) (2026-10-16)
+
+
+### Bug Fixes
+
+* **deps:** update dependency @ast-grep/cli to ^0.51.0 ([#201](https://github.com/nx-solutions-ug/wiki-agent/issues/201)) ([ed03af6](https://github.com/nx-solutions-ug/wiki-agent/commit/ed03af6207d1883b67020bd6e1868499114badf4))
+
 ## [1.20.7](https://github.com/nx-solutions-ug/wiki-agent/compare/v1.20.6...v1.20.7) (2026-10-12)
 
 
